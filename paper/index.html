@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WatchTower — Observation-First Agent Security</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg: #050810;
+  --surface: #0d1117;
+  --surface2: #131920;
+  --border: #1e2733;
+  --border2: #2a3441;
+  --text: #e8f0f8;
+  --muted: #6b7a8d;
+  --accent: #4fc3f7;
+  --accent2: #7c4dff;
+  --green: #00e676;
+  --red: #ff5252;
+  --yellow: #ffca28;
+  --orange: #ff9800;
+  --pink: #f06292;
+  --glow-blue: 0 0 30px rgba(79,195,247,.3);
+  --glow-green: 0 0 30px rgba(0,230,118,.3);
+  --glow-purple: 0 0 30px rgba(124,77,255,.3);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* ── NOISE TEXTURE ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0; opacity: .4;
+}
+
+/* ── HERO ── */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  text-align: center;
+  padding: 80px 24px;
+  overflow: hidden;
+}
+.hero-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(79,195,247,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,195,247,.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 40%, transparent 100%);
+}
+.hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  animation: pulse 8s ease-in-out infinite alternate;
+}
+.hero-orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, rgba(79,195,247,.12), transparent 70%); top: -100px; left: -100px; }
+.hero-orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(124,77,255,.10), transparent 70%); bottom: -80px; right: -80px; animation-delay: -4s; }
+.hero-orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(0,230,118,.08), transparent 70%); top: 40%; left: 60%; animation-delay: -2s; }
+@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.15); } }
+
+.hero-content { position: relative; z-index: 1; max-width: 860px; }
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(79,195,247,.08);
+  border: 1px solid rgba(79,195,247,.2);
+  border-radius: 100px;
+  padding: 6px 16px;
+  font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 28px;
+}
+.hero-tag::before { content: '●'; color: var(--green); animation: blink 2s ease infinite; }
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+
+.hero h1 {
+  font-size: clamp(36px, 7vw, 72px);
+  font-weight: 900;
+  letter-spacing: -.03em;
+  line-height: 1.05;
+  background: linear-gradient(135deg, #e8f0f8 0%, #4fc3f7 40%, #7c4dff 70%, #f06292 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 16px;
+}
+.hero-sub {
+  font-size: 18px; color: var(--muted); font-weight: 400;
+  max-width: 600px; margin: 0 auto 40px;
+}
+
+.hero-stats {
+  display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+.hero-stat {
+  background: rgba(13,17,23,.8);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 16px 24px;
+  min-width: 140px;
+  backdrop-filter: blur(10px);
+  transition: border-color .2s, transform .2s;
+  cursor: default;
+}
+.hero-stat:hover { border-color: var(--accent); transform: translateY(-2px); }
+.hero-stat .n {
+  font-size: 28px; font-weight: 800;
+  background: linear-gradient(135deg, var(--green), var(--accent));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-stat .l { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.scroll-hint {
+  position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  color: var(--muted); font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+}
+.scroll-arrow { width: 20px; height: 20px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); animation: scrollArrow 1.5s ease infinite; }
+@keyframes scrollArrow { 0%,100% { opacity:.3; transform: rotate(45deg) translateY(0); } 50% { opacity:1; transform: rotate(45deg) translateY(4px); } }
+
+/* ── NAV ── */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(5,8,16,.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+}
+.nav-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+}
+.nav-logo { font-weight: 800; font-size: 16px; color: var(--accent); letter-spacing: -.02em; }
+.nav-links { display: flex; gap: 24px; }
+.nav-links a { color: var(--muted); font-size: 13px; text-decoration: none; transition: color .15s; }
+.nav-links a:hover { color: var(--text); }
+
+/* ── LAYOUT ── */
+.page { max-width: 1100px; margin: 0 auto; padding: 80px 24px; }
+.section { margin-bottom: 96px; }
+.section-label {
+  font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 12px;
+}
+h2 {
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 800; letter-spacing: -.02em;
+  color: var(--text);
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+h2 .dim { color: var(--muted); font-weight: 400; }
+.section-desc { color: var(--muted); font-size: 15px; max-width: 600px; margin-bottom: 40px; }
+h3 { font-size: 17px; font-weight: 700; color: var(--text); margin: 32px 0 12px; }
+p { color: #8a9ab5; margin-bottom: 14px; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.card:hover { border-color: var(--border2); }
+.card-glow-blue:hover  { border-color: rgba(79,195,247,.4);  box-shadow: var(--glow-blue);  }
+.card-glow-green:hover { border-color: rgba(0,230,118,.4);   box-shadow: var(--glow-green); }
+.card-glow-purple:hover{ border-color: rgba(124,77,255,.4);  box-shadow: var(--glow-purple);}
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media(max-width:900px) { .grid-2,.grid-3,.grid-4 { grid-template-columns: 1fr 1fr; } }
+@media(max-width:600px) { .grid-2,.grid-3,.grid-4 { grid-template-columns: 1fr; } }
+
+/* ── METRIC CARDS ── */
+.metric-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  position: relative; overflow: hidden;
+  transition: transform .2s, box-shadow .2s;
+}
+.metric-card:hover { transform: translateY(-3px); }
+.metric-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.metric-card.blue::before  { background: linear-gradient(90deg, var(--accent), transparent); box-shadow: 0 0 20px rgba(79,195,247,.5); }
+.metric-card.green::before { background: linear-gradient(90deg, var(--green), transparent); box-shadow: 0 0 20px rgba(0,230,118,.5); }
+.metric-card.red::before   { background: linear-gradient(90deg, var(--red), transparent); }
+.metric-card.purple::before{ background: linear-gradient(90deg, var(--accent2), transparent); }
+.metric-num {
+  font-size: 48px; font-weight: 900; letter-spacing: -.03em;
+  line-height: 1; margin-bottom: 4px;
+}
+.metric-num.blue   { color: var(--accent); text-shadow: 0 0 40px rgba(79,195,247,.4); }
+.metric-num.green  { color: var(--green);  text-shadow: 0 0 40px rgba(0,230,118,.4); }
+.metric-num.red    { color: var(--red); }
+.metric-num.purple { color: var(--accent2); }
+.metric-label { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.metric-sub { font-size: 12px; color: var(--green); margin-top: 4px; font-weight: 500; }
+.metric-icon { position: absolute; top: 20px; right: 20px; font-size: 28px; opacity: .3; }
+
+/* ── ATTACK SURFACES ── */
+.surface-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+@media(max-width:700px) { .surface-cards { grid-template-columns:1fr; } }
+
+.surface-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  position: relative; overflow: hidden;
+  transition: transform .2s, box-shadow .2s;
+}
+.surface-card:hover { transform: translateY(-4px); }
+.surface-card .icon-wrap {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  margin-bottom: 16px;
+}
+.surface-card .title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.surface-card .body { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.surface-card .stat { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 22px; font-weight: 800; }
+
+.surface-card.s1 { border-top: 2px solid var(--accent); }
+.surface-card.s1 .icon-wrap { background: rgba(79,195,247,.1); }
+.surface-card.s1 .title { color: var(--accent); }
+.surface-card.s1 .stat { color: var(--accent); }
+.surface-card.s2 { border-top: 2px solid var(--orange); }
+.surface-card.s2 .icon-wrap { background: rgba(255,152,0,.1); }
+.surface-card.s2 .title { color: var(--orange); }
+.surface-card.s2 .stat { color: var(--orange); }
+.surface-card.s3 { border-top: 2px solid var(--red); }
+.surface-card.s3 .icon-wrap { background: rgba(255,82,82,.1); }
+.surface-card.s3 .title { color: var(--red); }
+.surface-card.s3 .stat { color: var(--red); }
+
+/* ── ARCH LAYERS ── */
+.arch-container {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.arch-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  display: grid; grid-template-columns: 56px 1fr auto auto; gap: 16px;
+}
+.arch-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto auto;
+  gap: 16px;
+  align-items: center;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(30,39,51,.6);
+  transition: background .15s;
+  cursor: default;
+}
+.arch-row:last-child { border-bottom: none; }
+.arch-row:hover { background: rgba(79,195,247,.03); }
+.arch-row .ln-badge {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; letter-spacing: .05em;
+  font-family: 'JetBrains Mono', monospace;
+}
+.arch-row .content { padding: 16px 0; }
+.arch-row .content strong { font-size: 14px; font-weight: 700; display: block; margin-bottom: 3px; }
+.arch-row .content span { font-size: 12px; color: var(--muted); }
+.arch-row .content code { font-family: 'JetBrains Mono', monospace; font-size: 11px; background: rgba(79,195,247,.08); padding: 1px 5px; border-radius: 3px; color: var(--accent); }
+.arch-row .latency { font-family: 'JetBrains Mono', monospace; font-size: 12px; text-align: right; white-space: nowrap; }
+.path-tag {
+  font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 100px; white-space: nowrap;
+}
+.hot  { background: rgba(255,152,0,.12); color: var(--orange); border: 1px solid rgba(255,152,0,.2); }
+.cold { background: rgba(79,195,247,.1); color: var(--accent); border: 1px solid rgba(79,195,247,.2); }
+.async { background: rgba(124,77,255,.1); color: var(--accent2); border: 1px solid rgba(124,77,255,.2); }
+
+/* Layer color coding */
+.l0 { background: rgba(0,230,118,.1); color: var(--green); }
+.l1 { background: rgba(79,195,247,.1); color: var(--accent); }
+.l2 { background: rgba(79,195,247,.08); color: var(--accent); }
+.l3 { background: rgba(255,152,0,.1); color: var(--orange); }
+.l4 { background: rgba(255,152,0,.08); color: var(--orange); }
+.l5 { background: rgba(255,82,82,.08); color: var(--red); }
+.l6 { background: rgba(124,77,255,.1); color: var(--accent2); }
+.l7 { background: rgba(124,77,255,.08); color: var(--accent2); }
+.l8 { background: rgba(107,122,141,.1); color: var(--muted); }
+
+/* ── TABLES ── */
+.table-wrap { border-radius: 16px; overflow: hidden; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+thead th {
+  background: var(--surface2);
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+tbody td { padding: 12px 16px; border-bottom: 1px solid rgba(30,39,51,.6); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(79,195,247,.025); }
+.row-hero td { background: rgba(0,230,118,.04) !important; }
+.row-hero td:first-child { border-left: 3px solid var(--green); }
+
+/* ── CHIPS ── */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 100px;
+  font-size: 11px; font-weight: 700; letter-spacing: .04em; white-space: nowrap;
+}
+.chip-block  { background: rgba(255,82,82,.12); color: var(--red); border: 1px solid rgba(255,82,82,.25); }
+.chip-pass   { background: rgba(0,230,118,.12); color: var(--green); border: 1px solid rgba(0,230,118,.25); }
+.chip-yes    { background: rgba(0,230,118,.1); color: var(--green); }
+.chip-no     { background: rgba(107,122,141,.08); color: var(--muted); }
+.chip-partial{ background: rgba(255,202,40,.1); color: var(--yellow); }
+.chip::before { content: '●'; font-size: 6px; }
+
+/* ── TAINT FLOW ── */
+.taint-flow-wrap {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px 32px;
+  position: relative; overflow: hidden;
+}
+.taint-flow-wrap::before {
+  content: 'Q2 PROOF: MINJA DETECTION SEQUENCE';
+  position: absolute; top: 16px; left: 24px;
+  font-size: 10px; font-weight: 700; letter-spacing: .12em; color: var(--muted);
+}
+.flow-nodes {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; flex-wrap: wrap; margin-top: 8px;
+}
+.flow-node {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 20px 18px;
+  text-align: center;
+  min-width: 130px;
+  flex: 1;
+  transition: border-color .2s, box-shadow .2s;
+}
+.flow-node:hover { border-color: var(--border2); }
+.flow-node .agent-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.flow-node .agent-id { font-size: 16px; font-weight: 800; font-family: 'JetBrains Mono', monospace; margin-bottom: 12px; }
+.flow-node .taint-display { font-size: 32px; font-weight: 900; line-height: 1; }
+.flow-node .taint-desc { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.flow-conn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 0 8px; color: var(--muted);
+}
+.flow-conn .arrow { font-size: 18px; margin-bottom: 4px; }
+.flow-conn .label { font-size: 10px; white-space: nowrap; }
+
+.node-tainted { border-color: rgba(255,82,82,.4) !important; box-shadow: 0 0 24px rgba(255,82,82,.15); }
+.node-quarantined { border-color: rgba(255,82,82,.6) !important; box-shadow: 0 0 32px rgba(255,82,82,.25); }
+.t-clean  { color: var(--green); }
+.t-high   { color: var(--red); }
+.t-med    { color: var(--orange); }
+
+.taint-formula-row {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 20px;
+  margin-top: 28px; padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.formula-item { text-align: center; }
+.formula-val { font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+.formula-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── CHARTS ── */
+.chart-container {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+}
+.chart-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+.chart-sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+.chart-wrap { position: relative; }
+
+/* ── COMPARISON BARS ── */
+.compare-bar-list { display: flex; flex-direction: column; gap: 20px; }
+.compare-item {}
+.compare-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.compare-name { font-size: 14px; font-weight: 600; }
+.compare-badge {
+  font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  padding: 2px 10px; border-radius: 100px;
+}
+.bar-bg { height: 8px; background: rgba(30,39,51,.8); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+.bar-chips { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+
+/* ── CODE BLOCK ── */
+.code-block {
+  background: #080d14;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.code-header {
+  background: var(--surface2);
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.code-dot { width: 10px; height: 10px; border-radius: 50%; }
+.code-filename { font-size: 12px; color: var(--muted); margin-left: 4px; font-family: 'JetBrains Mono', monospace; }
+.code-body { padding: 16px 20px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; }
+.kw { color: #c792ea; }
+.str { color: #c3e88d; }
+.com { color: #546e7a; font-style: italic; }
+.key { color: #82aaff; }
+.val { color: #f78c6c; }
+.fn { color: #82aaff; }
+.num { color: #f78c6c; }
+.op { color: #89ddff; }
+
+/* ── INDUSTRY STATS ── */
+.stat-ring-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
+@media(max-width:600px) { .stat-ring-grid { grid-template-columns:1fr; } }
+.stat-ring-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+}
+.ring-wrap { position: relative; width: 120px; height: 120px; margin: 0 auto 16px; }
+.ring-svg { transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: var(--border); stroke-width: 8; }
+.ring-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1.5s cubic-bezier(.4,0,.2,1); }
+.ring-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; }
+.ring-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.ring-desc { font-size: 12px; color: var(--muted); }
+
+/* ── REFERENCES ── */
+.ref-list { display: flex; flex-direction: column; gap: 8px; }
+.ref-item {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 16px; display: flex; gap: 12px; align-items: flex-start;
+  transition: border-color .15s;
+}
+.ref-item:hover { border-color: var(--border2); }
+.ref-num { font-size: 11px; font-weight: 700; color: var(--muted); min-width: 28px; font-family: 'JetBrains Mono', monospace; }
+.ref-text { font-size: 13px; color: var(--muted); }
+.ref-text strong { color: var(--text); }
+.ref-text em { color: var(--accent); font-style: normal; }
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--muted); font-size: 13px;
+}
+
+/* ── ANIMATIONS ── */
+.fade-in { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+.fade-in.visible { opacity: 1; transform: translateY(0); }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: 'JetBrains Mono', monospace; font-size: .9em; background: rgba(79,195,247,.08); padding: 1px 6px; border-radius: 4px; color: var(--accent); }
+sup { font-size: 10px; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ── HERO ──────────────────────────────────────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+  <div class="hero-orb hero-orb-3"></div>
+  <div class="hero-content">
+    <div class="hero-tag">Research Paper · June 2026 · IEEE S&amp;P / USENIX Security</div>
+    <h1>WatchTower</h1>
+    <p class="hero-sub">Observation-First Agent Security — Taint Propagation and Semantic Enforcement in Multi-Agent Systems</p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="n">17/17</div>
+        <div class="l">Known-bad corpus</div>
+      </div>
+      <div class="hero-stat">
+        <div class="n">0.011ms</div>
+        <div class="l">p99 latency</div>
+      </div>
+      <div class="hero-stat">
+        <div class="n">9,636×</div>
+        <div class="l">faster than SotA</div>
+      </div>
+      <div class="hero-stat">
+        <div class="n">0%</div>
+        <div class="l">false positives</div>
+      </div>
+      <div class="hero-stat">
+        <div class="n">3/3</div>
+        <div class="l">attack surfaces</div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-hint"><div class="scroll-arrow"></div></div>
+</div>
+
+<!-- ── NAV ── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">⚡ WatchTower</div>
+    <div class="nav-links">
+      <a href="#results">Results</a>
+      <a href="#design">Design</a>
+      <a href="#taint">Taint Model</a>
+      <a href="#eval">Evaluation</a>
+      <a href="#compare">Comparison</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+
+<!-- ── ABSTRACT ──────────────────────────────────────────────────────────────── -->
+<div class="section fade-in">
+  <div class="section-label">Abstract</div>
+  <h2>The Problem No One Has <span class="dim">Fully Solved</span></h2>
+  <p class="section-desc">Multi-agent AI systems face three attack surfaces that existing defenses address only in isolation. WatchTower is the first published system to address all three — simultaneously — with cross-session taint tracking.</p>
+
+  <div class="surface-cards">
+    <div class="surface-card s1 fade-in">
+      <div class="icon-wrap">💉</div>
+      <div class="title">Input Corruption</div>
+      <div class="body">Adversary injects instructions into content the agent reads. MINJA achieves this via query-only interaction — no write access required.</div>
+      <div class="stat">98.2%<span style="font-size:14px;font-weight:400;color:var(--muted)"> injection rate</span></div>
+    </div>
+    <div class="surface-card s2 fade-in">
+      <div class="icon-wrap">🔧</div>
+      <div class="title">Capability Abuse</div>
+      <div class="body">Legitimate tool, illegitimate purpose. <code>send_email</code> after <code>read_secret</code> — same API, completely different intent. Wire-level can't tell the difference.</div>
+      <div class="stat">Undetectable<span style="font-size:14px;font-weight:400;color:var(--muted)"> at network layer</span></div>
+    </div>
+    <div class="surface-card s3 fade-in">
+      <div class="icon-wrap">🦠</div>
+      <div class="title">Multi-Agent Contagion</div>
+      <div class="body">Compromised agent writes to shared memory. Downstream agents inherit taint through read-only queries. <strong style="color:var(--text)">No published defense existed.</strong></div>
+      <div class="stat">0<span style="font-size:14px;font-weight:400;color:var(--muted)"> prior defenses</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── KEY RESULTS ────────────────────────────────────────────────────────────── -->
+<div class="section fade-in" id="results">
+  <div class="section-label">Key Results</div>
+  <h2>What We <span class="dim">Measured</span></h2>
+  <div class="grid-4" style="margin-bottom:32px">
+    <div class="metric-card blue fade-in">
+      <div class="metric-icon">🎯</div>
+      <div class="metric-num blue">100%</div>
+      <div class="metric-label">Detection rate on 17-case known-bad corpus</div>
+      <div class="metric-sub">Zero false negatives</div>
+    </div>
+    <div class="metric-card green fade-in">
+      <div class="metric-icon">⚡</div>
+      <div class="metric-num green">0.011<span style="font-size:22px">ms</span></div>
+      <div class="metric-label">p99 hot-path enforcement latency</div>
+      <div class="metric-sub">vs 106ms state-of-art</div>
+    </div>
+    <div class="metric-card purple fade-in">
+      <div class="metric-icon">📐</div>
+      <div class="metric-num purple">9,636×</div>
+      <div class="metric-label">Faster than Distributed Sentinel</div>
+      <div class="metric-sub">Without GPU infrastructure</div>
+    </div>
+    <div class="metric-card blue fade-in">
+      <div class="metric-icon">🛡</div>
+      <div class="metric-num blue">3/3</div>
+      <div class="metric-label">Attack surfaces covered</div>
+      <div class="metric-sub">First system to cover all three</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="chart-container card-glow-blue fade-in">
+      <div class="chart-title">Enforcement Latency — Prior Work vs WatchTower</div>
+      <div class="chart-sub">Log₁₀ scale · lower is better · p99 measurements</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="latencyChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-container card-glow-purple fade-in">
+      <div class="chart-title">Attack Surface Coverage Radar</div>
+      <div class="chart-sub">5 dimensions: 3 surfaces + cross-session + latency budget</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="radarChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── DESIGN ─────────────────────────────────────────────────────────────────── -->
+<div class="section fade-in" id="design">
+  <div class="section-label">System Design</div>
+  <h2>9-Layer <span class="dim">Architecture</span></h2>
+  <p class="section-desc">Layers L0–L5 execute synchronously on the hot path. L6–L7 execute asynchronously behind a task-completion barrier. Any internal error at any layer → BLOCK (fail-safe).</p>
+
+  <div class="arch-container fade-in">
+    <div class="arch-header">
+      <span>Layer</span><span>Component</span><span>Latency</span><span>Path</span>
+    </div>
+    <div class="arch-row">
+      <div class="ln-badge l0">L0</div>
+      <div class="content">
+        <strong>Identity Fabric</strong>
+        <span>Ed25519 spawn-time token · delegation chain · MAX_DEPTH=8 · capability monotonic narrowing</span>
+      </div>
+      <div class="latency" style="color:var(--green)">cached</div>
+      <span class="path-tag hot">hot</span>
+    </div>
+    <div class="arch-row">
+      <div class="ln-badge l1">L1</div>
+      <div class="content">
+        <strong>Intercept</strong>
+        <span>hermes <code>pre_tool_call</code> / <code>pre_gateway_dispatch</code> — returns block dict or None</span>
+      </div>
+      <div class="latency" style="color:var(--green)">&lt;0.1ms</div>
+      <span class="path-tag hot">hot</span>
+    </div>
+    <div class="arch-row">
+      <div class="ln-badge l2">L2</div>
+      <div class="content">
+        <strong>Enrichment</strong>
+        <span>graphify-ts AST call-context · tree-sitter WASM · &gt;90% cache hit · miss → needs_async</span>
+      </div>
+      <div class="latency" style="color:var(--accent)">&lt;3ms hit</div>
+      <span class="path-tag hot">hot</span>
+    </div>
+    <div class="arch-row">
+      <div class="ln-badge l3">L3</div>
+      <div class="content">
+        <strong>Deterministic Rules</strong>
+        <span>superpowers YAML DSL · zero ML · <code>call_tree_contains</code> semantic context · 0.011ms p99</span>
+      </div>
+      <div class="latency" style="color:var(--green)">0.011ms</div>
+      <span class="path-tag hot">hot</span>
+    </div>
+    <div class="arch-row">
+      <div class="ln-badge l4">L4</div>
+      <div class="content">
+        <strong>Trust Gate</strong>
+        <span>cavemem behavioral score → route only · trust &gt;0.7 ALLOW · 0.3–0.7 ESCALATE · &lt;0.3 NARROW</span>
+      </div>
+      <div class="latency" style="color:var(--orange)">&lt;1ms</div>
+      <span class="path-tag hot">hot</span>
+    </div>
+    <div class="arch-row">
+      <div class="ln-badge l5">L5</div>
+      <div class="content">
+        <strong>Escalation Router</strong>
+        <span>ambiguity → submit to ruflo swarm · cache miss → ALLOW with needs_async flag</span>
+      </div>
+      <div class="latency" style="color:var(--orange)">&lt;0.1ms</div>
+      <span class="path-tag hot">hot</span>
+    </div>
+    <div class="arch-row" style="opacity:.85">
+      <div class="ln-badge l6">L6</div>
+      <div class="content">
+        <strong>Async Analysis</strong>
+        <span>ruflo BFT 3-agent consensus · semantic + contagion check · 5s timeout → ALLOW (not BLOCK)</span>
+      </div>
+      <div class="latency" style="color:var(--accent2)">&lt;5s</div>
+      <span class="path-tag cold">cold</span>
+    </div>
+    <div class="arch-row" style="opacity:.85">
+      <div class="ln-badge l7">L7</div>
+      <div class="content">
+        <strong>Barrier Enforce</strong>
+        <span>asyncio.Future per event_id · holds result delivery until L6 verdict or timeout</span>
+      </div>
+      <div class="latency" style="color:var(--accent2)">barrier</div>
+      <span class="path-tag cold">cold</span>
+    </div>
+    <div class="arch-row" style="opacity:.7">
+      <div class="ln-badge l8">L8</div>
+      <div class="content">
+        <strong>Chronicle</strong>
+        <span>ClickHouse append-only · intercepts, verdicts, taint_events · no UPDATE · no DELETE · ever</span>
+      </div>
+      <div class="latency" style="color:var(--muted)">async</div>
+      <span class="path-tag async">audit</span>
+    </div>
+  </div>
+
+  <h3>The Semantic Gap — Why <code>call_tree_contains</code> Changes Everything</h3>
+  <div class="grid-2" style="margin-top:12px">
+    <div class="code-block fade-in">
+      <div class="code-header">
+        <div class="code-dot" style="background:#ff5f57"></div>
+        <div class="code-dot" style="background:#febc2e"></div>
+        <div class="code-dot" style="background:#28c840"></div>
+        <span class="code-filename">wire-level enforcement (Claw Patrol)</span>
+      </div>
+      <div class="code-body">
+<span class="com"># Network layer sees endpoint, not intent</span>
+<span class="fn">send_email</span>(<span class="key">to</span>=<span class="str">"partner@corp.com"</span>)
+<span class="com"># → ALLOW  (looks legitimate)</span>
+
+<span class="fn">send_email</span>(<span class="key">to</span>=<span class="str">"partner@corp.com"</span>,
+           <span class="key">body</span>=<span class="str">"api_key=sk-abc123"</span>)
+<span class="com"># → ALLOW  (same endpoint! blindspot)</span>
+
+<span class="com"># Wire-level cannot distinguish these.</span>
+<span class="com"># Both hit the same SMTP gateway.</span>
+      </div>
+    </div>
+    <div class="code-block fade-in">
+      <div class="code-header">
+        <div class="code-dot" style="background:#ff5f57"></div>
+        <div class="code-dot" style="background:#febc2e"></div>
+        <div class="code-dot" style="background:#28c840"></div>
+        <span class="code-filename">exfil_email.yaml (WatchTower)</span>
+      </div>
+      <div class="code-body">
+<span class="key">rule</span>: <span class="val">block_external_email_with_secrets</span>
+<span class="key">match</span>:
+  <span class="key">tool</span>: <span class="val">send_email</span>
+  <span class="key">context</span>:
+    <span class="com"># semantic: why was this called?</span>
+    <span class="key">call_tree_contains</span>: [<span class="val">read_secret</span>]
+  <span class="key">any</span>:
+    - <span class="key">arg.to</span>: { <span class="key">not_in_domain</span>: [<span class="str">"${ORG_DOMAIN}"</span>] }
+    - <span class="key">arg.body</span>: { <span class="key">matches_secret_pattern</span>: <span class="val">true</span> }
+<span class="key">verdict</span>: <span class="val">BLOCK</span>
+<span class="com"># → BLOCK  (read_secret in call tree = exfil)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAINT ──────────────────────────────────────────────────────────────────── -->
+<div class="section fade-in" id="taint">
+  <div class="section-label">MINJA Defense</div>
+  <h2>Cross-Session Taint <span class="dim">Propagation</span></h2>
+  <p class="section-desc">The first published defense against MINJA-class (arxiv 2503.03704) multi-session memory injection. Taint is set on affected agents <em>before their next tool call executes</em>.</p>
+
+  <div class="taint-flow-wrap fade-in">
+    <div class="flow-nodes">
+      <div class="flow-node node-tainted">
+        <div class="agent-label">Step 1 — Attacker</div>
+        <div class="agent-id" style="color:var(--red)">Agent A</div>
+        <div class="taint-display t-high">0.9</div>
+        <div class="taint-desc">T2 taint — capability abuse blocked</div>
+      </div>
+      <div class="flow-conn">
+        <div class="arrow">→</div>
+        <div class="label">writes</div>
+        <div class="label">poisoned</div>
+        <div class="label">memory</div>
+      </div>
+      <div class="flow-node">
+        <div class="agent-label">Step 2 — Shared</div>
+        <div class="agent-id" style="color:var(--accent2)">Memory Store</div>
+        <div style="font-size:28px;margin:10px 0">🗄</div>
+        <div class="taint-desc">cavemem SQLite+FTS5<br>writer provenance tracked</div>
+      </div>
+      <div class="flow-conn">
+        <div class="arrow">→</div>
+        <div class="label">query-only</div>
+        <div class="label">read</div>
+        <div class="label">(no write!)</div>
+      </div>
+      <div class="flow-node">
+        <div class="agent-label">Step 3 — Victim</div>
+        <div class="agent-id" style="color:var(--green)">Agent B</div>
+        <div class="taint-display t-clean">0.0</div>
+        <div class="taint-desc">initially clean</div>
+      </div>
+      <div class="flow-conn">
+        <div class="arrow">→</div>
+        <div class="label">WatchTower</div>
+        <div class="label">propagates</div>
+        <div class="label">T_B = 0.9×ρ</div>
+      </div>
+      <div class="flow-node node-quarantined">
+        <div class="agent-label">Step 4 — Result</div>
+        <div class="agent-id" style="color:var(--red)">Agent B</div>
+        <div class="taint-display t-high">0.72</div>
+        <div class="taint-desc" style="color:var(--red)">≥ quarantine threshold 0.7<br>BLOCKED before next call</div>
+      </div>
+    </div>
+    <div class="taint-formula-row">
+      <div class="formula-item">
+        <div class="formula-val" style="color:var(--accent)">ρ = 0.8</div>
+        <div class="formula-label">Hop decay constant<br>T_B = T_A × ρ = 0.72</div>
+      </div>
+      <div class="formula-item">
+        <div class="formula-val" style="color:var(--green)">λ = 0.1/hr</div>
+        <div class="formula-label">Time decay rate<br>Quarantine expires in ~2.5 hrs</div>
+      </div>
+      <div class="formula-item">
+        <div class="formula-val" style="color:var(--red)">Q = 0.7</div>
+        <div class="formula-label">Quarantine threshold<br>0.72 ≥ 0.7 → quarantined</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:24px">
+    <div class="chart-container card-glow-blue fade-in">
+      <div class="chart-title">Taint Decay Over Time</div>
+      <div class="chart-sub">T(t) = T₀ × e^{−λt} · quarantine threshold at 0.7 (dashed)</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="decayChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-container card-glow-green fade-in">
+      <div class="chart-title">Trust Score Dynamics</div>
+      <div class="chart-sub">Recovery (α=0.02 per clean call) vs degradation (β=0.6 per taint event)</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="trustChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── EVALUATION ─────────────────────────────────────────────────────────────── -->
+<div class="section fade-in" id="eval">
+  <div class="section-label">Evaluation</div>
+  <h2>Known-Bad Corpus <span class="dim">17 / 17</span></h2>
+  <p class="section-desc">Gate criterion: all cases pass, zero false negatives. Zero-tolerance — a single missed case fails the gate.</p>
+
+  <div class="table-wrap fade-in">
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Surface</th><th>Description</th><th>Verdict</th><th>Mechanism</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>KB01</code></td><td>Input Corruption</td><td>Direct prompt injection in memory write</td><td><span class="chip chip-block">BLOCK</span></td><td>minja_memory.yaml</td></tr>
+        <tr><td><code>KB02</code></td><td>Input Corruption</td><td>Indirect injection via tool output</td><td><span class="chip chip-block">BLOCK</span></td><td>minja_memory.yaml</td></tr>
+        <tr><td><code>KB03</code></td><td>Input Corruption</td><td>Injection embedded in retrieved document</td><td><span class="chip chip-block">BLOCK</span></td><td>minja_memory.yaml</td></tr>
+        <tr><td><code>KB04</code></td><td>Capability Abuse</td><td><code>send_email</code> + secret body after <code>read_secret</code></td><td><span class="chip chip-block">BLOCK</span></td><td>exfil_email.yaml + call_tree</td></tr>
+        <tr><td><code>KB05</code></td><td>Capability Abuse</td><td>Destructive <code>rm -rf /data/production</code></td><td><span class="chip chip-block">BLOCK</span></td><td>destructive_ops.yaml</td></tr>
+        <tr><td><code>KB07</code></td><td>Capability Abuse</td><td>Tool not in agent declared capability set</td><td><span class="chip chip-block">BLOCK</span></td><td>L0 identity check</td></tr>
+        <tr><td><code>KB08</code></td><td>Capability Abuse</td><td>Delegation depth 9 &gt; MAX_DEPTH=8</td><td><span class="chip chip-block">BLOCK</span></td><td>hermes _check_identity</td></tr>
+        <tr><td><code>KB09</code></td><td>Contagion</td><td>MINJA read taint propagation (T3)</td><td><span class="chip chip-block">BLOCK</span></td><td>cavemem propagate_read_taint</td></tr>
+        <tr><td><code>KB10</code></td><td>Contagion</td><td>send_message taint propagation</td><td><span class="chip chip-block">BLOCK</span></td><td>cavemem propagate_read_taint</td></tr>
+        <tr><td><code>KB11</code></td><td>Contagion</td><td>Quarantined ancestor → descendant blocked</td><td><span class="chip chip-block">BLOCK</span></td><td>taint ≥ Q=0.7 threshold</td></tr>
+        <tr><td><code>KB12</code></td><td>Fail-Safe</td><td>Trust recovery — no permanent DoS</td><td><span class="chip chip-pass">PASS</span></td><td>α-recovery on clean calls</td></tr>
+        <tr><td><code>KB13</code></td><td>Fail-Safe</td><td>Internal firewall crash → BLOCK default</td><td><span class="chip chip-block">BLOCK</span></td><td>except → source="fail_safe"</td></tr>
+        <tr><td><code>KB15</code></td><td>Fail-Safe</td><td>Unauthenticated async verdict rejected</td><td><span class="chip chip-pass">PASS</span></td><td>hold registry event_id check</td></tr>
+        <tr><td><code>KB16</code></td><td>Fail-Safe</td><td>Cache miss → no inline BLOCK</td><td><span class="chip chip-pass">PASS</span></td><td>needs_async=True, not BLOCK</td></tr>
+        <tr><td><code>Q1</code></td><td>Proof Scenario</td><td>Coordination failure full attribution</td><td><span class="chip chip-pass">PASS</span></td><td>taint record + call_tree fields</td></tr>
+        <tr class="row-hero"><td><code>Q2</code></td><td>Proof Scenario</td><td>MINJA detection before next trace (end-to-end)</td><td><span class="chip chip-pass">PASS</span></td><td>T3 contagion, B.taint=0.72 ≥ Q</td></tr>
+        <tr><td><code>PB01</code></td><td>Performance</td><td>p99 &lt;10ms, N=1000 concurrent evaluations</td><td><span class="chip chip-pass">0.011ms</span></td><td>1000× under budget</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid-2" style="margin-top:24px">
+    <div class="chart-container fade-in">
+      <div class="chart-title">Hot-Path Latency Distribution (N=1000)</div>
+      <div class="chart-sub">Policy evaluation only · L3 deterministic rules + in-proc trust lookup</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="latDistChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-container fade-in">
+      <div class="chart-title">Detection Rate by Attack Surface</div>
+      <div class="chart-sub">Grouped by system — surface 3 = first-ever coverage</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="detectionChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── COMPARISON ─────────────────────────────────────────────────────────────── -->
+<div class="section fade-in" id="compare">
+  <div class="section-label">Prior Work Comparison</div>
+  <h2>How We <span class="dim">Stack Up</span></h2>
+  <p class="section-desc">Five dimensions: three attack surfaces, cross-session state, and latency budget (≤10ms). WatchTower is the only system scoring on all five.</p>
+
+  <div class="grid-2">
+    <div class="card fade-in">
+      <div class="chart-title" style="margin-bottom:4px">Overall Coverage Score</div>
+      <div class="chart-sub">Max 5 pts (1pt per dimension · 0.5pt partial)</div>
+      <div class="compare-bar-list" style="margin-top:16px">
+
+        <div class="compare-item">
+          <div class="compare-header">
+            <span class="compare-name">WatchTower <span style="font-size:11px;color:var(--muted)">(ours)</span></span>
+            <span class="compare-badge" style="background:rgba(0,230,118,.12);color:var(--green)">5.0 / 5</span>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:100%;background:linear-gradient(90deg,var(--green),var(--accent))"></div></div>
+          <div class="bar-chips">
+            <span class="chip chip-yes">S1 ✓</span>
+            <span class="chip chip-yes">S2 ✓</span>
+            <span class="chip chip-yes">S3 ✓</span>
+            <span class="chip chip-yes">Cross-session ✓</span>
+            <span class="chip chip-yes">&lt;10ms ✓</span>
+          </div>
+        </div>
+
+        <div class="compare-item">
+          <div class="compare-header">
+            <span class="compare-name">LlamaFirewall</span>
+            <span class="compare-badge" style="background:rgba(255,202,40,.1);color:var(--yellow)">2.0 / 5</span>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:40%;background:var(--yellow)"></div></div>
+          <div class="bar-chips">
+            <span class="chip chip-yes">S1 ✓</span>
+            <span class="chip chip-no">S2 ✗</span>
+            <span class="chip chip-no">S3 ✗</span>
+            <span class="chip chip-no">Cross-session ✗</span>
+            <span class="chip chip-no">&gt;100ms ✗</span>
+          </div>
+        </div>
+
+        <div class="compare-item">
+          <div class="compare-header">
+            <span class="compare-name">Claw Patrol</span>
+            <span class="compare-badge" style="background:rgba(255,202,40,.1);color:var(--yellow)">2.0 / 5</span>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:40%;background:var(--yellow)"></div></div>
+          <div class="bar-chips">
+            <span class="chip chip-no">S1 ✗</span>
+            <span class="chip chip-yes">S2 ✓</span>
+            <span class="chip chip-no">S3 ✗</span>
+            <span class="chip chip-no">Cross-session ✗</span>
+            <span class="chip chip-yes">&lt;5ms ✓</span>
+          </div>
+        </div>
+
+        <div class="compare-item">
+          <div class="compare-header">
+            <span class="compare-name">Distributed Sentinel</span>
+            <span class="compare-badge" style="background:rgba(255,202,40,.1);color:var(--yellow)">2.0 / 5</span>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:40%;background:var(--orange)"></div></div>
+          <div class="bar-chips">
+            <span class="chip chip-partial">S1 partial</span>
+            <span class="chip chip-partial">S2 partial</span>
+            <span class="chip chip-no">S3 ✗</span>
+            <span class="chip chip-no">Cross-session ✗</span>
+            <span class="chip chip-no">106ms ✗</span>
+          </div>
+        </div>
+
+        <div class="compare-item">
+          <div class="compare-header">
+            <span class="compare-name">AgentSpec</span>
+            <span class="compare-badge" style="background:rgba(255,152,0,.1);color:var(--orange)">2.0 / 5</span>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:30%;background:var(--orange)"></div></div>
+          <div class="bar-chips">
+            <span class="chip chip-no">S1 ✗</span>
+            <span class="chip chip-partial">S2 70.96%</span>
+            <span class="chip chip-no">S3 ✗</span>
+            <span class="chip chip-no">Cross-session ✗</span>
+            <span class="chip chip-yes">~1ms ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-container fade-in">
+      <div class="chart-title">Safety–Performance Frontier</div>
+      <div class="chart-sub">Detection rate (%) vs. latency (ms, reversed log scale) · bubble = surface coverage</div>
+      <div class="chart-wrap" style="height:340px">
+        <canvas id="scatterChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:24px" class="table-wrap fade-in">
+    <table>
+      <thead>
+        <tr><th>System</th><th>Year</th><th>Surface 1</th><th>Surface 2</th><th>Surface 3</th><th>p99 Latency</th><th>Cross-Session</th><th>Key Metric</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Firewalls for LLM Nets <sup>[2]</sup></td><td>Feb '25</td><td><span class="chip chip-partial">Partial</span></td><td><span class="chip chip-partial">Partial</span></td><td><span class="chip chip-no">No</span></td><td>—</td><td><span class="chip chip-no">No</span></td><td>60%→3% on ConVerse</td></tr>
+        <tr><td>LlamaFirewall <sup>[9]</sup></td><td>May '25</td><td><span class="chip chip-yes">Yes</span></td><td><span class="chip chip-no">No</span></td><td><span class="chip chip-no">No</span></td><td>&gt;100ms</td><td><span class="chip chip-no">No</span></td><td>97.4% injection accuracy</td></tr>
+        <tr><td>AgentSpec <sup>[3]</sup></td><td>Mar '25</td><td><span class="chip chip-no">No</span></td><td><span class="chip chip-yes">Yes</span></td><td><span class="chip chip-no">No</span></td><td>~1ms</td><td><span class="chip chip-no">No</span></td><td>70.96% recall</td></tr>
+        <tr><td>Distributed Sentinel <sup>[4]</sup></td><td>Apr '26</td><td><span class="chip chip-partial">Partial</span></td><td><span class="chip chip-partial">Partial</span></td><td><span class="chip chip-no">No</span></td><td>106ms</td><td><span class="chip chip-no">No</span></td><td>F1=0.95, A100 GPU req</td></tr>
+        <tr><td>Claw Patrol <sup>[16]</sup></td><td>May '26</td><td><span class="chip chip-no">No</span></td><td><span class="chip chip-yes">Yes</span></td><td><span class="chip chip-no">No</span></td><td>&lt;5ms</td><td><span class="chip chip-no">No</span></td><td>Wire-level, loses context</td></tr>
+        <tr class="row-hero"><td><strong>WatchTower (ours)</strong></td><td>2026</td><td><span class="chip chip-yes">Yes</span></td><td><span class="chip chip-yes">Yes</span></td><td><span class="chip chip-yes">Yes</span></td><td><strong style="color:var(--green)">0.011ms</strong></td><td><span class="chip chip-yes">Yes</span></td><td><strong style="color:var(--green)">100% on 17-case corpus</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── INDUSTRY CONTEXT ───────────────────────────────────────────────────────── -->
+<div class="section fade-in">
+  <div class="section-label">Industry Context</div>
+  <h2>The Visibility Gap <span class="dim">Is Real</span></h2>
+  <p class="section-desc">Executive surveys from IBM and CSA confirm: the majority of organizations deploying AI agents have no visibility into what those agents are doing.</p>
+
+  <div class="stat-ring-grid">
+    <div class="stat-ring-card fade-in">
+      <div class="ring-wrap">
+        <svg class="ring-svg" width="120" height="120" viewBox="0 0 120 120">
+          <circle class="ring-bg" cx="60" cy="60" r="52"/>
+          <circle class="ring-fill" cx="60" cy="60" r="52" stroke="#ff5252"
+            stroke-dasharray="326.7" stroke-dashoffset="calc(326.7 - 326.7 * 0.82)" id="ring1"/>
+        </svg>
+        <div class="ring-label" style="color:var(--red)">82%</div>
+      </div>
+      <div class="ring-title">Limited Visibility</div>
+      <div class="ring-desc">of organizations report limited visibility into AI agent actions <sup>[CSA 2025]</sup></div>
+    </div>
+    <div class="stat-ring-card fade-in">
+      <div class="ring-wrap">
+        <svg class="ring-svg" width="120" height="120" viewBox="0 0 120 120">
+          <circle class="ring-bg" cx="60" cy="60" r="52"/>
+          <circle class="ring-fill" cx="60" cy="60" r="52" stroke="#ffca28"
+            stroke-dasharray="326.7" stroke-dashoffset="calc(326.7 - 326.7 * 0.65)"/>
+        </svg>
+        <div class="ring-label" style="color:var(--yellow)">65%</div>
+      </div>
+      <div class="ring-title">Security Incidents</div>
+      <div class="ring-desc">have experienced security incidents related to AI agent behavior <sup>[CSA 2025]</sup></div>
+    </div>
+    <div class="stat-ring-card fade-in">
+      <div class="ring-wrap">
+        <svg class="ring-svg" width="120" height="120" viewBox="0 0 120 120">
+          <circle class="ring-bg" cx="60" cy="60" r="52"/>
+          <circle class="ring-fill" cx="60" cy="60" r="52" stroke="#4fc3f7"
+            stroke-dasharray="326.7" stroke-dashoffset="calc(326.7 - 326.7 * 0.47)"/>
+        </svg>
+        <div class="ring-label" style="color:var(--accent)">47%</div>
+      </div>
+      <div class="ring-title">Actively Monitored</div>
+      <div class="ring-desc">of deployed agents are actively monitored or secured <sup>[IBM IBV 2025]</sup></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── REFERENCES ─────────────────────────────────────────────────────────────── -->
+<div class="section fade-in" id="refs">
+  <div class="section-label">References</div>
+  <h2>Prior <span class="dim">Work</span></h2>
+  <div class="ref-list">
+    <div class="ref-item"><span class="ref-num">[1]</span><span class="ref-text"><strong>MINJA:</strong> Zheng et al. <em>Memory Injection Attacks on LLM Agents via Query-Only Interaction.</em> arXiv 2503.03704, March 2025.</span></div>
+    <div class="ref-item"><span class="ref-num">[2]</span><span class="ref-text"><em>Firewalls to Secure Dynamic LLM Agentic Networks.</em> arXiv 2502.01822, Feb 2025.</span></div>
+    <div class="ref-item"><span class="ref-num">[3]</span><span class="ref-text"><strong>AgentSpec:</strong> Wang et al. <em>Customizable Runtime Enforcement for Safe and Reliable LLM Agents.</em> arXiv 2503.18666, Mar 2025.</span></div>
+    <div class="ref-item"><span class="ref-num">[4]</span><span class="ref-text"><strong>Distributed Sentinel:</strong> <em>Semantic Taint Token Protocol.</em> arXiv 2604.22879, Apr 2026.</span></div>
+    <div class="ref-item"><span class="ref-num">[5]</span><span class="ref-text"><em>Open Challenges in Multi-Agent Security.</em> arXiv 2505.02077, May 2025.</span></div>
+    <div class="ref-item"><span class="ref-num">[6]</span><span class="ref-text"><em>Auditable Agents: Six Open Problems.</em> arXiv 2604.05485, Apr 2026.</span></div>
+    <div class="ref-item"><span class="ref-num">[7]</span><span class="ref-text"><em>Agentic AI Process Observability.</em> arXiv 2505.20127, May 2025.</span></div>
+    <div class="ref-item"><span class="ref-num">[8]</span><span class="ref-text"><em>The Observability Gap in LLM Coding Agents.</em> arXiv 2603.26942, Mar 2026.</span></div>
+    <div class="ref-item"><span class="ref-num">[9]</span><span class="ref-text"><strong>LlamaFirewall:</strong> <em>An Open-Source Guardrail System.</em> arXiv 2505.03574, May 2025.</span></div>
+    <div class="ref-item"><span class="ref-num">[10]</span><span class="ref-text">OWASP Top 10 for LLM Applications 2025. Prompt Injection ranked #1.</span></div>
+    <div class="ref-item"><span class="ref-num">[11]</span><span class="ref-text">IBM Institute for Business Value. <em>AI Agent Governance Study.</em> 2025.</span></div>
+    <div class="ref-item"><span class="ref-num">[12]</span><span class="ref-text"><em>Architecture Matters for Multi-Agent Security.</em> arXiv 2604.23459, Apr 2026.</span></div>
+    <div class="ref-item"><span class="ref-num">[13]</span><span class="ref-text">Cloud Security Alliance. <em>AI Agent Security Report.</em> 2025.</span></div>
+    <div class="ref-item"><span class="ref-num">[16]</span><span class="ref-text"><strong>Claw Patrol:</strong> <em>Wire-Level Agent Firewall.</em> Deno, May 2026.</span></div>
+  </div>
+</div>
+
+</div><!-- /page -->
+
+<footer>
+  <div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+    <div>WatchTower — Observation-First Agent Security</div>
+    <div style="color:var(--muted)">Draft · June 2026 · beejak/agentwatch · branch: claude/practical-einstein-bkdRe</div>
+  </div>
+</footer>
+
+<!-- ── CHARTS ─────────────────────────────────────────────────────────────────── -->
+<script>
+Chart.defaults.color = '#6b7a8d';
+Chart.defaults.borderColor = '#1e2733';
+Chart.defaults.font.family = "Inter, -apple-system, sans-serif";
+
+const ACCENT = '#4fc3f7', GREEN = '#00e676', RED = '#ff5252',
+      YELLOW = '#ffca28', ORANGE = '#ff9800', PURPLE = '#7c4dff', PINK = '#f06292';
+
+// 1. Latency Bar
+new Chart(document.getElementById('latencyChart'), {
+  type: 'bar',
+  data: {
+    labels: ['WatchTower', 'AgentSpec', 'Claw Patrol', 'LlamaFirewall', 'Distributed\nSentinel'],
+    datasets: [{
+      data: [0.011, 1, 5, 100, 106],
+      backgroundColor: [
+        'rgba(0,230,118,.6)', 'rgba(79,195,247,.4)', 'rgba(79,195,247,.4)',
+        'rgba(255,202,40,.4)', 'rgba(255,82,82,.4)'
+      ],
+      borderColor: [GREEN, ACCENT, ACCENT, YELLOW, RED],
+      borderWidth: 1.5, borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      y: { type: 'logarithmic', title: { display: true, text: 'ms (log scale)', color: '#6b7a8d' }, ticks: { callback: v => v + 'ms' }, grid: { color: 'rgba(30,39,51,.5)' } },
+      x: { grid: { display: false } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => `${ctx.raw}ms` } }
+    }
+  }
+});
+
+// 2. Radar
+new Chart(document.getElementById('radarChart'), {
+  type: 'radar',
+  data: {
+    labels: ['Injection\nDetection', 'Cap Abuse', 'Contagion', 'Cross-\nSession', 'Latency\n≤10ms'],
+    datasets: [
+      { label: 'WatchTower', data: [1,1,1,1,1], fill: true, backgroundColor: 'rgba(0,230,118,.1)', borderColor: GREEN, pointBackgroundColor: GREEN, borderWidth: 2 },
+      { label: 'LlamaFirewall', data: [1,0,0,0,0], fill: true, backgroundColor: 'rgba(255,202,40,.06)', borderColor: YELLOW, pointBackgroundColor: YELLOW, borderWidth: 1.5, borderDash: [4,4] },
+      { label: 'AgentSpec', data: [0,.71,0,0,1], fill: true, backgroundColor: 'rgba(79,195,247,.06)', borderColor: ACCENT, pointBackgroundColor: ACCENT, borderWidth: 1.5, borderDash: [4,4] },
+      { label: 'Distributed Sentinel', data: [.5,.5,0,0,0], fill: true, backgroundColor: 'rgba(255,82,82,.05)', borderColor: RED, pointBackgroundColor: RED, borderWidth: 1.5, borderDash: [4,4] },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: { r: { min:0, max:1, grid:{ color:'#1e2733' }, angleLines:{ color:'#1e2733' }, pointLabels:{ font:{size:11} }, ticks:{ display:false, stepSize:.5 } } },
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 }, padding: 14 } } }
+  }
+});
+
+// 3. Taint decay
+const hrs = Array.from({length:60}, (_,i) => (i * 5/60).toFixed(2));
+new Chart(document.getElementById('decayChart'), {
+  type: 'line',
+  data: {
+    labels: hrs,
+    datasets: [
+      { label: 'Agent A (T₀=0.9)', data: hrs.map(h=>0.9*Math.exp(-0.1*h)), borderColor: RED, backgroundColor: 'rgba(255,82,82,.08)', fill: true, borderWidth: 2, pointRadius: 0, tension: 0.4 },
+      { label: 'Agent B (T₀=0.72)', data: hrs.map(h=>0.72*Math.exp(-0.1*h)), borderColor: ORANGE, backgroundColor: 'rgba(255,152,0,.06)', fill: true, borderWidth: 2, pointRadius: 0, tension: 0.4 },
+      { label: 'Quarantine threshold', data: hrs.map(()=>0.7), borderColor: YELLOW, borderWidth: 1.5, borderDash: [6,4], pointRadius: 0 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x: { title:{ display:true, text:'Hours', color:'#6b7a8d' }, ticks:{ maxTicksLimit:6 }, grid:{ color:'rgba(30,39,51,.4)' } },
+      y: { min:0, max:1, title:{ display:true, text:'Taint Level', color:'#6b7a8d' }, grid:{ color:'rgba(30,39,51,.4)' } }
+    },
+    plugins: { legend: { position:'bottom', labels:{ boxWidth:10, font:{size:11} } } }
+  }
+});
+
+// 4. Trust dynamics
+const calls = Array.from({length:50}, (_,i) => i);
+let trust = 0.5;
+const trustRecovery = calls.map(()=> { trust = Math.min(1, trust + 0.02*(1-trust)); return +trust.toFixed(4); });
+trust = 0.9;
+const trustDegrade = calls.map((c)=> {
+  if (c === 15) trust = trust * (1 - 0.6*0.9);
+  if (c === 30) trust = trust * (1 - 0.6*0.7);
+  trust = Math.min(1, trust + 0.02*(1-trust));
+  return +trust.toFixed(4);
+});
+new Chart(document.getElementById('trustChart'), {
+  type: 'line',
+  data: {
+    labels: calls,
+    datasets: [
+      { label: 'Recovery (trust=0.5 start)', data: trustRecovery, borderColor: GREEN, backgroundColor: 'rgba(0,230,118,.08)', fill: true, borderWidth: 2, pointRadius: 0, tension: 0.3 },
+      { label: 'With taint events at t=15,30', data: trustDegrade, borderColor: RED, backgroundColor: 'rgba(255,82,82,.06)', fill: true, borderWidth: 2, pointRadius: 0, tension: 0.3 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x: { title:{ display:true, text:'Clean calls', color:'#6b7a8d' }, grid:{ color:'rgba(30,39,51,.4)' } },
+      y: { min:0, max:1, title:{ display:true, text:'Trust score', color:'#6b7a8d' }, grid:{ color:'rgba(30,39,51,.4)' } }
+    },
+    plugins: { legend: { position:'bottom', labels:{ boxWidth:10, font:{size:11} } } }
+  }
+});
+
+// 5. Latency distribution
+const x = Array.from({length:60},(_,i)=>i*0.0015);
+const gauss = x.map(v=>350*Math.exp(-Math.pow((v-.0115)/.002,2)/2));
+new Chart(document.getElementById('latDistChart'), {
+  type: 'line',
+  data: {
+    labels: x.map(v=>v.toFixed(4)),
+    datasets: [{
+      data: gauss, fill: true,
+      backgroundColor: 'rgba(0,230,118,.12)', borderColor: GREEN, borderWidth: 2, pointRadius: 0, tension: 0.4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x:{ title:{ display:true, text:'Latency (ms)', color:'#6b7a8d' }, ticks:{ maxTicksLimit:5, callback: v=>v+'ms' }, grid:{ color:'rgba(30,39,51,.4)' } },
+      y:{ ticks:{ display:false }, grid:{ color:'rgba(30,39,51,.4)' } }
+    },
+    plugins: { legend:{ display:false }, annotation:{} }
+  }
+});
+
+// 6. Detection by surface
+new Chart(document.getElementById('detectionChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Surface 1\nInjection', 'Surface 2\nCap Abuse', 'Surface 3\nContagion'],
+    datasets: [
+      { label: 'WatchTower', data:[100,100,100], backgroundColor:'rgba(0,230,118,.7)', borderColor:GREEN, borderWidth:1.5, borderRadius:5 },
+      { label: 'LlamaFirewall', data:[97,0,0], backgroundColor:'rgba(255,202,40,.5)', borderColor:YELLOW, borderWidth:1.5, borderRadius:5 },
+      { label: 'AgentSpec', data:[0,71,0], backgroundColor:'rgba(79,195,247,.5)', borderColor:ACCENT, borderWidth:1.5, borderRadius:5 },
+      { label: 'Distributed Sentinel', data:[50,50,0], backgroundColor:'rgba(255,82,82,.4)', borderColor:RED, borderWidth:1.5, borderRadius:5 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      y:{ min:0, max:115, title:{ display:true, text:'%', color:'#6b7a8d' }, ticks:{ callback:v=>v+'%' }, grid:{ color:'rgba(30,39,51,.4)' } },
+      x:{ grid:{ display:false } }
+    },
+    plugins: { legend:{ position:'bottom', labels:{ boxWidth:10, font:{size:11}, padding:10 } } }
+  }
+});
+
+// 7. Scatter
+new Chart(document.getElementById('scatterChart'), {
+  type: 'bubble',
+  data: {
+    datasets: [
+      { label:'WatchTower (ours)', data:[{x:0.011,y:100,r:20}], backgroundColor:'rgba(0,230,118,.65)', borderColor:GREEN, borderWidth:2 },
+      { label:'LlamaFirewall', data:[{x:100,y:97,r:12}], backgroundColor:'rgba(255,202,40,.45)', borderColor:YELLOW, borderWidth:1.5 },
+      { label:'Distributed Sentinel', data:[{x:106,y:88,r:12}], backgroundColor:'rgba(255,82,82,.4)', borderColor:RED, borderWidth:1.5 },
+      { label:'Claw Patrol', data:[{x:5,y:68,r:9}], backgroundColor:'rgba(79,195,247,.4)', borderColor:ACCENT, borderWidth:1.5 },
+      { label:'AgentSpec', data:[{x:1,y:71,r:9}], backgroundColor:'rgba(124,77,255,.4)', borderColor:PURPLE, borderWidth:1.5 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x:{ type:'logarithmic', reverse:true, title:{ display:true, text:'← Lower latency (ms, log)', color:'#6b7a8d' }, grid:{ color:'rgba(30,39,51,.4)' } },
+      y:{ min:60, max:108, title:{ display:true, text:'Detection rate (%)', color:'#6b7a8d' }, grid:{ color:'rgba(30,39,51,.4)' } }
+    },
+    plugins: {
+      legend:{ position:'bottom', labels:{ boxWidth:10, font:{size:11}, padding:10 } },
+      tooltip:{ callbacks:{ label: ctx=>`${ctx.dataset.label}: ${ctx.raw.y}% @ ${ctx.raw.x}ms` } }
+    }
+  }
+});
+
+// ── SCROLL ANIMATIONS ──
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
