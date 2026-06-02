@@ -1,0 +1,13 @@
+rule: block_external_email_with_secrets
+surface: capability_abuse
+on: pre_tool_call
+match:
+  tool: send_email
+  any:
+    - arg.to: { not_in_domain: ["${ORG_DOMAIN}"] }
+    - arg.body: { matches_secret_pattern: true }
+  context:
+    call_tree_contains: [read_secret]
+verdict: BLOCK
+reason: "external email carrying secret-shaped payload after secret read"
+severity: 0.9
