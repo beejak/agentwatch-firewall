@@ -1,0 +1,14 @@
+rule: block_instruction_like_memory_write
+surface: input_corruption
+on: pre_tool_call
+match:
+  tool: memory_write
+  any:
+    - arg.content: { regex: "(?i)ignore\\s+(previous|prior|all)\\s*(instructions?)?" }
+    - arg.content: { regex: "(?i)you\\s+are\\s+now\\s+(a|an|the)" }
+    - arg.content: { regex: "(?i)override\\s+(safety|security|policy)" }
+    - arg.content: { regex: "(?i)(forward|send|exfil)\\s+(all|retrieved|credentials)" }
+    - arg.content: { regex: "(?i)your\\s+new\\s+(instructions?|rules?|role)" }
+verdict: BLOCK
+reason: "instruction-like content in memory write — potential MINJA attack"
+severity: 0.95
