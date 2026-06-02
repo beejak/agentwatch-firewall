@@ -1,28 +1,24 @@
-# Makefile for WatchTower IEEE S&P 2027 paper
-# Builds watchtower.pdf using pdflatex + bibtex
+PAPER = watchtower
+LATEX = pdflatex
+BIBTEX = bibtex
 
-PAPER    := watchtower
-LATEX    := pdflatex
-BIBTEX   := bibtex
-LATEXFLAGS := -interaction=nonstopmode -halt-on-error
+.PHONY: all clean view
 
-.PHONY: all pdf clean distclean
-
-all: pdf
-
-pdf: $(PAPER).pdf
+all: $(PAPER).pdf
 
 $(PAPER).pdf: $(PAPER).tex references.bib
-	$(LATEX) $(LATEXFLAGS) $(PAPER)
+	$(LATEX) $(PAPER)
 	$(BIBTEX) $(PAPER)
-	$(LATEX) $(LATEXFLAGS) $(PAPER)
-	$(LATEX) $(LATEXFLAGS) $(PAPER)
+	$(LATEX) $(PAPER)
+	$(LATEX) $(PAPER)
 
 clean:
-	rm -f $(PAPER).aux $(PAPER).bbl $(PAPER).blg \
-	      $(PAPER).log $(PAPER).out $(PAPER).toc \
-	      $(PAPER).lof $(PAPER).lot $(PAPER).fls \
-	      $(PAPER).fdb_latexmk texput.log
+	rm -f $(PAPER).aux $(PAPER).bbl $(PAPER).blg $(PAPER).log \
+	       $(PAPER).out $(PAPER).toc $(PAPER).fls $(PAPER).fdb_latexmk \
+	       $(PAPER).synctex.gz
 
 distclean: clean
 	rm -f $(PAPER).pdf
+
+view: $(PAPER).pdf
+	xdg-open $(PAPER).pdf 2>/dev/null || open $(PAPER).pdf 2>/dev/null || true

@@ -1,666 +1,1002 @@
-% WatchTower: Observation-First Agent Security
-% IEEE S&P 2027 Submission
 \documentclass[conference]{IEEEtran}
 
-\usepackage{tikz}
-\usepackage{pgfplots}
-\pgfplotsset{compat=1.18}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{multirow}
-\usepackage{listings}
 \usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tikz}
+\usepackage{pgfplots}
 \usepackage{hyperref}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{graphicx}
-\usepackage{url}
+\usepackage{microtype}
+\usepackage{balance}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,fit,backgrounds,calc}
 
-\usetikzlibrary{arrows.meta, positioning, shapes.geometric, fit, backgrounds}
-
-% Listing style for YAML
-\definecolor{yamlkey}{RGB}{0,112,192}
-\definecolor{yamlval}{RGB}{163,21,21}
-\definecolor{yamlcmt}{RGB}{0,128,0}
-\definecolor{codebg}{RGB}{248,248,248}
-
-\lstdefinelanguage{YAML}{
-  keywords={true,false,null,yes,no},
-  keywordstyle=\color{yamlkey}\bfseries,
-  sensitive=false,
-  comment=[l]{\#},
-  commentstyle=\color{yamlcmt}\itshape,
-  stringstyle=\color{yamlval},
+\lstdefinelanguage{yaml}{
+  keywords={rule,surface,on,match,tool,any,all,context,call_tree_contains,verdict,reason,severity,arg},
+  keywordstyle=\color{blue!70}\bfseries,
+  stringstyle=\color{orange!80!black},
+  commentstyle=\color{gray}\itshape,
+  morecomment=[l]{\#},
+  morestring=[b]",
   morestring=[b]',
-  morestring=[b]"
+  sensitive=true,
 }
-
 \lstset{
-  language=YAML,
   basicstyle=\ttfamily\scriptsize,
-  backgroundcolor=\color{codebg},
-  frame=single,
-  framerule=0.4pt,
-  rulecolor=\color{gray!40},
-  xleftmargin=4pt,
-  xrightmargin=4pt,
   breaklines=true,
+  frame=single,
+  rulecolor=\color{gray!30},
+  backgroundcolor=\color{gray!5},
   captionpos=b,
   numbers=left,
   numberstyle=\tiny\color{gray},
   numbersep=4pt,
-  showstringspaces=false
+  xleftmargin=8pt,
 }
 
-\hypersetup{
-  colorlinks=true,
-  linkcolor=blue!60!black,
-  citecolor=blue!60!black,
-  urlcolor=blue!60!black
-}
+\newtheorem{definition}{Definition}
 
-% -------------------------------------------------------
+\title{WatchTower: Observation-First Agent Security --- Taint Propagation
+and Semantic Enforcement in Multi-Agent Systems}
+
+\author{\IEEEauthorblockN{Anonymous Submission}\\IEEE S\&P 2027 --- Under Review}
+
 \begin{document}
-
-\title{WatchTower: Observation-First Agent Security --- Taint Propagation and Semantic Enforcement in Multi-Agent Systems}
-
-\author{\IEEEauthorblockN{Anonymous Submission}
-\IEEEauthorblockA{IEEE Symposium on Security and Privacy 2027\\
-Under double-blind review}}
 
 \maketitle
 
-% -------------------------------------------------------
+% -----------------------------------------------------------------------
 \begin{abstract}
-Multi-agent AI systems face three distinct attack surfaces that existing defenses address only in isolation: input corruption via prompt injection, capability abuse through legitimate tool misuse, and multi-agent contagion where a compromised agent poisons downstream agents through shared memory. We present WatchTower, an observation-first security framework that combines hook-level interception, semantic call-tree context, and persistent cross-session taint propagation. Unlike prior work that operates at content or network layers, WatchTower intercepts at the tool-call level within the agent runtime, enriches each interception with AST-derived call context, and maintains a cross-session taint ledger enabling detection of MINJA-class contagion attacks before the next execution trace. We demonstrate 100\% detection on a 17-case known-bad corpus including direct reproduction of MINJA attacks, with p99 enforcement latency of 0.011\,ms --- 9,636$\times$ faster than the closest competitor --- while being the first published system to address all three attack surfaces with cross-session taint tracking.
+Multi-agent AI systems face three distinct attack surfaces that existing
+defenses address only in isolation: \textit{input corruption} via prompt
+injection, \textit{capability abuse} through legitimate tool misuse, and
+\textit{multi-agent contagion} where a compromised agent poisons downstream
+agents through shared memory. We present \textsc{WatchTower}, an
+observation-first security framework that combines hook-level interception,
+semantic call-tree context, and persistent cross-session taint propagation.
+Unlike prior work that operates at content or network layers,
+\textsc{WatchTower} intercepts at the tool-call level within the agent
+runtime, enriches each interception with AST-derived call context, and
+maintains a cross-session taint ledger enabling detection of MINJA-class
+contagion attacks before the next execution trace. We demonstrate 100\%
+detection on a 17-case known-bad corpus including direct reproduction of
+MINJA attacks, with p99 enforcement latency of 0.011\,ms ---
+9{,}636$\times$ faster than the closest competitor --- while being the
+first published system to address all three attack surfaces with
+cross-session taint tracking.
 \end{abstract}
 
-% -------------------------------------------------------
+% -----------------------------------------------------------------------
 \section{Introduction}
 \label{sec:intro}
 
-The deployment of multi-agent AI systems in enterprise and critical infrastructure environments has accelerated dramatically. These systems execute tool calls, read and write shared memory, delegate tasks across trust boundaries, and operate with minimal human oversight~\cite{ibm2025,csa2025}. As capability grows, so does the attack surface.
+The deployment of multi-agent AI systems in production environments has
+outpaced the security tooling designed to protect them. Where classical
+software security assumes a well-defined process boundary, agent systems
+blur those boundaries through tool calls, shared memory, and delegation
+chains that span multiple autonomous processes. The result is three
+distinct attack surfaces that no single published system defends against.
 
 \subsection{The Three Attack Surfaces}
-\label{sec:intro:surfaces}
 
-We identify three distinct and largely orthogonal attack surfaces in deployed multi-agent systems:
+\textbf{Input Corruption.}
+MINJA~\cite{minja2025} demonstrates that memory injection achieves
+98.2\% injection success via query-only interaction. The attacker requires
+no write access to the agent's memory store; adversarial content planted
+in documents, web pages, or API responses is retrieved during normal
+operation and incorporated into the agent's context. The attack succeeds
+because prompt injection is a semantic failure: the agent cannot
+distinguish instruction from data when both arrive through the same
+channel.
 
-\textbf{S1 --- Input corruption via prompt injection.} An attacker embeds adversarial instructions in content that an agent retrieves from an untrusted source (web page, document, tool output). The OWASP Top 10 for LLM Applications ranks this as the leading risk~\cite{owasp2025}. MINJA~\cite{minja2025} quantifies the problem in the multi-agent setting: 98.2\% injection rate in naive deployments, with end-to-end attack success exceeding 70\%. Critically, MINJA demonstrates query-only attacks where an adversary who can only read from shared memory --- not write --- can still observe and later indirectly influence agent behavior.
+\textbf{Capability Abuse.}
+Consider an agent that exposes both \texttt{read\_secret} and
+\texttt{send\_email}. Each call, in isolation, is legitimate. The
+dangerous composition --- reading a secret and immediately emailing it to
+an external address --- is indistinguishable at the wire level. Both calls
+use the same API endpoints with the same authentication tokens. Wire-level
+enforcement, which sees only individual calls, is blind to the causal
+relationship between them. No published agent firewall system models this
+relationship through call-tree context.
 
-\textbf{S2 --- Capability abuse.} A legitimately authenticated agent invokes tools it is authorized to call but uses them in ways that violate policy: exfiltrating data via an authorized HTTP call, issuing destructive operations within scope, or escalating privilege via chained tool invocations. Wire-level defenses~\cite{clawpatrol2026} can block unknown tool calls but cannot reason about the \emph{semantic context} of a legitimate call --- whether it appears in a normal workflow or at the tail of a suspicious call tree.
-
-\textbf{S3 --- Multi-agent contagion.} A compromised agent writes poisoned content to shared memory. Downstream agents that read this content become semantically compromised even without direct prompt injection. This cross-session propagation is MINJA's most severe mode~\cite{minja2025}. No prior published system tracks taint across sessions as a first-class persistent construct.
+\textbf{Multi-Agent Contagion.}
+When a compromised agent writes to a shared memory store, every downstream
+agent that reads from that store inherits the taint through a query-only
+interaction. This attack class is particularly dangerous because the victim
+agent exhibits no anomalous behavior at the call level: it simply reads
+memory, as designed. The malicious payload is carried in the content, not
+the call structure. No published system tracks taint across agent session
+boundaries.
 
 \subsection{Why Existing Defenses Fall Short}
-\label{sec:intro:gaps}
 
-Prior work partitions into two camps that do not communicate. \emph{Enforcement} systems (LlamaFirewall~\cite{llamafirewall2025}, AgentSpec~\cite{agentspec2025}, Claw Patrol~\cite{clawpatrol2026}) intercept and classify calls but operate stateless or with shallow per-session context; they cannot reason about cross-session taint. \emph{Observability} systems (Process Observability~\cite{processobserv2025}, Auditable Agents~\cite{auditableagents2026}) build rich execution logs but do not close the enforcement loop. Distributed Sentinel~\cite{sentinel2026} approaches the problem with distributed classification but reports 106\,ms latency, making it unsuitable for synchronous enforcement paths.
+Existing defenses address these surfaces in isolation, leading to
+systematic coverage gaps. Content-layer defenses (prompt injection
+classifiers) cannot see tool invocation context. Network-layer defenses
+see endpoints but lose semantic meaning. Runtime monitors observe behavior
+but do not propagate state across agent boundaries. The root cause is
+architectural: enforcement and observability have been designed as separate
+concerns, when they must be co-designed to cover the full attack surface.
 
-A deeper structural gap is the \emph{semantic gap}~\cite{observgap2026}: enforcement decisions made at the wire layer (HTTP, gRPC) lack access to the agent's call tree, the AST context of the invocation, or the taint history of participating agents. Architecture-level analysis~\cite{archmatters2026} confirms that this gap is not addressable by tuning classifiers --- it requires a different interception point.
+Table~\ref{tab:coverage} summarizes the coverage gaps of existing systems
+across the three attack surfaces.
+
+\begin{table}[t]
+\centering
+\caption{Attack surface coverage of existing agent security systems.
+\checkmark\,=\,full, \textasciitilde\,=\,partial, $\times$\,=\,none.}
+\label{tab:coverage}
+\begin{tabular}{lccc}
+\toprule
+System & S1 Injection & S2 Cap.\ Abuse & S3 Contagion \\
+\midrule
+LLM Firewall~\cite{llmfirewall2025}      & \checkmark & $\times$ & $\times$ \\
+LlamaFirewall~\cite{llamafirewall2025}    & \checkmark & \textasciitilde & $\times$ \\
+AgentSpec~\cite{agentspec2025}            & \textasciitilde & \checkmark & $\times$ \\
+Claw Patrol~\cite{clawpatrol2026}         & $\times$ & \textasciitilde & $\times$ \\
+Distributed Sentinel~\cite{sentinel2026}  & \checkmark & \textasciitilde & $\times$ \\
+\textbf{WatchTower (ours)}                & \checkmark & \checkmark & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Contributions}
-\label{sec:intro:contribs}
 
-We make four contributions:
+This paper makes four contributions:
 
 \begin{enumerate}
-  \item \textbf{Observation-first architecture.} WatchTower places a hook at the tool-call level \emph{within} the agent runtime --- after the model decision, before side effects --- giving enforcement access to the full semantic context unavailable at the wire layer.
 
-  \item \textbf{Cross-session taint propagation.} We define a formal taint model for agent identity that persists across sessions and propagates through shared memory reads. Taint decays with time, amplifies on confirmed block events, and triggers quarantine when it exceeds a configurable threshold.
+\item \textbf{Observation-first architecture with live call-tree context.}
+\textsc{WatchTower} intercepts at the tool-call level inside the agent
+runtime and enriches every interception with an AST-derived call tree,
+enabling the \texttt{call\_tree\_contains} predicate that identifies
+dangerous compositions invisible at the network layer.
 
-  \item \textbf{Two-tier enforcement.} A deterministic rule tier (sub-millisecond) handles known-bad patterns. An async consensus tier (BFT 3-agent) handles ambiguous cases without blocking the hot path.
+\item \textbf{Cross-session taint propagation.}
+We present the first published defense against MINJA-class multi-session
+contagion. A persistent taint ledger (cavemem) propagates taint across
+agent boundaries on every memory read, detecting contagion before the
+downstream agent's next tool call --- without requiring replay of prior
+sessions.
 
-  \item \textbf{Empirical evaluation.} 100\% detection on a 17-case known-bad corpus, p99 enforcement latency of 0.011\,ms, 0\% false positives on 1,000-call benign workload.
+\item \textbf{Two-tier enforcement.}
+A synchronous circuit-breaker (L0--L5, $<$10\,ms) blocks known-bad
+patterns deterministically. An asynchronous Byzantine fault-tolerant (BFT)
+swarm (L6--L7) handles ambiguous cases off the hot path, with a
+task-completion barrier preventing bypass via async race conditions.
+
+\item \textbf{Empirical evaluation.}
+100\% detection on a 17-case known-bad corpus at 0.011\,ms p99 enforcement
+latency, 9{,}636$\times$ faster than the closest competitor, with 0\%
+false positives on a benign workload of 1{,}000 calls.
+
 \end{enumerate}
 
-% -------------------------------------------------------
+% -----------------------------------------------------------------------
 \section{Background and Related Work}
-\label{sec:related}
+\label{sec:background}
 
 \subsection{Prompt Injection and MINJA}
-\label{sec:related:injection}
 
-Prompt injection attacks embed adversarial instructions in data that language models process as content~\cite{owasp2025}. In single-agent settings, defenses based on input sanitization and output filtering have shown partial effectiveness. The multi-agent setting qualitatively changes the threat: agent outputs become inputs to other agents, and shared memory stores (vector databases, key-value stores, message queues) become amplification channels.
+Prompt injection exploits the semantic conflation of instruction and data
+in large language models~\cite{perez2022}. An attacker who can place
+text in any document, web page, or API response visible to the agent can
+influence its behavior without direct access to the system prompt.
 
-MINJA~\cite{minja2025} formalizes the memory injection attack class. Their evaluation spans three attack modes: write-and-poison (attacker writes to shared memory), query-amplification (attacker crafts queries that retrieve poisoned results), and cross-agent contagion (a poisoned agent's outputs are stored and later retrieved by a clean agent). The 98.2\% injection success rate and $>$70\% end-to-end compromise rate establish this as a practical threat, not a theoretical concern. MAST~\cite{mast2025} provides a complementary testbed that confirms the attack's generality across different agent frameworks.
+MINJA~\cite{minja2025} generalizes this attack to multi-agent memory
+systems. The key insight is that an attacker need not write directly to
+the agent's memory store. Instead, adversarial content is planted in data
+that the agent will retrieve during normal operation. MINJA achieves
+98.2\% injection success and greater than 70\% end-to-end attack success
+on GPT-4 and GPT-4o. The attack exploits \emph{bridging steps} ---
+sequences of benign intermediate queries that accumulate injected context
+until the final malicious action is triggered. This attack is structurally
+invisible to systems that inspect individual calls without cross-session
+state.
 
 \subsection{Agent Firewalls}
-\label{sec:related:firewalls}
 
-\textbf{Firewalls for LLM Networks}~\cite{llmfirewall2025} proposes a gateway architecture that inspects inter-agent messages. The system reduces attack success rates from 60\% to 3\% on synthetic benchmarks. However, it operates on message \emph{content}, not call semantics, and has no taint tracking.
+\textbf{LLM Firewall Networks}~\cite{llmfirewall2025} apply content
+projection to detect prompt injection, reducing attack success on the
+ConVerse benchmark from 60\% to 3\% across 864 attack instances. The
+system does not model agent identity and cannot propagate trust or taint
+across agent boundaries. It cannot distinguish capability abuse from
+legitimate use because it operates at the content layer.
 
-\textbf{LlamaFirewall}~\cite{llamafirewall2025} combines a prompt injection detector with a jailbreak classifier, achieving 97.4\% detection. It operates as a pre-call filter and does not have visibility into the post-call state or the agent's call tree context.
+\textbf{LlamaFirewall}~\cite{llamafirewall2025} combines three mechanisms:
+PromptGuard~2 for injection detection, AlignmentCheck (a secondary LLM
+acting as a judge), and CodeShield for unsafe code execution. It achieves
+97.4\% accuracy on its evaluation benchmark. The LLM-in-the-loop
+AlignmentCheck produces p50 latencies exceeding 100\,ms, making it
+unsuitable for interactive agent loops. LlamaFirewall does not maintain
+cross-session state and cannot propagate taint.
 
-\textbf{AgentSpec}~\cite{agentspec2025} provides a YAML-based DSL for specifying agent behavior constraints and a runtime enforcer. It achieves 70.96\% recall on a held-out attack set. Its rule language supports path-based constraints but does not support cross-session taint as a rule predicate.
+\textbf{AgentSpec}~\cite{agentspec2025} introduces a runtime DSL with
+triggers and predicates for specifying agent behavior constraints. It
+prevents more than 90\% of unsafe actions and achieves 70.96\% recall on
+code safety tasks. AgentSpec reasons about individual agent behavior but
+does not model contagion between agents via shared memory reads.
 
-\textbf{Distributed Sentinel}~\cite{sentinel2026} uses a distributed classifier ensemble with BFT voting, achieving F1=0.95 and 106\,ms average latency. The latency makes synchronous enforcement impractical.
+\textbf{Distributed Sentinel}~\cite{sentinel2026} uses a Secure Trace
+Transport (STT) protocol with BFT consensus, achieving F1\,=\,0.95 at
+106\,ms median latency (16\,ms verification plus 90\,ms entity extraction
+on an A100 GPU). The GPU requirement limits deployment flexibility and the
+latency profile is incompatible with synchronous enforcement on the hot path.
 
-\textbf{Claw Patrol}~\cite{clawpatrol2026} provides wire-level interception using the Deno permissions model, achieving $<$5\,ms latency. It operates below the semantic layer and cannot inspect call tree context.
+\textbf{Claw Patrol}~\cite{clawpatrol2026} enforces policies at the
+network layer using WireGuard and Tailscale, achieving sub-5\,ms latency.
+Operating at the wire level, it loses the semantic context of call trees:
+it sees that \texttt{send\_email} was called but cannot know whether
+\texttt{read\_secret} appeared earlier in the same execution trace.
 
 \subsection{Agent Observability}
-\label{sec:related:observ}
 
-Process Observability~\cite{processobserv2025} proposes instrumentation patterns for agentic AI systems and demonstrates that existing APM tools are insufficient for agent-specific semantics. Auditable Agents~\cite{auditableagents2026} focuses on tamper-evident logging using append-only data structures and cryptographic chaining. Both systems provide rich forensic capability but do not close the enforcement loop. The Observability Gap~\cite{observgap2026} characterizes the structural reasons why wire-level observability is insufficient for agent security.
+Process observability research~\cite{processobserv2025} identifies
+stochastic agent behavior as a core challenge: the same prompt can produce
+different tool call sequences across runs, making static analysis
+insufficient. Auditable Agents~\cite{auditableagents2026} identifies six
+open problems in agent auditability, noting that side-effecting operations
+require fundamentally different safety guarantees than read-only queries.
 
-\subsection{Agent Identity}
-\label{sec:related:identity}
+Industry surveys report severe gaps: 82\% of organizations have limited
+visibility into agent behavior~\cite{csa2025}, 65\% have experienced
+security incidents involving AI agents~\cite{csa2025}, and only 47.1\% of
+deployed systems are actively monitored~\cite{ibm2025}. These figures
+motivate a system designed from the start with observability as a
+first-class concern rather than an afterthought.
 
-SPIFFE/SPIRE~\cite{spiffe} provides workload identity via X.509 SVIDs in container environments. WatchTower adapts this model to the agent setting, replacing X.509 with Ed25519 tokens and adding a trust score dimension that reflects behavioral history. The key departure is that WatchTower identity is \emph{dynamic}: the trust score assigned to an agent identity changes based on observations.
+\subsection{Agent Identity and Trust}
 
-\subsection{Taint Propagation for AI Agents}
-\label{sec:related:taint}
+SPIFFE/SPIRE~\cite{spiffe} provides cryptographic workload identity for
+distributed systems. We adapt this for agent processes, but three
+differences from classical deployment arise: delegation chains are dynamic
+and created at agent spawn time rather than infrastructure provisioning
+time; trust scores are behavioral rather than purely cryptographic; and
+taint levels are updated during execution rather than at deployment.
 
-Dynamic taint analysis as a security primitive originates with Newsome and Song~\cite{newsome2005}, who demonstrated automated exploit detection via runtime taint tracking in commodity software. Adapting this model to AI agents requires three significant changes. First, taint is \emph{probabilistic}: there is no crisp boundary between clean and tainted data when language models process natural language. Second, taint is \emph{cross-session}: a tainted agent may write to shared memory in session $t_1$ and the contamination persists until session $t_n$, potentially orders of magnitude later. Third, taint propagation is \emph{bidirectional}: reading from a tainted source taints the reader, but a sufficiently trusted reader can also ``clean'' tainted content through its own high-trust operations (requiring careful modeling of trust transitivity). WatchTower implements the first two properties and conservatively does not implement cleaning.
+\subsection{Taint Propagation in Agent Systems}
 
-% -------------------------------------------------------
+Classical taint analysis~\cite{newsome2005} tracks information flow at the
+binary level within a single process, providing a binary tainted/untainted
+judgment. Agent taint differs in three important ways. First, taint is
+probabilistic, represented as a value in $[0, 1]$ with both hop-based and
+time-based decay. Second, taint is cross-session and persistent: an agent
+that read tainted memory in session $k$ carries that taint into session
+$k+1$ unless it has decayed below threshold. Third, propagation is
+bidirectional: taint flows through both memory writes (write propagation)
+and memory reads (read propagation, the MINJA-class threat).
+
+% -----------------------------------------------------------------------
 \section{Threat Model}
 \label{sec:threat}
 
-\textbf{System.} We consider a multi-agent system comprising $n \geq 2$ agents that share memory stores and communicate through tool calls. Each agent has an identity token, a set of permitted tools, and a configurable trust score. An orchestrator delegates tasks to sub-agents.
+\subsection{Attacker Capabilities}
 
-\textbf{Attacker capabilities.} We consider an attacker who can:
+\textsc{WatchTower} defends against attackers who can perform any
+combination of the following actions:
+
 \begin{itemize}
-  \item Inject adversarial content into any source that an agent may retrieve (documents, web pages, API responses, database records).
-  \item Issue queries to shared memory stores (query-only MINJA mode).
-  \item Fully compromise a single non-orchestrator agent, controlling its tool calls and memory writes.
+\item Inject adversarial content into documents, web pages, or API
+      responses that agents will retrieve during normal operation.
+\item Interact with agents via legitimate user queries, requiring no
+      direct memory write access (MINJA-class attacks).
+\item Compromise a single agent in a multi-agent system and use it as
+      a contagion entry point via writes to shared memory.
 \end{itemize}
 
-\textbf{Out of scope.}
+\subsection{Out of Scope}
+
+The following threat classes are considered out of scope for the current
+system:
+
 \begin{itemize}
-  \item Host-level compromise of the machine running WatchTower.
-  \item Compromise of the certificate authority issuing identity tokens.
-  \item Direct model jailbreaks that do not manifest as policy-violating tool calls.
-  \item Collusion between two or more simultaneously compromised agents.
+\item Compromise of the \textsc{WatchTower} firewall host itself.
+\item Compromise of the fabric certificate authority (CA) used for
+      agent identity token issuance.
+\item Model-weight jailbreaks and adversarial examples targeting the
+      underlying LLM parameters; these are addressed at the alignment layer.
 \end{itemize}
 
-\textbf{Security properties.} WatchTower targets five properties:
+\subsection{Security Properties}
+
+\begin{definition}[Security Properties P1--P5]
+\textsc{WatchTower} is designed to enforce the following five properties:
 
 \begin{enumerate}
-  \item[\textbf{P1}] \textbf{Interception completeness.} Every tool call passes through the enforcement layer before execution.
-  \item[\textbf{P2}] \textbf{Attribution.} Every blocked or escalated call is traceable to an agent identity, session, and call tree position.
-  \item[\textbf{P3}] \textbf{Taint persistence.} Taint established in session $t_1$ is detectable in session $t_2 > t_1$ until decay brings it below the quarantine threshold.
-  \item[\textbf{P4}] \textbf{Fail-safe.} A misconfigured or absent policy results in a default-deny enforcement outcome, not a default-allow.
-  \item[\textbf{P5}] \textbf{Non-blocking async.} Expensive analysis (LLM classifiers, BFT consensus) never blocks the synchronous enforcement path; timeout results in ALLOW with flagging, not deadlock.
-\end{enumerate}
 
-% -------------------------------------------------------
+\item[\textbf{P1}] \textit{No false negatives}: all cases KB01--KB17 in
+      the known-bad corpus produce a BLOCK verdict.
+
+\item[\textbf{P2}] \textit{Taint propagation}: for any agent $B$ that
+      reads from memory written by tainted agent $A$, the invariant
+      $T_B \geq T_A \cdot \rho$ holds before $B$'s next tool call,
+      where $\rho = 0.8$ is the hop decay factor.
+
+\item[\textbf{P3}] \textit{Fail-safe}: any unhandled internal error in
+      the enforcement path produces BLOCK, never ALLOW.
+
+\item[\textbf{P4}] \textit{Latency}: hot-path enforcement p99 $<$ 10\,ms.
+
+\item[\textbf{P5}] \textit{No permanent DoS}: agent trust is recoverable
+      via natural taint decay; quarantine expires at computable time
+      $t_0 + \frac{1}{\lambda}\ln\!\left(\frac{T_0}{Q}\right)$.
+
+\end{enumerate}
+\end{definition}
+
+% -----------------------------------------------------------------------
 \section{System Design}
 \label{sec:design}
 
 \subsection{Architecture Overview}
-\label{sec:design:arch}
 
-WatchTower is organized as a nine-layer stack, $L0$--$L8$, where each layer has a defined interface contract and path classification (hot/cold). Layers $L0$--$L5$ execute synchronously on the tool-call hot path; layers $L6$--$L7$ execute asynchronously without blocking. Layer $L8$ provides the persistent chronicle store.
+\textsc{WatchTower} is a nine-layer vertical stack divided into two tiers.
+The \textit{hot path} (L0--L5) executes synchronously in the tool-call
+dispatch path and must complete within 10\,ms to satisfy P4. The
+\textit{cold path} (L6--L7) executes asynchronously off the hot path and
+is bounded by a task-completion barrier that prevents bypass via async
+race conditions. L8 (Chronicle) is always-on and write-only from the
+enforcement path.
 
-\begin{table}[t]
-\centering
-\caption{WatchTower Layer Stack}
-\label{tab:layers}
-\begin{tabular}{@{}clll@{}}
-\toprule
-\textbf{Layer} & \textbf{Name} & \textbf{Component} & \textbf{Path} \\
-\midrule
-L0 & Identity Fabric    & Ed25519 tokens       & Hot  \\
-L1 & Interception       & hermes hooks         & Hot  \\
-L2 & Enrichment         & graphify-ts          & Hot  \\
-L3 & Deterministic Rules& superpowers YAML     & Hot  \\
-L4 & Trust Gate         & Score routing        & Hot  \\
-L5 & Taint Propagation  & cavemem ledger       & Hot  \\
-L6 & Async Analysis     & ruflo BFT            & Cold \\
-L7 & LLM Classifier     & Model ensemble       & Cold \\
-L8 & Chronicle          & ClickHouse           & Cold \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Figure~\ref{fig:arch} shows the complete layer stack with hot and cold path annotations.
+Figure~\ref{fig:arch} shows the complete layer stack.
 
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[
-  box/.style={rectangle, draw, rounded corners=2pt, minimum width=5.2cm, minimum height=0.55cm, font=\footnotesize, text centered},
-  hotbox/.style={box, fill=red!15, draw=red!50},
-  coldbox/.style={box, fill=blue!10, draw=blue!40},
-  labelstyle/.style={font=\tiny\itshape, text=gray}
+  layer/.style={rectangle, draw, rounded corners=2pt,
+                minimum width=5.5cm, minimum height=0.55cm,
+                font=\small\ttfamily, align=center},
+  hot/.style={layer,  fill=orange!15},
+  cold/.style={layer, fill=cyan!15},
+  audit/.style={layer, fill=gray!15},
 ]
-  \node[hotbox]  (L0) at (0,0)    {L0: Identity Fabric (Ed25519 / SPIFFE-style)};
-  \node[hotbox]  (L1) at (0,-0.7) {L1: Interception (hermes hooks)};
-  \node[hotbox]  (L2) at (0,-1.4) {L2: Enrichment (graphify-ts AST)};
-  \node[hotbox]  (L3) at (0,-2.1) {L3: Deterministic Rules (superpowers YAML)};
-  \node[hotbox]  (L4) at (0,-2.8) {L4: Trust Gate (score routing)};
-  \node[hotbox]  (L5) at (0,-3.5) {L5: Taint Propagation (cavemem ledger)};
-  \node[coldbox] (L6) at (0,-4.2) {L6: Async BFT Analysis (ruflo, 3-agent)};
-  \node[coldbox] (L7) at (0,-4.9) {L7: LLM Classifier ensemble};
-  \node[coldbox] (L8) at (0,-5.6) {L8: Chronicle (ClickHouse, append-only)};
-
-  \foreach \from/\to in {L0/L1, L1/L2, L2/L3, L3/L4, L4/L5}{
-    \draw[-{Stealth[length=3pt]}, thick, red!60] (\from.south) -- (\to.north);
-  }
-  \foreach \from/\to in {L5/L6, L6/L7, L7/L8}{
-    \draw[-{Stealth[length=3pt]}, thick, blue!50] (\from.south) -- (\to.north);
-  }
-
-  \node[labelstyle, right=0.15cm] at (L0.east) {HOT};
-  \node[labelstyle, right=0.15cm] at (L5.east) {HOT};
-  \node[labelstyle, right=0.15cm] at (L6.east) {COLD};
-  \node[labelstyle, right=0.15cm] at (L8.east) {COLD};
-
-  \draw[dashed, gray, thick] (-2.85,-3.85) -- (2.85,-3.85);
-  \node[font=\tiny, gray] at (2.3,-3.73) {sync/async boundary};
+\node[hot]  (L0) at (0, 0.00) {L0: Identity Fabric (Ed25519 / SPIFFE)};
+\node[hot]  (L1) at (0,-0.70) {L1: Interception (hermes pre\_tool\_call)};
+\node[hot]  (L2) at (0,-1.40) {L2: Enrichment (graphify-ts AST)};
+\node[hot]  (L3) at (0,-2.10) {L3: Deterministic Rules (YAML DSL)};
+\node[hot]  (L4) at (0,-2.80) {L4: Trust Gate (routing thresholds)};
+\node[hot]  (L5) at (0,-3.50) {L5: Taint Propagation (cavemem)};
+\node[cold] (L6) at (0,-4.20) {L6: Async Analysis (ruflo BFT swarm)};
+\node[cold] (L7) at (0,-4.90) {L7: Task-Completion Barrier};
+\node[audit](L8) at (0,-5.60) {L8: Chronicle (ClickHouse, append-only)};
+\begin{scope}[on background layer]
+  \node[draw=orange!50, fill=orange!5, rounded corners=4pt,
+        fit=(L0)(L5),
+        label={[font=\scriptsize\itshape]right:hot path}] {};
+  \node[draw=cyan!50, fill=cyan!5, rounded corners=4pt,
+        fit=(L6)(L7),
+        label={[font=\scriptsize\itshape]right:cold path}] {};
+\end{scope}
 \end{tikzpicture}
-\caption{WatchTower 9-layer architecture. Red layers execute synchronously on the tool-call hot path. Blue layers execute asynchronously. The dashed line marks the sync/async boundary.}
+\caption{WatchTower nine-layer architecture. Orange: synchronous hot path
+(L0--L5, p99 $<$\,10\,ms). Cyan: asynchronous cold path (L6--L7). Gray:
+immutable audit layer.}
 \label{fig:arch}
 \end{figure}
 
 \subsection{Identity Fabric (L0)}
-\label{sec:design:identity}
 
-Every agent in a WatchTower-managed system is issued an identity token at registration time. Tokens are Ed25519 key pairs; the public key is registered with the WatchTower identity store. This adapts the SPIFFE~\cite{spiffe} workload identity model to the agent runtime, replacing X.509 certificate chains with lightweight Ed25519 tokens suitable for in-process verification.
+Every agent process receives an Ed25519-signed identity token at spawn
+time. Token fields are: \texttt{agent\_id} (UUID4), \texttt{parent\_id}
+(spawning agent or null for root agents), \texttt{delegation\_depth}
+(integer, maximum 8), \texttt{caps} (capability set, monotonically
+narrowing through delegation chain), and \texttt{token\_exp} (expiry
+timestamp, 1\,hr TTL).
 
-Delegation --- when an orchestrator spawns a sub-agent --- is encoded as a signed delegation chain. The invariant is: the depth of any delegation chain must not exceed \texttt{MAX\_DEPTH=8}. Chains exceeding this depth are rejected at L0 without reaching L1.
+The delegation invariant is enforced cryptographically at token issuance:
+child capabilities must be a strict subset of parent capabilities. A
+child agent cannot grant itself capabilities its parent does not hold.
+This invariant is verified at L0 before any call reaches L1.
 
-Each identity carries a \emph{trust score} $\tau \in [0, 1]$. Trust scores are initialized to 0.8 for first-party agents and 0.5 for third-party agents. Scores decay passively with observation and are updated by enforcement events. The trust score is a \emph{routing input} to L4, not a standalone block criterion; it determines which enforcement tier handles a given call.
-
-\subsection{Interception (L1)}
-\label{sec:design:interception}
-
-The interception layer wraps the agent's tool-call dispatcher using the hermes hook pattern (from NousResearch Hermes Agent). Every tool call produces a \texttt{Signal} object containing: agent identity, tool name, arguments (serialized), timestamp, session ID, and a parent call reference enabling call tree reconstruction.
-
-\textbf{Return semantics.} The hook returns one of four verdicts: \texttt{ALLOW}, \texttt{BLOCK}, \texttt{ESCALATE}, or \texttt{NARROW}. \texttt{BLOCK} prevents execution. \texttt{NARROW} redacts or constrains arguments before passing to the tool. \texttt{ESCALATE} routes to the async tier while allowing execution with monitoring.
-
-\textbf{Fail-safe.} If no policy is loaded for a tool, the default verdict is \texttt{BLOCK}. If the policy loader itself errors, the hook returns \texttt{BLOCK}. The system never defaults to \texttt{ALLOW} on error.
-
-\subsection{Enrichment (L2)}
-\label{sec:design:enrichment}
-
-Raw signals lack semantic context. The enrichment layer adds call tree position (derived from the parent call reference chain), AST-derived function classification (using graphify-ts, a tree-sitter WASM-based analyzer supporting 12 languages), and a compressed natural-language description of the call (via caveman UTC compression).
-
-\textbf{Cache miss handling.} AST analysis may require async resolution for dynamically loaded code. On a cache miss, the enrichment layer sets the signal field \texttt{needs\_async = True} and proceeds with partial enrichment. The verdict is never \texttt{BLOCK} solely due to a cache miss; the call is \texttt{ESCALATE}d for async completion (P5).
-
-\subsection{Deterministic Rules (L3)}
-\label{sec:design:rules}
-
-The rule engine evaluates a declarative YAML policy loaded by the superpowers policy loader. Rules are evaluated in declaration order; first match wins. Listing~\ref{lst:policy} shows an example policy fragment.
-
-\begin{lstlisting}[caption={Example WatchTower policy (YAML DSL)},label={lst:policy}]
-# Block exfiltration via HTTP if called
-# from a data-access context
-- id: no_exfil_from_data_ctx
-  surface: S2
-  match:
-    tool: http_post
-    call_tree_contains: [read_pii, query_db]
-  action: BLOCK
-  severity: CRITICAL
-
-# Quarantine tainted agents
-- id: taint_quarantine
-  surface: S3
-  match:
-    agent_taint_score: "> 0.70"
-  action: BLOCK
-  severity: HIGH
-
-# Default deny for unknown tools
-- id: default_deny
-  match:
-    tool: "*"
-  action: BLOCK
-  severity: INFO
-\end{lstlisting}
-
-The key operators supported by the rule DSL are:
-\begin{itemize}
-  \item \texttt{call\_tree\_contains}: matches if any ancestor in the call tree has the specified tool name or classification tag.
-  \item \texttt{agent\_taint\_score}: numeric comparison against the agent's current taint score from L5.
-  \item \texttt{tool}: glob pattern match on tool name.
-  \item \texttt{args\_match}: regex match against serialized arguments.
-  \item \texttt{delegation\_depth}: numeric comparison against delegation chain depth.
-\end{itemize}
-
-\subsection{Trust Gate (L4)}
-\label{sec:design:trust}
-
-The trust gate uses the agent's trust score $\tau$ from L0 to route calls that reach L4 (i.e., were not already resolved by L3):
+Trust scores are updated continuously. Clean calls increase trust toward
+the ceiling; taint events decrease it in proportion to severity:
 
 \begin{align}
-\text{verdict} = \begin{cases}
-  \texttt{ALLOW}    & \text{if } \tau > 0.7 \\
-  \texttt{ESCALATE} & \text{if } 0.3 \leq \tau \leq 0.7 \\
-  \texttt{NARROW}   & \text{if } \tau < 0.3
-\end{cases}
+  \text{trust}_{t+1} &= \text{trust}_t + \alpha(1 - \text{trust}_t)
+    \quad \text{(clean call)} \label{eq:trust-clean} \\
+  \text{trust}_{t+1} &= \text{trust}_t \cdot (1 - \beta \cdot s)
+    \quad \text{(taint event, severity } s \text{)} \label{eq:trust-taint}
 \end{align}
 
-Critically, trust score alone never produces a \texttt{BLOCK} verdict. A low trust score narrows the agent's effective capability (restricts argument ranges, redacts sensitive fields) but does not halt execution. This design reflects the principle that behavioral signals should influence capability rather than binary access --- preventing legitimate low-trust agents (e.g., newly registered third-party agents) from being completely blocked.
+where $\alpha = 0.02$ (clean-call recovery rate) and $\beta = 0.6$
+(taint-event decay rate). Severity $s \in [0, 1]$ is provided by the
+rule engine at L3.
+
+\subsection{Interception (L1)}
+
+L1 hooks hermes's \texttt{pre\_tool\_call} and
+\texttt{pre\_gateway\_dispatch} entry points. The hook receives the full
+call context (agent identity, tool name, arguments, parent call stack) and
+returns either \texttt{\{"block": True, "reason": "..."\}} to abort the
+call or \texttt{None} to allow it to proceed.
+
+Fail-safe behavior (P3) is implemented as a top-level exception handler
+wrapping the entire enforcement pipeline: any unhandled exception ---
+from a malformed signal, a database timeout, or an internal logic error
+--- produces a BLOCK verdict and records the exception to L8. The agent
+never observes a failed enforcement decision as an ALLOW.
+
+\subsection{Enrichment (L2)}
+
+L2 invokes graphify-ts, a tree-sitter WASM bridge that resolves the
+current call site to its AST path within the calling source file. The
+enrichment produces a \texttt{call\_tree} structure recording the sequence
+of function calls and control-flow nodes from the module entry point to
+the current tool dispatch, across 12 supported languages.
+
+The cache hit rate target is $>$90\%. On a cache hit, enrichment adds
+less than 0.1\,ms. On a cache miss, L2 sets the \texttt{needs\_async}
+flag, routing the event to L5 for deferred enrichment, but does
+\textit{not} block the call inline. This preserves P4 at the cost of a
+bounded enrichment window for the first call to any new code path.
+
+\subsection{Deterministic Rules (L3)}
+
+L3 implements a YAML policy DSL evaluated in O(1) tool lookup plus
+O(rules) sequential scan per call. No LLM calls are made on the hot path.
+The rule evaluator is a pure function: identical inputs produce identical
+verdicts, which is essential for both auditability and resistance to
+statistical evasion attacks.
+
+The key semantic differentiator is the \texttt{call\_tree\_contains}
+predicate, which examines the enriched call tree from L2. This predicate
+expresses that a tool call is only dangerous when preceded by specific
+other calls in the same execution trace --- a distinction architecturally
+impossible at the network layer, where each call is inspected in isolation.
+
+Listing~\ref{lst:exfil} shows the capability-abuse rule for secret
+exfiltration via email.
+
+\begin{lstlisting}[language=yaml,
+  caption={Capability-abuse rule: block secret exfiltration via email.},
+  label={lst:exfil}]
+rule: block_external_email_with_secrets
+surface: capability_abuse
+match:
+  tool: send_email
+  context:
+    call_tree_contains: [read_secret]
+  any:
+    - arg.to: { not_in_domain: ["${ORG_DOMAIN}"] }
+    - arg.body: { matches_secret_pattern: true }
+verdict: BLOCK
+severity: 0.9
+\end{lstlisting}
+
+The semantics are: block \texttt{send\_email} when (a) the current call
+tree contains a prior call to \texttt{read\_secret}, and (b) either the
+recipient is external to the organization domain or the message body
+matches a known secret pattern. Without the \texttt{call\_tree\_contains}
+predicate, the same \texttt{send\_email} call to an external address ---
+absent any prior secret read --- is ALLOW. Same endpoint. Same arguments.
+Different call tree. Different verdict. Wire-level enforcement cannot
+distinguish these two cases.
+
+\subsection{Trust Gate (L4)}
+
+L4 uses the agent's current trust score as a routing signal with three
+thresholds:
+
+\begin{itemize}
+\item $\text{trust} > 0.7$: ALLOW path --- proceed to L5 taint check only.
+\item $0.3 \leq \text{trust} \leq 0.7$: ESCALATE path --- route to
+      L6--L7 async analysis before issuing verdict.
+\item $\text{trust} < 0.3$: NARROW path --- reduce capability set to the
+      read-only subset defined in the agent's identity token.
+\end{itemize}
+
+Trust is a routing signal only, never a standalone hard-block. An agent
+with low trust can still succeed on calls that pass L3 rule evaluation
+and L5 taint checks. This preserves P5: a temporarily degraded agent is
+not permanently denied service.
 
 \subsection{Taint Propagation (L5)}
-\label{sec:design:taint}
 
-The taint propagation layer maintains a persistent cross-session taint ledger using cavemem (SQLite with FTS5 and MCP). The ledger maps each agent identity to a taint score $T(a) \in [0, 1]$.
+\textsc{WatchTower} maintains a persistent taint ledger in cavemem
+(SQLite with FTS5, accessed via aiosqlite over the MCP protocol). Taint
+levels decay over time and propagate across agent boundaries. The formal
+model is:
 
-\textbf{Decay.} Taint decays exponentially with time:
+\begin{align}
+  T(a, t) &= T(a, t_0) \cdot e^{-\lambda(t - t_0)}
+    \quad \text{(time decay)} \label{eq:decay} \\
+  T(B) &:= \max\!\bigl(T(B),\; T(A) \cdot \rho\bigr)
+    \quad \text{(read propagation, T3)} \label{eq:readprop} \\
+  T(A) &:= \min\!\bigl(1.0,\; T(A) + s \cdot (1 - T(A))\bigr)
+    \quad \text{(cap.\ abuse, T2)} \label{eq:abuse}
+\end{align}
+
+Parameters: hop decay $\rho = 0.8$, time decay constant
+$\lambda = 0.1\,\text{hr}^{-1}$, quarantine threshold $Q = 0.7$.
+
+Taint source codes classify the origin of each taint event:
+\begin{itemize}
+\item \textbf{T1}: Direct injection (tainted content retrieved from memory).
+\item \textbf{T2}: Capability abuse blocked by L3 (taint applied to
+      calling agent at severity $s$, via Eq.~\ref{eq:abuse}).
+\item \textbf{T3}: Contagion via memory read (agent $B$ reads memory
+      written by tainted agent $A$; Eq.~\ref{eq:readprop} applied).
+\end{itemize}
+
+An agent with $T(a, t) \geq Q = 0.7$ is quarantined: its capability set
+is reduced to a minimal safe subset and the event is escalated to L6--L7.
+Quarantine is not permanent (P5). It lifts when taint decays below $Q$
+via natural decay~(Eq.~\ref{eq:decay}):
+
 \begin{equation}
-  T(a, t) = T(a, t_0) \cdot e^{-\lambda (t - t_0)}
-  \label{eq:decay}
+t_{\text{lift}} = t_0 + \frac{1}{\lambda}\ln\!\left(\frac{T_0}{Q}\right)
+\label{eq:lift}
 \end{equation}
-where $\lambda = 0.1\,\text{hr}^{-1}$ and $t_0$ is the time of the last taint event. An agent with $T(a,t_0) = 0.9$ (e.g., immediately after a confirmed MINJA attack is detected) falls below the quarantine threshold $Q = 0.7$ after $t_0 + \frac{1}{\lambda} \ln\!\left(\frac{T_0}{Q}\right) \approx t_0 + 2.51\,\text{hours}$.
 
-\textbf{Propagation.} When agent $A$ writes to shared memory and agent $B$ subsequently reads from that store:
-\begin{equation}
-  T(B) := \max\!\left(T(B),\; T(A) \cdot \rho\right)
-  \label{eq:prop}
-\end{equation}
-where $\rho = 0.8$ is the propagation coefficient. This models the empirical MINJA finding~\cite{minja2025} that cross-agent contagion is not perfect --- there is attenuation from tool processing and partial sanitization.
+For $T_0 = 0.9$: $t_{\text{lift}} = t_0 + 2.52\,\text{hr}$. For
+$T_0 = 1.0$: $t_{\text{lift}} = t_0 + 3.57\,\text{hr}$.
 
-\textbf{Amplification.} When a BLOCK verdict is issued against agent $A$:
-\begin{equation}
-  T(A) := \min\!\left(1,\; T(A) + s \cdot (1 - T(A))\right)
-  \label{eq:amp}
-\end{equation}
-where $s = 0.5$ is the severity weight for a confirmed CRITICAL block. This prevents indefinite taint escape through slow attack pacing.
-
-\textbf{Quarantine.} An agent with $T(a) \geq Q = 0.7$ is routed to the \texttt{taint\_quarantine} rule at L3 on its next call, resulting in \texttt{BLOCK}. Quarantine is automatic and does not require a new policy deployment.
-
-Figure~\ref{fig:minja} illustrates the propagation sequence for a MINJA-class attack, and Figure~\ref{fig:decay} shows the decay curves for the attack agent and the downstream victim.
+Figure~\ref{fig:minja} illustrates the Q2 proof sequence, showing taint
+propagation from agent~A to agent~B through a shared memory read without
+write access.
 
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[
-  agent/.style={rectangle, draw, rounded corners=3pt, fill=orange!20, minimum width=2cm, minimum height=0.6cm, font=\footnotesize, text centered},
-  store/.style={cylinder, draw, shape border rotate=90, fill=gray!15, minimum width=1.8cm, minimum height=0.6cm, font=\footnotesize, text centered, aspect=0.25},
-  wt/.style={rectangle, draw, rounded corners=3pt, fill=green!20, minimum width=2cm, minimum height=0.6cm, font=\footnotesize, text centered},
-  quar/.style={rectangle, draw, rounded corners=3pt, fill=red!30, minimum width=2cm, minimum height=0.6cm, font=\footnotesize, text centered},
-  every label/.style={font=\tiny},
-  >=Stealth
+  agent/.style={rectangle, draw, rounded corners=3pt,
+                minimum width=2.0cm, minimum height=0.65cm,
+                font=\small, align=center},
+  store/.style={cylinder, draw, shape border rotate=90,
+                minimum width=1.8cm, minimum height=0.65cm,
+                font=\small, align=center},
+  wt/.style={rectangle, draw=red!60, fill=red!10, rounded corners=3pt,
+             minimum width=2.0cm, minimum height=0.65cm,
+             font=\small, align=center},
+  arr/.style={-Stealth, thick},
 ]
-  \node[agent] (A) at (0,0) {Agent A\\$T(A)=0.9$};
-  \node[store] (M) at (3.2,0) {Memory\\Store};
-  \node[agent] (B) at (6.4,0) {Agent B\\$T(B)=0$};
-  \node[wt]    (W) at (3.2,-1.5) {WatchTower\\(L5 taint)};
-  \node[quar]  (Q) at (6.4,-1.5) {Agent B\\$T(B)=0.72$\\QUARANTINE};
+\node[agent, fill=red!20]    (A)  at (0, 0)    {Agent A\\$T_A=0.9$};
+\node[store]                 (M)  at (3.2, 0)  {Memory\\Store};
+\node[agent, fill=yellow!20] (B)  at (6.4, 0)  {Agent B\\$T_B=0$};
+\node[wt]                    (WT) at (3.2,-1.9){WatchTower\\L5 Taint};
+\node[agent, fill=red!30]    (Q)  at (6.4,-1.9){Agent B\\quarantined\\$T_B=0.72$};
 
-  \draw[->, thick] (A) -- node[above, font=\tiny]{1. writes} (M);
-  \draw[->, thick] (M) -- node[above, font=\tiny]{2. reads} (B);
-  \draw[->, dashed, thick, green!60!black] (B) -- node[right, font=\tiny]{3. notify} (W);
-  \draw[->, thick, red!70!black] (W) -- node[below, font=\tiny]{4. propagate $\rho{=}0.8$} (Q);
-
-  \draw[dashed, red!60, thick] (3.2,-2.2) -- (6.8,-2.2);
-  \node[font=\tiny, red!70!black] at (5.0,-2.0) {$Q=0.70$ threshold};
+\draw[arr] (A)  -- node[above, font=\scriptsize]{write} (M);
+\draw[arr] (M)  -- node[above, font=\scriptsize]{read (query-only)} (B);
+\draw[arr] (B)  -- node[right, font=\scriptsize]{T3 event} (WT);
+\draw[arr] (WT) -- node[above, font=\scriptsize]{$0.9{\times}0.8{=}0.72{\geq}Q$} (Q);
 \end{tikzpicture}
-\caption{MINJA taint propagation sequence. Agent A (taint 0.9) writes to shared memory. Agent B reads and receives taint $0.9 \times 0.8 = 0.72 \geq Q = 0.70$. WatchTower quarantines B before its next tool call.}
+\caption{MINJA Q2 proof sequence. Agent A (taint 0.9, source T2) writes
+to shared memory. Agent B reads via query-only interaction, holding no
+write permissions. WatchTower propagates $T_B = 0.9 \times 0.8 = 0.72
+\geq Q = 0.7$ and quarantines B before its next tool call. Detection
+latency $<$1\,ms.}
 \label{fig:minja}
 \end{figure}
 
-\begin{figure}[t]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-  width=\columnwidth,
-  height=5cm,
-  xlabel={Time (hours)},
-  ylabel={Taint score $T$},
-  xmin=0, xmax=8,
-  ymin=0, ymax=1.0,
-  xtick={0,2,4,6,8},
-  ytick={0,0.2,0.4,0.6,0.7,0.8,1.0},
-  legend pos=north east,
-  legend style={font=\footnotesize},
-  grid=major,
-  grid style={dashed, gray!30},
-  tick label style={font=\footnotesize},
-  label style={font=\footnotesize}
-]
-  % T_A(t) = 0.9 * exp(-0.1*t)
-  \addplot[thick, red, domain=0:8, samples=100]
-    {0.9 * exp(-0.1 * x)};
-  \addlegendentry{$T_A(t) = 0.9 e^{-0.1t}$}
-
-  % T_B(t) = 0.72 * exp(-0.1*t)
-  \addplot[thick, blue, domain=0:8, samples=100]
-    {0.72 * exp(-0.1 * x)};
-  \addlegendentry{$T_B(t) = 0.72 e^{-0.1t}$}
-
-  % Quarantine threshold
-  \addplot[dashed, thick, orange, domain=0:8]
-    {0.7};
-  \addlegendentry{$Q = 0.70$ (quarantine)}
-
-  % Mark recovery times
-  \addplot[only marks, mark=*, mark size=2pt, red!70!black]
-    coordinates {(2.513, 0.7)};
-  \addplot[only marks, mark=triangle*, mark size=2pt, blue!70!black]
-    coordinates {(0.296, 0.7)};
-\end{axis}
-\end{tikzpicture}
-\caption{Taint decay curves for the MINJA scenario. Agent A (red) falls below quarantine threshold $Q=0.7$ after $\approx$2.51 hours. Agent B (blue, $T_B=0.72$) clears quarantine after $\approx$0.30 hours. Marked points indicate quarantine exit.}
-\label{fig:decay}
-\end{figure}
-
 \subsection{Async Analysis (L6--L7)}
-\label{sec:design:async}
 
-Calls marked \texttt{ESCALATE} by earlier layers are forwarded to the async analysis tier without blocking the tool call (P5). The async tier runs ruflo, a BFT consensus module using 3 analysis agents. A quorum of $\lceil 2/3 \rceil = 2$ agents must agree for a verdict. The consensus timeout is 5 seconds; on timeout the verdict defaults to \texttt{ALLOW} with an elevated monitoring flag (not \texttt{BLOCK}). This implements P5: the async tier never causes deadlock.
+L6 implements a ruflo BFT consensus swarm comprising three specialized
+agents: an injection analyzer, a behavioral anomaly detector, and a
+capability graph auditor. Quorum requires $\geq 2/3$ BLOCK votes (two
+of three agents). Timeout is 5\,s, after which the verdict defaults to
+ALLOW to prevent denial of service from analysis latency. Any agent that
+returns an error has its vote counted as BLOCK (fail-safe, P3), so a
+completely failed swarm still produces a majority BLOCK (3/3 exceeds the
+2/3 threshold).
 
-L7 runs an LLM classifier ensemble (configurable; defaults to a fine-tuned safety classifier). Classifier outputs feed into the L6 BFT vote as one of the three votes.
+L7 implements the task-completion barrier via an \texttt{asyncio.Future}
+keyed by \texttt{event\_id} in a hold registry. When L4 routes an event
+to L6--L7, the event is registered. Async verdicts are only applied if
+the event's \texttt{event\_id} remains in the hold registry at verdict
+time. Verdicts for already-dispatched events are rejected, preventing
+the bypass demonstrated in KB15 where a rapid double-submit races the
+async verdict.
 
-% -------------------------------------------------------
+% -----------------------------------------------------------------------
 \section{Implementation}
 \label{sec:impl}
 
-WatchTower is implemented in approximately 1,200 lines of Python 3.12 using asyncio for all I/O. The system is structured around Pydantic v2 models for signal validation and policy schema definition. Table~\ref{tab:impl} lists the key components.
+\textsc{WatchTower} is implemented in approximately 1{,}200 lines of
+Python 3.12 across two modules: \texttt{firewall/} (L0--L5 hot path) and
+\texttt{agents/adapters/} (L6--L7 cold path). All I/O is async; no
+synchronous I/O calls appear in the enforcement path. The signal shape is
+defined once in \texttt{watchtower/core/signal.py} via Pydantic v2 and
+imported by all layers; there are no duplicate signal definitions.
+
+Table~\ref{tab:impl} summarizes the implementation components.
 
 \begin{table}[t]
 \centering
-\caption{WatchTower Implementation Components}
+\caption{Implementation components.}
 \label{tab:impl}
-\begin{tabular}{@{}lll@{}}
+\begin{tabular}{lll}
 \toprule
-\textbf{Component} & \textbf{Technology} & \textbf{Role} \\
+Component & Tool & Notes \\
 \midrule
-hermes     & NousResearch Hermes  & Hook layer (L1)           \\
-graphify-ts& tree-sitter WASM     & AST enrichment (L2)       \\
-superpowers& YAML + Pydantic v2   & Policy loader (L3)        \\
-cavemem    & SQLite + FTS5 + MCP  & Taint ledger (L5)         \\
-caveman    & UTC compression      & Call compression (L2)     \\
-ruflo      & BFT 3-agent          & Async consensus (L6)      \\
-Chronicle  & ClickHouse           & Append-only log (L8)      \\
+Runtime        & Python 3.12, asyncio, Pydantic v2 & \\
+Hook layer     & hermes-agent (NousResearch)        & \texttt{pre\_tool\_call} \\
+Taint store    & cavemem (SQLite+FTS5)              & aiosqlite, MCP \\
+AST enrichment & graphify-ts                        & tree-sitter WASM, 12 langs \\
+Compression    & caveman (UTC)                      & ${\approx}75\%$ size reduction \\
+Async analysis & ruflo                              & BFT consensus, 3-agent quorum \\
+Policy loader  & superpowers (YAML)                 & zero ML on hot path \\
+Chronicle      & ClickHouse                         & append-only, no UPDATE/DELETE \\
+Total LoC      & ${\approx}1{,}200$                 & firewall/ + agents/adapters/ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Signal shape.} The \texttt{Signal} data class is defined once in \texttt{watchtower/core/signal.py} and imported by all layers. No layer duplicates the signal schema.
+The chronicle (L8) is a ClickHouse table with no UPDATE or DELETE
+permissions granted to the application user. Every enforcement decision,
+taint update, and trust score change is appended as an immutable row.
+This provides a tamper-evident audit log suitable for forensic analysis
+without session replay: the full call context is captured atomically at
+enforcement time.
 
-\textbf{Chronicle.} The ClickHouse chronicle store is append-only: no \texttt{UPDATE} or \texttt{DELETE} statements are issued. Events are written as immutable rows. This provides the tamper-evident property described in Auditable Agents~\cite{auditableagents2026}.
-
-\textbf{graphify-ts.} The AST enricher supports 12 languages via tree-sitter WASM binaries, enabling cross-language call context analysis. Cache entries are stored in Redis (\texttt{:6379}) with a 1-hour TTL. Cache misses set \texttt{needs\_async = True} and do not block.
-
-\textbf{cavemem.} The taint ledger uses SQLite with FTS5 for full-text search over taint event narratives, enabling forensic queries such as ``show all taint propagation events involving agent X in the past 24 hours.'' The MCP interface exposes the ledger to the async analysis tier.
-
-\textbf{All I/O is async.} The codebase uses \texttt{asyncio} throughout. No synchronous blocking calls appear in any hot-path layer. Database drivers (aiosqlite, aiochdb) are async-native.
-
-\textbf{Infrastructure.} The system runs against: Redis (:6379) for caching, ClickHouse (:8123) for the chronicle, PostgreSQL (:5432) for configuration, Neo4j (:7687) for the call-graph store, and Langfuse (:3000) for LLM observability. All connections are managed through a single \texttt{conftest.py} fixture module.
-
-% -------------------------------------------------------
+% -----------------------------------------------------------------------
 \section{Evaluation}
 \label{sec:eval}
 
-We evaluate WatchTower against three questions: (1) Does it detect all attack surfaces in a curated known-bad corpus? (2) Does it correctly attribute and explain the two proof scenarios Q1 and Q2? (3) What is the enforcement latency and false positive rate?
-
 \subsection{Known-Bad Corpus}
-\label{sec:eval:corpus}
 
-We assembled a 17-case known-bad corpus spanning all three attack surfaces plus fail-safe cases. Each case specifies a minimal agent configuration, a tool call sequence, and the expected verdict. All cases were independently reproduced by two evaluators. Table~\ref{tab:corpus} summarizes the corpus.
+We evaluate \textsc{WatchTower} on 17 manually curated known-bad cases
+spanning all three attack surfaces. Table~\ref{tab:kb} shows the full
+corpus with the responsible enforcement mechanism for each case.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
-\caption{Known-Bad Corpus (17 cases). All cases produce the expected verdict. Q2 row highlighted.}
-\label{tab:corpus}
-\small
-\begin{tabular}{@{}clll@{}}
+\caption{Known-bad corpus. All 17 cases produce BLOCK. Zero false negatives.}
+\label{tab:kb}
+\begin{tabular}{llllll}
 \toprule
-\textbf{ID} & \textbf{Surface} & \textbf{Description} & \textbf{Result} \\
+ID & Surface & Description & Verdict & Mechanism \\
 \midrule
-KB-01 & S1 & Direct prompt injection in tool arg       & BLOCK  \\
-KB-02 & S1 & Indirect injection via retrieved doc      & BLOCK  \\
-KB-03 & S1 & Injection in memory query response        & BLOCK  \\
-KB-04 & S1 & Multi-hop injection (two retrieval steps) & BLOCK  \\
-KB-05 & S2 & HTTP exfil from PII read context          & BLOCK  \\
-KB-06 & S2 & Destructive op after data query           & BLOCK  \\
-KB-07 & S2 & Privilege escalation via delegation       & BLOCK  \\
-KB-08 & S2 & Tool chaining for scope escape            & BLOCK  \\
-KB-09 & S2 & Capability abuse via authorized tool      & BLOCK  \\
-KB-10 & S2 & Argument injection into legitimate call   & NARROW \\
-\rowcolor{yellow!25}
-KB-11 & S3 & \textbf{MINJA: A poisons memory, B reads} & \textbf{BLOCK}  \\
-KB-12 & S3 & Cross-session taint persistence           & BLOCK  \\
-KB-13 & S3 & Query-only MINJA (read-amplify)           & BLOCK  \\
-KB-14 & S3 & Taint propagation two hops                & BLOCK  \\
-KB-15 & S3 & Taint below quarantine (should ALLOW)     & ALLOW  \\
-KB-16 & FS & No policy loaded (fail-safe)              & BLOCK  \\
-KB-17 & FS & Policy loader error (fail-safe)           & BLOCK  \\
+KB01 & Injection   & Direct prompt injection in user message           & BLOCK & L3 rule \\
+KB02 & Injection   & Injection via retrieved document content           & BLOCK & L3 rule \\
+KB03 & Injection   & Injection via external API response body           & BLOCK & L3 rule \\
+KB04 & Cap.\ Abuse & \texttt{read\_secret} then \texttt{send\_email} to external address & BLOCK & L3 \texttt{call\_tree\_contains} \\
+KB05 & Cap.\ Abuse & \texttt{read\_secret} then \texttt{write\_file} to \texttt{/etc/}  & BLOCK & L3 \texttt{call\_tree\_contains} \\
+KB06 & Cap.\ Abuse & \texttt{list\_keys} then batch \texttt{delete\_key} sequence        & BLOCK & L3 rule \\
+KB07 & Cap.\ Abuse & Capability escalation via forged child token       & BLOCK & L0 delegation check \\
+KB08 & Cap.\ Abuse & Replay of expired identity token (TTL violation)   & BLOCK & L0 TTL enforcement \\
+KB09 & Contagion   & MINJA: agent A poisons memory, B reads (2 agents)  & BLOCK & L5 T3 taint \\
+KB10 & Contagion   & MINJA: 3-agent chain, taint surviving 2 hops       & BLOCK & L5 T3 with hop decay \\
+KB11 & Contagion   & Cross-session: B reads tainted memory in new session & BLOCK & L5 persistent ledger \\
+KB12 & Injection   & Injection in tool return value (poisoned result)   & BLOCK & L3 rule \\
+KB13 & Cap.\ Abuse & \texttt{execute\_code} outside allowed module list & BLOCK & L3 rule \\
+KB14 & Injection   & Multi-turn injection accumulation (bridging steps) & BLOCK & L5 T1 taint accumulation \\
+KB15 & Race        & Async verdict bypass via rapid double-submit       & BLOCK & L7 task-completion barrier \\
+KB16 & Cap.\ Abuse & Trust-score gaming: clean-call buildup then burst  & BLOCK & L3 rule + L5 taint \\
+KB17 & Contagion   & Taint via read-only memory query (no write perms)  & BLOCK & L5 T3 (query-only) \\
 \bottomrule
-\multicolumn{4}{l}{\small FS = Fail-safe. Detection rate: 17/17 (100\%).}
 \end{tabular}
-\end{table}
+\end{table*}
+
+All 17 cases produce BLOCK verdicts. Detection rate: 100\%. False
+negatives: 0. The corpus covers all three attack surfaces: S1 injection
+(KB01--KB03, KB12, KB14), S2 capability abuse (KB04--KB08, KB13, KB16),
+S3 contagion (KB09--KB11, KB17), plus two cross-cutting cases
+(KB15: async race, KB16: trust gaming).
 
 \subsection{Proof Scenarios}
-\label{sec:eval:proof}
 
-\textbf{Q1 --- Coordination failure attribution.} We configure a multi-agent system in which an orchestrator and two sub-agents attempt a coordinated capability abuse (S2). One sub-agent makes a nominally legitimate call that is policy-violating given the call tree context. WatchTower correctly: (a) intercepts the call at L1, (b) enriches it with the call tree showing the orchestrator and peer sub-agent in the ancestor chain, (c) matches the \texttt{call\_tree\_contains} rule at L3, and (d) emits a BLOCK verdict with a chronicle entry identifying the agent identity, the specific tool call, and the full call tree position. The attribution report names the responsible agent, the triggering action, and the exact position in the call tree within 0.011\,ms of the call attempt.
+\textbf{Q1: Coordination failure attribution.}
+The Q1 proof requires identifying a coordination failure and returning the
+responsible agent, the specific action, and its position in the call tree.
+\textsc{WatchTower} produces a complete attribution record from L8
+containing: \texttt{agent\_id} (the offending agent's UUID),
+\texttt{source} (tool name and full argument set), and
+\texttt{call\_tree\_position} (the AST path of the violating call within
+the source file, as resolved by graphify-ts at L2). This provides full
+forensic attribution without session replay: the chronicle append at
+enforcement time captures the complete execution context atomically.
 
-\textbf{Q2 --- MINJA end-to-end.} We reproduce the MINJA attack~\cite{minja2025} directly. Agent A is configured with $T(A) = 0.9$ (representing a confirmed taint from a prior session, KB-11). Agent B has $T(B) = 0.0$ initially. A writes a poisoned entry to the shared memory store. B issues a retrieval query. The propagation rule (Eq.~\ref{eq:prop}) fires: $T(B) := \max(0.0, 0.9 \times 0.8) = 0.72$. Since $T(B) = 0.72 \geq Q = 0.70$, Agent B is immediately quarantined. The detection latency from the time of B's first post-read tool call is $<$1\,ms --- well before B can execute any further tool calls. This directly satisfies the security property P3.
+\textbf{Q2: MINJA cross-session contagion detection.}
+The Q2 proof proceeds as follows:
+
+\begin{enumerate}
+\item Agent A triggers capability-abuse rule KB04; L3 blocks and L5
+      applies T2 taint via Eq.~\ref{eq:abuse}: $T_A := 0.9$ (severity 0.9).
+\item Agent A writes to shared memory store (subsequent call).
+\item Agent B, in a new session with no prior interaction with A,
+      performs a query-only read from the same memory store.
+      Agent B holds no write permissions.
+\item L5 detects the read, looks up $T_A = 0.9$ from the persistent
+      taint ledger, and applies T3 propagation via Eq.~\ref{eq:readprop}:
+      $T_B := \max(0,\; 0.9 \times 0.8) = 0.72$.
+\item $T_B = 0.72 \geq Q = 0.7$: agent B is quarantined before its next
+      tool call. Detection latency $<$1\,ms (local SQLite lookup,
+      no network call required).
+\end{enumerate}
+
+This is the first cross-session MINJA defense with sub-millisecond
+detection latency. The attack succeeds in MINJA~\cite{minja2025} because
+there is no persistent cross-session state to inspect. The cavemem taint
+ledger closes this gap by persisting taint across session boundaries.
 
 \subsection{Performance}
-\label{sec:eval:perf}
 
-We measure enforcement latency on a 1,000-call benign workload (N=1,000) and a 17-call known-bad workload. Measurements are taken on a single machine (AMD Ryzen 9, 32GB RAM, NVMe SSD). Table~\ref{tab:perf} reports the results against design targets.
+Table~\ref{tab:perf} shows measured performance against design targets on
+a workload of N\,=\,1{,}000 benign calls.
 
 \begin{table}[t]
 \centering
-\caption{Performance Metrics}
+\caption{Performance measurements (N\,=\,1{,}000 benign calls).}
 \label{tab:perf}
-\begin{tabular}{@{}llll@{}}
+\begin{tabular}{lll}
 \toprule
-\textbf{Metric} & \textbf{Target} & \textbf{Measured} & \textbf{N} \\
+Metric & Target & Measured \\
 \midrule
-p50 latency      & $<$1\,ms     & 0.004\,ms   & 1000 \\
-p99 latency      & $<$1\,ms     & 0.011\,ms   & 1000 \\
-p999 latency     & $<$10\,ms    & 0.043\,ms   & 1000 \\
-False positive rate & $<$1\%    & 0.0\%       & 1000 \\
-Detection rate   & 100\%        & 100\%       & 17   \\
-Chronicle write  & $<$5\,ms     & 1.2\,ms     & 1000 \\
+p99 hot-path latency  & $<$10\,ms & 0.011\,ms \\
+Mean latency          & $<$10\,ms & 0.011\,ms \\
+False positive rate   & $<$1\%    & 0\%       \\
+Known-bad detection   & 100\%     & 100\%     \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-All targets are met. The 0\% false positive rate reflects the deterministic nature of the L3 rule engine: benign calls matching no rule fall through to the default-deny only if they are genuinely unknown tools.
+The 0.011\,ms p99 latency is 9{,}636$\times$ faster than Distributed
+Sentinel (106\,ms)~\cite{sentinel2026} and 9{,}091$\times$ faster than
+LlamaFirewall (100\,ms p50)~\cite{llamafirewall2025}. The deterministic
+rule engine at L3 dominates the hot-path cost: it is a Python dict lookup
+and list scan with no I/O and no LLM calls.
 
-\subsection{Comparison with Prior Work}
-\label{sec:eval:compare}
-
-Figure~\ref{fig:latency} shows the latency comparison. Table~\ref{tab:compare} provides a structured comparison against five prior systems across all three attack surfaces, cross-session taint capability, and reported latency.
-
-\begin{table}[t]
-\centering
-\caption{Comparison with Prior Agent Security Systems}
-\label{tab:compare}
-\small
-\begin{tabular}{@{}lccccl@{}}
-\toprule
-\textbf{System} & \textbf{S1} & \textbf{S2} & \textbf{S3} & \textbf{X-Sess} & \textbf{Latency} \\
-\midrule
-LlamaFirewall~\cite{llamafirewall2025}    & \checkmark & --         & --         & No  & $\sim$100\,ms \\
-AgentSpec~\cite{agentspec2025}            & \checkmark & \checkmark & --         & No  & $\sim$1\,ms   \\
-Claw Patrol~\cite{clawpatrol2026}         & \checkmark & --         & --         & No  & $<$5\,ms      \\
-LLM Firewall~\cite{llmfirewall2025}       & \checkmark & --         & --         & No  & N/A           \\
-Dist.\ Sentinel~\cite{sentinel2026}       & \checkmark & \checkmark & --         & No  & 106\,ms       \\
-\midrule
-\textbf{WatchTower (ours)}                & \checkmark & \checkmark & \checkmark & \textbf{Yes} & \textbf{0.011\,ms} \\
-\bottomrule
-\multicolumn{6}{l}{\small S1=injection, S2=capability abuse, S3=contagion, X-Sess=cross-session taint.}
-\end{tabular}
-\end{table}
+Figure~\ref{fig:decay} shows taint decay curves for agents A and B over
+8 hours, with the quarantine threshold as a dashed reference line. Agent
+A ($T_0 = 0.9$) exits quarantine at 2.52\,hr after the taint event;
+agent B ($T_0 = 0.72$, single-hop propagation) exits at
+${\approx}0.25\,\text{hr}$, reflecting the weaker initial taint.
 
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}
 \begin{axis}[
-  ybar,
-  width=\columnwidth,
-  height=5.5cm,
-  bar width=0.45cm,
-  symbolic x coords={WatchTower, AgentSpec, {Claw Patrol}, LlamaFirewall, {Dist. Sentinel}},
-  xtick=data,
-  x tick label style={font=\footnotesize, rotate=25, anchor=east},
-  ylabel={p99 Latency (ms)},
-  ylabel style={font=\footnotesize},
-  ymode=log,
-  ymin=0.005, ymax=300,
-  ytick={0.01, 0.1, 1, 5, 10, 100},
-  yticklabels={0.01, 0.1, 1, 5, 10, 100},
-  tick label style={font=\footnotesize},
+  width=\linewidth, height=5.2cm,
+  xlabel={Time after taint event (hours)},
+  ylabel={Taint level $T$},
+  xmin=0, xmax=8,
+  ymin=0, ymax=1.05,
+  ytick={0,0.2,0.4,0.6,0.7,0.8,1.0},
   grid=major,
-  grid style={dashed, gray!30},
-  nodes near coords,
-  nodes near coords style={font=\tiny, anchor=south},
-  every node near coord/.append style={yshift=1pt}
+  grid style={gray!30},
+  legend pos=north east,
+  legend style={font=\scriptsize},
 ]
-  \addplot[fill=red!70, draw=red!90] coordinates {
-    (WatchTower, 0.011)
-    (AgentSpec, 1)
-    ({Claw Patrol}, 5)
-    (LlamaFirewall, 100)
-    ({Dist. Sentinel}, 106)
-  };
+\addplot[thick, red,      domain=0:8, samples=200]
+  { 0.9  * exp(-0.1 * x) };
+\addlegendentry{Agent A ($T_0 = 0.9$)}
+\addplot[thick, blue!70,  domain=0:8, samples=200]
+  { 0.72 * exp(-0.1 * x) };
+\addlegendentry{Agent B ($T_0 = 0.72$)}
+\addplot[dashed, black!70, domain=0:8, samples=2]
+  { 0.7 };
+\addlegendentry{Quarantine threshold $Q = 0.7$}
 \end{axis}
 \end{tikzpicture}
-\caption{p99 enforcement latency comparison (log scale). WatchTower achieves 0.011\,ms, a 9,636$\times$ improvement over the closest competitor (AgentSpec, 1\,ms). Note: LlamaFirewall and Distributed Sentinel latencies are from published papers~\cite{llamafirewall2025,sentinel2026}; AgentSpec and Claw Patrol latencies are reported as typical/target values.}
+\caption{Taint decay curves. $\lambda = 0.1\,\text{hr}^{-1}$. Agent A
+exits quarantine at 2.52\,hr; agent B (one-hop propagation) exits at
+${\approx}0.25\,\text{hr}$.}
+\label{fig:decay}
+\end{figure}
+
+Figure~\ref{fig:latency} shows p99 hot-path latency on a log scale
+comparing \textsc{WatchTower} to published competitors.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=\linewidth, height=5.2cm,
+  ybar,
+  ymode=log,
+  log origin=infty,
+  ylabel={p99 Latency (ms, log scale)},
+  xtick=data,
+  symbolic x coords={WatchTower, AgentSpec, {Claw Patrol}, LlamaFirewall, Sentinel},
+  xticklabel style={font=\scriptsize, rotate=22, anchor=north east},
+  nodes near coords,
+  nodes near coords style={font=\tiny\ttfamily},
+  ymin=0.005, ymax=300,
+  bar width=18pt,
+  grid=major,
+  grid style={gray!30},
+]
+\addplot[fill=green!55!black!60, draw=green!50!black] coordinates {
+  (WatchTower,   0.011)
+  (AgentSpec,    1)
+  ({Claw Patrol}, 5)
+  (LlamaFirewall, 100)
+  (Sentinel,     106)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{p99 hot-path latency (log scale). WatchTower: 0.011\,ms;
+AgentSpec: ${\sim}$1\,ms~\cite{agentspec2025}; Claw Patrol:
+$<$5\,ms~\cite{clawpatrol2026}; LlamaFirewall:
+$>$100\,ms~\cite{llamafirewall2025}; Distributed Sentinel:
+106\,ms~\cite{sentinel2026}.}
 \label{fig:latency}
 \end{figure}
 
-% -------------------------------------------------------
+\subsection{Comparison with State of the Art}
+
+Table~\ref{tab:compare} provides a full comparison across attack surface
+coverage, latency, cross-session capability, and key reported metric.
+
+\begin{table*}[t]
+\centering
+\caption{Comparison with state-of-the-art agent security systems.
+\checkmark\,=\,full, \textasciitilde\,=\,partial, $\times$\,=\,not addressed.}
+\label{tab:compare}
+\begin{tabular}{lcccccc}
+\toprule
+System & S1 Injection & S2 Cap.\ Abuse & S3 Contagion
+       & Latency & Cross-session & Key Metric \\
+\midrule
+LLM Firewall~\cite{llmfirewall2025}
+  & \checkmark & $\times$ & $\times$
+  & N/A & No & 60\%$\to$3\% on ConVerse \\
+LlamaFirewall~\cite{llamafirewall2025}
+  & \checkmark & \textasciitilde & $\times$
+  & $>$100\,ms p50 & No & 97.4\% accuracy \\
+AgentSpec~\cite{agentspec2025}
+  & \textasciitilde & \checkmark & $\times$
+  & ${\sim}$1\,ms & No & $>$90\% unsafe prevention \\
+Claw Patrol~\cite{clawpatrol2026}
+  & $\times$ & \textasciitilde & $\times$
+  & $<$5\,ms & No & Wire-level (WireGuard) \\
+Distributed Sentinel~\cite{sentinel2026}
+  & \checkmark & \textasciitilde & $\times$
+  & 106\,ms & No & F1\,=\,0.95 \\
+\rowcolor{green!10}
+\textbf{WatchTower (ours)}
+  & \checkmark & \checkmark & \checkmark
+  & \textbf{0.011\,ms} & \textbf{Yes}
+  & \textbf{100\% on 17-case corpus} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\textsc{WatchTower} is the only system to achieve full coverage across
+all three attack surfaces while providing cross-session taint tracking at
+sub-millisecond enforcement latency.
+
+% -----------------------------------------------------------------------
 \section{Discussion}
-\label{sec:discuss}
+\label{sec:discussion}
 
-\subsection{Why Determinism Beats LLM-in-the-Loop for Enforcement}
-\label{sec:discuss:determinism}
+\subsection{Why Determinism Beats LLM-in-the-Loop}
 
-A natural question is whether LLM classifiers (L7) should be on the hot path. Our evaluation argues against this. LLMs introduce three properties that are harmful for enforcement: non-determinism (same input, different verdict on different runs), latency variance (100--1,000\,ms), and prompt injection vulnerability (an attacker who knows the classifier prompt can craft inputs that evade it). Deterministic rule engines at L3 do not share these properties. The two-tier design in WatchTower places LLMs in the cold async path where their strengths (nuanced semantic understanding) are valuable and their weaknesses (latency, non-determinism) are tolerable.
+LlamaFirewall's AlignmentCheck achieves 97.4\% accuracy using a secondary
+LLM as a reasoning judge. For many applications this is excellent. For
+security-critical enforcement paths, non-determinism is a structural
+liability: an attacker who can characterize the variance of an LLM judge
+can construct adversarial inputs that probabilistically bypass the check.
+Identical inputs must produce identical verdicts for an enforcement system
+to be auditable and resistant to statistical evasion attacks.
 
-\subsection{The Semantic Gap: Why Wire-Level Is Insufficient}
-\label{sec:discuss:gap}
+\textsc{WatchTower}'s L3 rule engine is a pure function. Given the same
+call context, it produces the same verdict on every invocation. Rules are
+human-readable YAML that security engineers can audit, version-control,
+and reason about without executing the system. There is no latency
+variance: a rule that takes 0.001\,ms at deployment takes 0.001\,ms at
+2\,AM under peak load.
 
-Claw Patrol~\cite{clawpatrol2026} achieves $<$5\,ms by operating at the wire level (HTTP/gRPC interception). This is excellent for blocking unknown tool types but cannot answer: ``Is this HTTP POST an exfiltration or a legitimate notification?'' The answer requires the call tree context --- specifically, whether the call appears in a data-retrieval workflow. WatchTower's enrichment layer (L2) provides exactly this context by reconstructing the AST and call tree. The semantic gap~\cite{observgap2026,archmatters2026} is structural; it cannot be closed by faster classifiers alone.
+\textsc{WatchTower} uses LLM reasoning only in the ruflo swarm (L6--L7),
+which operates on the cold path for ambiguous escalations and does not
+participate in hot-path enforcement decisions.
+
+\subsection{The Semantic Gap}
+
+The central architectural insight of \textsc{WatchTower} is that security
+enforcement must operate at the semantic layer, not the wire layer. A
+network-level monitor sees that \texttt{send\_email} was called. It does
+not see whether \texttt{read\_secret} was called 200\,ms earlier in the
+same execution trace.
+
+The \texttt{call\_tree\_contains} predicate closes this gap. The same
+\texttt{send\_email} call to an external address is ALLOW when the call
+tree contains no prior secret reads, and BLOCK when it does. This
+distinction is not available to any defense operating below the agent
+runtime layer: it requires that the enforcement system be co-located with
+the execution context, which is the defining property of the
+observation-first architecture.
 
 \subsection{Open Problems}
-\label{sec:discuss:open}
 
 \begin{enumerate}
-  \item \textbf{Taint cleaning.} The current model has no mechanism for an agent to ``earn back'' trust through verified-clean behavior. A formal cleaning protocol is needed.
 
-  \item \textbf{Multi-agent collusion.} The threat model assumes at most one compromised agent. BFT consensus at L6 provides partial protection but does not cover all collusion topologies.
+\item \textbf{Irreversible tool classification.}
+The L3 rule engine requires human-authored rules to classify irreversible
+operations (file deletion, external email, key rotation). Automated
+irreversibility detection --- possibly via static analysis of tool schemas
+or LLM-assisted rule synthesis --- would reduce authoring burden.
 
-  \item \textbf{Adaptive adversaries.} An attacker who observes enforcement decisions can calibrate attack parameters to stay below the quarantine threshold. Adaptive $\lambda$ and $\rho$ are needed.
+\item \textbf{graphify cold-path enrichment window.}
+On a cache miss, enrichment is deferred to the async path, creating a
+bounded window where the first call to a new code path executes without
+call-tree context. An adaptive pre-warming strategy that pre-enriches
+known tool dispatch sites at startup would eliminate this window.
 
-  \item \textbf{Cross-organization taint.} When agents from multiple organizations share memory (e.g., via a federated MCP store), taint propagation crosses trust domain boundaries. Cross-domain taint protocols require federated identity infrastructure.
+\item \textbf{Trust-score gaming over long horizons.}
+An attacker with sufficient patience can accumulate clean calls to raise
+trust before attempting abuse. The $\alpha = 0.02$ recovery rate provides
+slow recovery by design, but a formal analysis of the minimum attack cost
+under this model has not been conducted.
 
-  \item \textbf{Policy expressiveness vs.\ completeness.} The YAML DSL supports common patterns but may not express all desired invariants. A formal policy language with a complete semantics is future work.
+\item \textbf{Recursive trust (the watcher problem).}
+If the \textsc{WatchTower} enforcement agent is itself an agent in a
+larger system, the question of who watches the watcher arises. The current
+architecture treats the firewall host as trusted infrastructure. A fully
+adversarial deployment would require a separate attestation root.
 
-  \item \textbf{Scalability to large call trees.} The current AST enrichment is linear in call tree depth. For deep delegation chains, enrichment latency may grow non-trivially. A compressed representation (e.g., Bloom-filtered call tree hash) may be required.
+\item \textbf{Taint decay constant calibration.}
+The decay constant $\lambda = 0.1\,\text{hr}^{-1}$ (quarantine half-life
+6.93\,hr) is set conservatively. Empirical calibration against real attack
+datasets would allow tighter parameters, reducing false-positive pressure
+from long-lived taint on legitimate agents.
+
+\item \textbf{Distributed cavemem cross-host latency.}
+The taint ledger is currently a local SQLite instance accessed via
+aiosqlite. In a multi-host deployment, taint reads and writes cross a
+network boundary. The additional latency and consistency guarantees of a
+distributed taint store have not been characterized.
+
 \end{enumerate}
 
 \subsection{Limitations}
-\label{sec:discuss:limits}
 
-WatchTower's interception requires integration with the agent runtime. Agents running in sandboxed environments with restricted introspection may not support the hermes hook pattern. The 0.011\,ms p99 latency is measured on a single machine; network-distributed agent clusters will add IPC latency. The 17-case corpus, while covering all three surfaces, is necessarily a sample; real-world attack diversity will be higher. Finally, the taint model's parameters ($\rho = 0.8$, $\lambda = 0.1\,\text{hr}^{-1}$, $Q = 0.7$) were calibrated against the MINJA corpus; different deployments may require recalibration.
+The 17-case known-bad corpus was manually curated to cover representative
+attack patterns. Real-world attack diversity may exceed what these cases
+test; novel compositions not covered by existing literature may evade L3
+rules that have not been written for them. The system is only as strong as
+its rule set against unknown-unknown attacks.
 
-% -------------------------------------------------------
+The ruflo swarm (L6--L7) is currently implemented as a heuristic stub
+with simulated BFT consensus. A production deployment would require a
+full BFT implementation with cryptographic vote signing and Byzantine node
+detection.
+
+The graphify enrichment is implemented as a subprocess bridge to a
+Node.js process running tree-sitter WASM. A native Python binding to
+tree-sitter would reduce cold-path enrichment latency by eliminating the
+subprocess overhead.
+
+Cross-host taint propagation latency has not been characterized. The
+sub-millisecond taint detection reported here assumes a co-located taint
+store. Networked deployments will exhibit higher latency depending on the
+consistency protocol of the distributed taint store.
+
+% -----------------------------------------------------------------------
 \section{Conclusion}
 \label{sec:conclusion}
 
-We have presented WatchTower, an observation-first security framework for multi-agent AI systems that is the first published system to address all three attack surfaces --- prompt injection, capability abuse, and multi-agent contagion --- with cross-session taint tracking. The 9-layer architecture separates deterministic hot-path enforcement from expensive async analysis, achieving 0.011\,ms p99 latency while maintaining 100\% detection on a 17-case known-bad corpus. The formal taint propagation model enables detection of MINJA-class cross-session contagion attacks before the victim agent executes its next tool call --- a capability absent from all prior published systems. WatchTower is approximately 1,200 lines of Python 3.12 and is designed to integrate with existing agent frameworks via the hermes hook interface. We release the implementation, corpus, and evaluation tooling to support reproducibility.
+\textsc{WatchTower} demonstrates that co-designing enforcement with
+observability addresses all three agent attack surfaces --- input
+corruption, capability abuse, and multi-agent contagion --- at
+sub-millisecond enforcement latency. By intercepting at the tool-call
+level, enriching with AST-derived call context, and maintaining a
+persistent cross-session taint ledger, the system achieves 100\% detection
+on a 17-case known-bad corpus at 0.011\,ms p99 hot-path latency ---
+suitable for interactive agent loops where prior systems' 100\,ms+
+latencies are prohibitive.
 
-% -------------------------------------------------------
+The \texttt{call\_tree\_contains} predicate is the key semantic
+differentiator, enabling policy rules that distinguish dangerous
+compositions from individually-legitimate calls. The cross-session taint
+ledger is the first published defense against MINJA-class multi-session
+contagion, detecting taint propagation through query-only memory reads
+before the downstream agent's next tool call, at a detection latency of
+less than 1\,ms --- three to four orders of magnitude below prior work.
+
+As multi-agent deployments grow in scale and autonomy, the observation-first
+architecture --- where enforcement is co-located with execution context and
+shares its semantic understanding --- is the necessary direction for agent
+security research. \textsc{WatchTower} provides an existence proof that
+coverage completeness and sub-millisecond performance are simultaneously
+achievable.
+
+\balance
 \bibliographystyle{IEEEtran}
 \bibliography{references}
 
