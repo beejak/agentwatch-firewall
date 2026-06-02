@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#050810"/>
+      <stop offset="100%" style="stop-color:#0d1117"/>
+    </linearGradient>
+    <linearGradient id="title-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#e8f0f8"/>
+      <stop offset="40%" style="stop-color:#4fc3f7"/>
+      <stop offset="80%" style="stop-color:#7c4dff"/>
+      <stop offset="100%" style="stop-color:#f06292"/>
+    </linearGradient>
+    <linearGradient id="bar-green" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00e676"/>
+      <stop offset="100%" style="stop-color:#4fc3f7"/>
+    </linearGradient>
+    <filter id="glow-green">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-blue">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- grid pattern -->
+    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(79,195,247,0.04)" stroke-width="1"/>
+    </pattern>
+    <!-- orb gradients -->
+    <radialGradient id="orb1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:rgba(79,195,247,0.18)"/>
+      <stop offset="100%" style="stop-color:transparent"/>
+    </radialGradient>
+    <radialGradient id="orb2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:rgba(124,77,255,0.14)"/>
+      <stop offset="100%" style="stop-color:transparent"/>
+    </radialGradient>
+    <radialGradient id="orb3" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:rgba(0,230,118,0.10)"/>
+      <stop offset="100%" style="stop-color:transparent"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <!-- Ambient orbs -->
+  <ellipse cx="200" cy="200" rx="350" ry="300" fill="url(#orb1)" opacity="0.7"/>
+  <ellipse cx="1050" cy="480" rx="280" ry="240" fill="url(#orb2)" opacity="0.7"/>
+  <ellipse cx="700" cy="100" rx="200" ry="160" fill="url(#orb3)" opacity="0.5"/>
+
+  <!-- Top accent line -->
+  <rect x="0" y="0" width="1200" height="3" fill="url(#bar-green)"/>
+
+  <!-- Badge -->
+  <rect x="64" y="52" width="200" height="28" rx="14" fill="rgba(79,195,247,0.08)" stroke="rgba(79,195,247,0.25)" stroke-width="1"/>
+  <circle cx="82" cy="66" r="4" fill="#00e676"/>
+  <text x="96" y="71" font-family="Inter,-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4fc3f7" letter-spacing="1.5">RESEARCH PAPER · 2026</text>
+
+  <!-- Title -->
+  <text x="64" y="168" font-family="Inter,-apple-system,sans-serif" font-size="80" font-weight="900" letter-spacing="-3" fill="url(#title-grad)">WatchTower</text>
+
+  <!-- Subtitle -->
+  <text x="64" y="215" font-family="Inter,-apple-system,sans-serif" font-size="22" font-weight="400" fill="#6b7a8d">Observation-First Agent Security</text>
+  <text x="64" y="245" font-family="Inter,-apple-system,sans-serif" font-size="18" font-weight="400" fill="#3d4f66">Taint Propagation and Semantic Enforcement in Multi-Agent Systems</text>
+
+  <!-- Divider -->
+  <line x1="64" y1="272" x2="400" y2="272" stroke="rgba(30,39,51,1)" stroke-width="1"/>
+
+  <!-- Stat cards row -->
+  <!-- Card 1: Detection -->
+  <rect x="64" y="294" width="220" height="100" rx="12" fill="rgba(13,17,23,0.8)" stroke="rgba(0,230,118,0.3)" stroke-width="1.5"/>
+  <rect x="64" y="294" width="220" height="3" rx="2" fill="url(#bar-green)"/>
+  <text x="84" y="338" font-family="Inter,-apple-system,sans-serif" font-size="42" font-weight="900" fill="#00e676" filter="url(#glow-green)">100%</text>
+  <text x="84" y="360" font-family="Inter,-apple-system,sans-serif" font-size="12" fill="#4a5a6e">Detection rate · 17/17 cases</text>
+  <text x="84" y="376" font-family="Inter,-apple-system,sans-serif" font-size="11" fill="#00e676" font-weight="600">Zero false negatives</text>
+
+  <!-- Card 2: Latency -->
+  <rect x="304" y="294" width="220" height="100" rx="12" fill="rgba(13,17,23,0.8)" stroke="rgba(79,195,247,0.3)" stroke-width="1.5"/>
+  <rect x="304" y="294" width="220" height="3" rx="2" fill="#4fc3f7"/>
+  <text x="324" y="338" font-family="Inter,-apple-system,sans-serif" font-size="42" font-weight="900" fill="#4fc3f7" filter="url(#glow-blue)">0.011ms</text>
+  <text x="324" y="360" font-family="Inter,-apple-system,sans-serif" font-size="12" fill="#4a5a6e">p99 hot-path latency</text>
+  <text x="324" y="376" font-family="Inter,-apple-system,sans-serif" font-size="11" fill="#4fc3f7" font-weight="600">vs 106ms state-of-art</text>
+
+  <!-- Card 3: Speed -->
+  <rect x="544" y="294" width="220" height="100" rx="12" fill="rgba(13,17,23,0.8)" stroke="rgba(124,77,255,0.3)" stroke-width="1.5"/>
+  <rect x="544" y="294" width="220" height="3" rx="2" fill="#7c4dff"/>
+  <text x="564" y="338" font-family="Inter,-apple-system,sans-serif" font-size="42" font-weight="900" fill="#7c4dff">9,636×</text>
+  <text x="564" y="360" font-family="Inter,-apple-system,sans-serif" font-size="12" fill="#4a5a6e">Faster than competitor</text>
+  <text x="564" y="376" font-family="Inter,-apple-system,sans-serif" font-size="11" fill="#7c4dff" font-weight="600">No GPU required</text>
+
+  <!-- Card 4: Surfaces -->
+  <rect x="784" y="294" width="220" height="100" rx="12" fill="rgba(13,17,23,0.8)" stroke="rgba(255,202,40,0.3)" stroke-width="1.5"/>
+  <rect x="784" y="294" width="220" height="3" rx="2" fill="#ffca28"/>
+  <text x="804" y="338" font-family="Inter,-apple-system,sans-serif" font-size="42" font-weight="900" fill="#ffca28">3 / 3</text>
+  <text x="804" y="360" font-family="Inter,-apple-system,sans-serif" font-size="12" fill="#4a5a6e">Attack surfaces covered</text>
+  <text x="804" y="376" font-family="Inter,-apple-system,sans-serif" font-size="11" fill="#ffca28" font-weight="600">First system to cover all 3</text>
+
+  <!-- Right panel: Architecture preview -->
+  <rect x="1040" y="52" width="2" height="526" fill="rgba(30,39,51,0.8)"/>
+
+  <!-- Surface chips bottom row -->
+  <!-- Chip: Input Corruption -->
+  <rect x="64" y="424" width="170" height="32" rx="8" fill="rgba(79,195,247,0.08)" stroke="rgba(79,195,247,0.2)" stroke-width="1"/>
+  <text x="84" y="444" font-family="Inter,-apple-system,sans-serif" font-size="12" font-weight="700" fill="#4fc3f7">💉  Input Corruption</text>
+
+  <!-- Chip: Capability Abuse -->
+  <rect x="248" y="424" width="168" height="32" rx="8" fill="rgba(255,152,0,0.08)" stroke="rgba(255,152,0,0.2)" stroke-width="1"/>
+  <text x="268" y="444" font-family="Inter,-apple-system,sans-serif" font-size="12" font-weight="700" fill="#ff9800">🔧  Capability Abuse</text>
+
+  <!-- Chip: Multi-Agent Contagion -->
+  <rect x="430" y="424" width="212" height="32" rx="8" fill="rgba(255,82,82,0.08)" stroke="rgba(255,82,82,0.2)" stroke-width="1"/>
+  <text x="450" y="444" font-family="Inter,-apple-system,sans-serif" font-size="12" font-weight="700" fill="#ff5252">🦠  Multi-Agent Contagion</text>
+
+  <!-- NEW badge -->
+  <rect x="656" y="424" width="66" height="32" rx="16" fill="rgba(255,82,82,0.15)" stroke="rgba(255,82,82,0.4)" stroke-width="1"/>
+  <text x="689" y="444" font-family="Inter,-apple-system,sans-serif" font-size="11" font-weight="800" fill="#ff5252" text-anchor="middle">NEW</text>
+
+  <!-- Target venues -->
+  <text x="64" y="504" font-family="Inter,-apple-system,sans-serif" font-size="12" fill="#3d4f66" letter-spacing="0.5">Target:  </text>
+  <text x="120" y="504" font-family="Inter,-apple-system,sans-serif" font-size="12" fill="#4a5a6e" font-weight="600">IEEE S&amp;P  ·  USENIX Security  ·  ACM CCS  ·  arXiv preprint</text>
+
+  <!-- GitHub -->
+  <text x="64" y="530" font-family="Inter,-apple-system,sans-serif" font-size="12" fill="#3d4f66">Code:  </text>
+  <text x="107" y="530" font-family="Inter,-apple-system,sans-serif" font-size="12" fill="#4fc3f7">github.com/beejak/agentwatch</text>
+
+  <!-- Taint formula preview (right) -->
+  <text x="1065" y="100" font-family="Inter,-apple-system,sans-serif" font-size="11" font-weight="700" fill="#3d4f66" letter-spacing="1.2">TAINT MODEL</text>
+  <rect x="1058" y="116" width="110" height="1" fill="rgba(30,39,51,0.8)"/>
+
+  <text x="1065" y="148" font-family="JetBrains Mono,monospace" font-size="13" fill="#6b7a8d">T(B) :=</text>
+  <text x="1065" y="170" font-family="JetBrains Mono,monospace" font-size="13" fill="#4fc3f7">  max(T_B,</text>
+  <text x="1065" y="192" font-family="JetBrains Mono,monospace" font-size="13" fill="#4fc3f7">  T_A × ρ)</text>
+  <text x="1065" y="220" font-family="JetBrains Mono,monospace" font-size="11" fill="#3d4f66">ρ = 0.8</text>
+  <text x="1065" y="238" font-family="JetBrains Mono,monospace" font-size="11" fill="#3d4f66">λ = 0.1/hr</text>
+  <text x="1065" y="256" font-family="JetBrains Mono,monospace" font-size="11" fill="#ff5252">Q = 0.7</text>
+
+  <rect x="1058" y="272" width="110" height="1" fill="rgba(30,39,51,0.8)"/>
+  <text x="1065" y="296" font-family="Inter,-apple-system,sans-serif" font-size="11" font-weight="700" fill="#3d4f66" letter-spacing="1.2">9-LAYER ARCH</text>
+
+  <!-- Mini arch list -->
+  <text x="1065" y="320" font-family="JetBrains Mono,monospace" font-size="10" fill="#00e676">L0</text>
+  <text x="1090" y="320" font-family="Inter,-apple-system,sans-serif" font-size="10" fill="#4a5a6e">Identity Fabric</text>
+  <text x="1065" y="338" font-family="JetBrains Mono,monospace" font-size="10" fill="#4fc3f7">L1</text>
+  <text x="1090" y="338" font-family="Inter,-apple-system,sans-serif" font-size="10" fill="#4a5a6e">Intercept</text>
+  <text x="1065" y="356" font-family="JetBrains Mono,monospace" font-size="10" fill="#4fc3f7">L2</text>
+  <text x="1090" y="356" font-family="Inter,-apple-system,sans-serif" font-size="10" fill="#4a5a6e">AST Enrichment</text>
+  <text x="1065" y="374" font-family="JetBrains Mono,monospace" font-size="10" fill="#ff9800">L3</text>
+  <text x="1090" y="374" font-family="Inter,-apple-system,sans-serif" font-size="10" fill="#4a5a6e">Deterministic Rules</text>
+  <text x="1065" y="392" font-family="JetBrains Mono,monospace" font-size="10" fill="#ff9800">L4</text>
+  <text x="1090" y="392" font-family="Inter,-apple-system,sans-serif" font-size="10" fill="#4a5a6e">Trust Gate</text>
+  <text x="1065" y="410" font-family="JetBrains Mono,monospace" font-size="10" fill="#ff5252">L5</text>
+  <text x="1090" y="410" font-family="Inter,-apple-system,sans-serif" font-size="10" fill="#4a5a6e">Escalation Router</text>
+  <text x="1065" y="428" font-family="JetBrains Mono,monospace" font-size="10" fill="#7c4dff">L6</text>
+  <text x="1090" y="428" font-family="Inter,-apple-system,sans-serif" font-size="10" fill="#4a5a6e">Async Analysis</text>
+  <text x="1065" y="446" font-family="JetBrains Mono,monospace" font-size="10" fill="#7c4dff">L7</text>
+  <text x="1090" y="446" font-family="Inter,-apple-system,sans-serif" font-size="10" fill="#4a5a6e">Barrier Enforce</text>
+  <text x="1065" y="464" font-family="JetBrains Mono,monospace" font-size="10" fill="#3d4f66">L8</text>
+  <text x="1090" y="464" font-family="Inter,-apple-system,sans-serif" font-size="10" fill="#4a5a6e">Chronicle</text>
+
+  <!-- Bottom border -->
+  <rect x="0" y="627" width="1200" height="3" fill="url(#bar-green)" opacity="0.4"/>
+</svg>
