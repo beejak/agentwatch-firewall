@@ -45,7 +45,12 @@
 \title{WatchTower: Observation-First Agent Security --- Taint Propagation
 and Semantic Enforcement in Multi-Agent Systems}
 
-\author{\IEEEauthorblockN{Anonymous Submission}\\IEEE S\&P 2027 --- Under Review}
+\author{
+\IEEEauthorblockN{Rohit Jinsiwale}
+\IEEEauthorblockA{Reliance Industries Limited\\
+Mumbai, India\\
+rohit.jinsiwale@ril.com}
+}
 
 \begin{document}
 
@@ -132,9 +137,9 @@ across the three attack surfaces.
 \caption{Attack surface coverage of existing agent security systems.
 \checkmark\,=\,full, \textasciitilde\,=\,partial, $\times$\,=\,none.}
 \label{tab:coverage}
-\begin{tabular}{lccc}
+\begin{tabular}{p{2.6cm}ccc}
 \toprule
-System & S1 Injection & S2 Cap.\ Abuse & S3 Contagion \\
+System & S1 Inj. & S2 Cap. & S3 Cont. \\
 \midrule
 LLM Firewall~\cite{llmfirewall2025}      & \checkmark & $\times$ & $\times$ \\
 LlamaFirewall~\cite{llamafirewall2025}    & \checkmark & \textasciitilde & $\times$ \\
@@ -509,7 +514,7 @@ model is:
   T(B) &:= \max\!\bigl(T(B),\; T(A) \cdot \rho\bigr)
     \quad \text{(read propagation, T3)} \label{eq:readprop} \\
   T(A) &:= \min\!\bigl(1.0,\; T(A) + s \cdot (1 - T(A))\bigr)
-    \quad \text{(cap.\ abuse, T2)} \label{eq:abuse}
+    \label{eq:abuse} \quad \text{(cap.\ abuse, T2)}
 \end{align}
 
 Parameters: hop decay $\rho = 0.8$, time decay constant
@@ -610,19 +615,19 @@ Table~\ref{tab:impl} summarizes the implementation components.
 \centering
 \caption{Implementation components.}
 \label{tab:impl}
-\begin{tabular}{lll}
+\begin{tabular}{p{1.8cm}p{3.0cm}p{2.4cm}}
 \toprule
 Component & Tool & Notes \\
 \midrule
 Runtime        & Python 3.12, asyncio, Pydantic v2 & \\
-Hook layer     & hermes-agent (NousResearch)        & \texttt{pre\_tool\_call} \\
-Taint store    & cavemem (SQLite+FTS5)              & aiosqlite, MCP \\
-AST enrichment & graphify-ts                        & tree-sitter WASM, 12 langs \\
-Compression    & caveman (UTC)                      & ${\approx}75\%$ size reduction \\
-Async analysis & ruflo                              & BFT consensus, 3-agent quorum \\
-Policy loader  & superpowers (YAML)                 & zero ML on hot path \\
-Chronicle      & ClickHouse                         & append-only, no UPDATE/DELETE \\
-Total LoC      & ${\approx}1{,}200$                 & firewall/ + agents/adapters/ \\
+Hook layer     & hermes-agent (NousResearch) & \texttt{pre\_tool\_call} \\
+Taint store    & cavemem (SQLite+FTS5) & aiosqlite, MCP \\
+AST enrichment & graphify-ts & tree-sitter WASM \\
+Compression    & caveman (UTC) & ${\approx}75\%$ reduction \\
+Async analysis & ruflo & BFT, 3-agent quorum \\
+Policy loader  & superpowers (YAML) & zero ML, hot path \\
+Chronicle      & ClickHouse & append-only \\
+Total LoC      & ${\approx}1{,}200$ & firewall/ + adapters/ \\
 \bottomrule
 \end{tabular}
 \end{table}
