@@ -216,8 +216,7 @@ tbody tr:hover td{background:rgba(79,195,247,.02)}
 footer{border-top:1px solid var(--bd);padding:28px 24px;text-align:center;color:var(--m);font-size:13px}
 
 /* ── ANIM ── */
-.fi{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
-.fi.vis{opacity:1;transform:translateY(0)}
+.fi{opacity:1;transform:none}
 
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:var(--bg)}
@@ -967,11 +966,7 @@ function label(ctx,txt,x,y,color='#6b7a8d',size=11,align='center'){
   label(ctx,'← Lower Latency (ms, log scale)',pad.l+cw/2,h-2,C.m,11,'center');
 })();
 
-// ── Scroll fade-in ────────────────────────────────────────────
-const obs=new IntersectionObserver(entries=>{
-  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('vis'); });
-},{threshold:.08});
-document.querySelectorAll('.fi').forEach(el=>obs.observe(el));
+// no scroll animation — content visible immediately
 </script>
 
 </body>
