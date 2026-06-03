@@ -241,7 +241,7 @@ For calls routed to ESCALATE, hermes registers a hold (asyncio.Future keyed to e
 **Runtime:** Python 3.12, asyncio, Pydantic v2  
 **Hook layer:** Hermes Agent plugin (NousResearch/hermes-agent) — `pre_tool_call` / `pre_gateway_dispatch`  
 **Memory / taint:** cavemem (JuliusBrussee/cavemem) — SQLite + FTS5, MCP-accessible, async via aiosqlite  
-**Persistent agent memory:** agent_mem — cavemem MCP client with writer provenance tracking  
+**Persistent agent memory:** claude_mem — cavemem MCP client with writer provenance tracking  
 **Call-tree enrichment:** graphify-ts (Howell5/graphify-ts) — tree-sitter WASM, 12 languages, subprocess bridge  
 **Token compression:** caveman (JuliusBrussee/caveman) — UTC compression, ~75% reduction, hot-path lean  
 **Async analysis:** Ruflo (ruvnet/ruflo) — BFT consensus swarm, 3-agent quorum (≥2/3 for BLOCK)  
