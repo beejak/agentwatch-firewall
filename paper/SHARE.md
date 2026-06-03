@@ -118,6 +118,6 @@ WatchTower is my answer to it: tool-call interception with semantic call-tree co
 
 github.com/beejak/agentwatch
 
-— Rohit Jinsiwale, Reliance Industries
+— Rohit Jinsiwale
 
 #AIAgents #LLMSecurity #AgentSecurity #PromptInjection #MultiAgentSystems
