@@ -92,7 +92,7 @@ def make_signal():
             duration_ms=duration_ms,
             tokens_in=tokens_in,
             tokens_out=tokens_out,
-            model="claude-sonnet-4-6",
+            model="gpt-4o",
             cost=round((tokens_in + tokens_out) * 0.000003, 6),
             instruction_hash=None,
             caller_agent_id=caller_agent_id,
