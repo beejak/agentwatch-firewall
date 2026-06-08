@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import asyncio
 import time
+from datetime import datetime
 import pytest
 
-from firewall.core.signal import HookEvent, EnrichedEvent, IdentityCtx, Taint, Verdict
+from firewall.core.signal import HookEvent, EnrichedEvent, IdentityCtx, Taint, Verdict, EdgeType
 from agents.adapters.superpowers import SuperpowersAdapter
 from agents.adapters.cavemem import CavememAdapter
 
@@ -275,6 +276,141 @@ async def test_Q2_minja_memory_poison_detected_before_next_trace(cavemem):
     trust_b = await cavemem.get_trust("agent-B")
     # New agent starts at 0.5 — taint event degrades it
     assert trust_b <= 0.5, "Q2: trust not degraded after contagion"
+
+
+# ── MTP: MULTI-HOP TAINT PROPAGATION (KB17–KB20) ─────────────────────────────
+
+@pytest.mark.asyncio
+async def test_KB17_two_hop_contagion(cavemem):
+    """
+    2-hop contagion: A→memory→B.
+    T(A)=0.9, A writes mem "key1" (RHO_WRITE=0.95), B reads key1 (RHO_READ=0.80).
+    Expected T(B) = 0.9 * 0.95 * 0.80 = 0.684  (below Q=0.7, so NOT quarantined but IS tainted).
+    """
+    from datetime import timezone
+    from agents.adapters.cavemem import RHO_WRITE, RHO_READ
+
+    now = datetime.now(timezone.utc)
+
+    # Set A's taint
+    taint_a = Taint(agent_id="agent-A-kb17", level=0.9, source="T2", reason="test")
+    await cavemem.set_taint("agent-A-kb17", taint_a)
+
+    # Record edges: A --write--> key1, key1 --read--> B
+    await cavemem.record_edge("agent-A-kb17", "agent", "key1-kb17", "memory",
+                              EdgeType.WRITE, now)
+    await cavemem.record_edge("key1-kb17", "memory", "agent-B-kb17", "agent",
+                              EdgeType.READ, now)
+
+    changed = await cavemem.propagate_graph()
+
+    taint_b = await cavemem.get_taint("agent-B-kb17")
+    assert taint_b is not None, "KB17: taint not propagated to B"
+    expected = 0.9 * RHO_WRITE * RHO_READ
+    assert abs(taint_b.level - expected) < 0.01, \
+        f"KB17: expected T(B)≈{expected:.3f}, got {taint_b.level:.3f}"
+    assert taint_b.level < 0.7, "KB17: B should NOT be quarantined (T < Q=0.7)"
+
+
+@pytest.mark.asyncio
+async def test_KB18_three_hop_chain(cavemem):
+    """
+    3-hop chain: A→mem→B→tool→C.
+    T(A)=0.9, RHO_WRITE=0.95, RHO_READ=0.80, RHO_TOOL=0.85.
+    T(B) = 0.9 * 0.95 * 0.80 = 0.684
+    T(C) = 0.684 * 0.85 = 0.581
+    """
+    from datetime import timezone
+    from agents.adapters.cavemem import RHO_WRITE, RHO_READ, RHO_TOOL
+
+    now = datetime.now(timezone.utc)
+
+    taint_a = Taint(agent_id="agent-A-kb18", level=0.9, source="T2", reason="test")
+    await cavemem.set_taint("agent-A-kb18", taint_a)
+
+    await cavemem.record_edge("agent-A-kb18", "agent", "mem-kb18", "memory",
+                              EdgeType.WRITE, now)
+    await cavemem.record_edge("mem-kb18", "memory", "agent-B-kb18", "agent",
+                              EdgeType.READ, now)
+    await cavemem.record_edge("agent-B-kb18", "agent", "agent-C-kb18", "agent",
+                              EdgeType.TOOL_CALL, now)
+
+    await cavemem.propagate_graph()
+
+    expected_b = 0.9 * RHO_WRITE * RHO_READ
+    expected_c = expected_b * RHO_TOOL
+
+    taint_b = await cavemem.get_taint("agent-B-kb18")
+    taint_c = await cavemem.get_taint("agent-C-kb18")
+
+    assert taint_b is not None, "KB18: taint not propagated to B"
+    assert taint_c is not None, "KB18: taint not propagated to C"
+    assert abs(taint_b.level - expected_b) < 0.01, \
+        f"KB18: expected T(B)≈{expected_b:.3f}, got {taint_b.level:.3f}"
+    assert abs(taint_c.level - expected_c) < 0.01, \
+        f"KB18: expected T(C)≈{expected_c:.3f}, got {taint_c.level:.3f}"
+
+
+@pytest.mark.asyncio
+async def test_KB19_converging_taint(cavemem):
+    """
+    Converging taint: two sources → one agent.
+    X tainted 0.8, Y tainted 0.6, both write to "shared_key", Z reads it.
+    T(Z) = max(0.8 * RHO_WRITE * RHO_READ, 0.6 * RHO_WRITE * RHO_READ) = 0.608
+    """
+    from datetime import timezone
+    from agents.adapters.cavemem import RHO_WRITE, RHO_READ
+
+    now = datetime.now(timezone.utc)
+
+    await cavemem.set_taint("agent-X-kb19",
+                            Taint(agent_id="agent-X-kb19", level=0.8, source="T2", reason="test"))
+    await cavemem.set_taint("agent-Y-kb19",
+                            Taint(agent_id="agent-Y-kb19", level=0.6, source="T2", reason="test"))
+
+    await cavemem.record_edge("agent-X-kb19", "agent", "shared-key-kb19", "memory",
+                              EdgeType.WRITE, now)
+    await cavemem.record_edge("agent-Y-kb19", "agent", "shared-key-kb19", "memory",
+                              EdgeType.WRITE, now)
+    await cavemem.record_edge("shared-key-kb19", "memory", "agent-Z-kb19", "agent",
+                              EdgeType.READ, now)
+
+    await cavemem.propagate_graph()
+
+    expected = max(0.8 * RHO_WRITE * RHO_READ, 0.6 * RHO_WRITE * RHO_READ)
+    taint_z = await cavemem.get_taint("agent-Z-kb19")
+    assert taint_z is not None, "KB19: taint not propagated to Z"
+    assert abs(taint_z.level - expected) < 0.01, \
+        f"KB19: expected T(Z)≈{expected:.3f}, got {taint_z.level:.3f}"
+
+
+@pytest.mark.asyncio
+async def test_KB20_time_decay_hops(cavemem):
+    """
+    Time decay across hops.
+    Edge recorded 5 hours ago, T(src)=0.9, weight=RHO_READ=0.80, λ=0.1/hr.
+    Expected T(dst) = 0.9 * 0.80 * exp(-0.1 * 5) = 0.9 * 0.80 * 0.6065 ≈ 0.437
+    """
+    import math
+    from datetime import timedelta, timezone
+    from agents.adapters.cavemem import RHO_READ
+
+    five_hours_ago = datetime.now(timezone.utc) - timedelta(hours=5)
+
+    await cavemem.set_taint("src-kb20",
+                            Taint(agent_id="src-kb20", level=0.9, source="T2", reason="test"))
+
+    await cavemem.record_edge("src-kb20", "agent", "dst-kb20", "agent",
+                              EdgeType.READ, five_hours_ago)
+
+    await cavemem.propagate_graph()
+
+    lambda_decay = 0.1
+    expected = 0.9 * RHO_READ * math.exp(-lambda_decay * 5)
+    taint_dst = await cavemem.get_taint("dst-kb20")
+    assert taint_dst is not None, "KB20: taint not propagated to dst"
+    assert abs(taint_dst.level - expected) < 0.01, \
+        f"KB20: expected T(dst)≈{expected:.3f}, got {taint_dst.level:.3f}"
 
 
 # ── PERF ─────────────────────────────────────────────────────────────────────

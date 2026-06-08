@@ -252,6 +252,57 @@ For calls routed to ESCALATE, hermes registers a hold (asyncio.Future keyed to e
 
 **Deployment**: WatchTower runs as a sidecar process alongside the agent runtime. The Hermes plugin communicates via in-process function calls (zero network hop on hot path). cavemem runs as a separate MCP-accessible process for cross-session persistence.
 
+## §5.2 Multi-Hop Taint Propagation
+
+### Problem
+The one-hop model `T(B) := max(T_B, T_A × ρ)` loses attack chains after a single memory read. In a 3-agent chain A→mem→B→tool→C, C receives no taint signal under the original model. Real MINJA-class attacks routinely chain through 3–5 hops before exfiltration.
+
+### Algorithm (MTP)
+Let G = (V, E) be a directed graph where each edge e = (u, v) has weight w(e) ∈ (0,1) and timestamp ts(e). Define effective decay:
+
+```
+d(e) = w(e) × exp(−λ × Δt(e))
+```
+
+where Δt(e) = hours elapsed since edge was recorded and λ = 0.1/hr.
+
+The MTP update rule:
+```
+T^(k+1)[v] = max(T^(k)[v],  max_{u:(u,v)∈E}  T^(k)[u] × d(u,v))
+```
+
+Edge-type weights encode relationship fidelity:
+- WRITE (agent→memory): ρ_write = 0.95 — direct memory write, high fidelity
+- READ (memory→agent): ρ_read = 0.80 — read contagion, existing one-hop rate
+- DELEGATE (agent→agent): ρ_delegate = 0.90 — sub-agent spawn, close trust
+- TOOL_CALL (agent→agent): ρ_tool = 0.85 — tool invocation chain
+
+The solver iterates until no T[v] changes (fixed point) or max_hops is reached, then writes all updated taint values back to the ledger.
+
+### Convergence
+**Claim:** MTP converges in at most |V| iterations.
+
+**Proof sketch:**
+1. *Monotonicity*: T[v] is non-decreasing — values only increase or stay.
+2. *Boundedness*: T[v] ∈ [0,1] by definition.
+3. *Strict decay*: w < 1 and exp(−λΔt) ≤ 1, so each additional hop strictly reduces propagated taint (no amplification possible).
+4. *Path coverage*: After k iterations, all paths of length ≤ k have been explored. After |V| iterations, all simple paths (length ≤ |V|−1) are exhausted.
+5. *Fixed point*: Once no T[v] increases, the algorithm halts. This is guaranteed within |V| iterations.
+
+Worst-case complexity: O(|V| × |E|). With λ=0.1/hr and min weight 0.80, taint at hop 8 from a source T=1.0 is at most 0.80^8 ≈ 0.168 — below any actionable quarantine threshold — making max_hops=8 a practical default that terminates well before the theoretical |V| bound.
+
+### Results
+KB17–KB20 demonstrate MTP detection across four scenarios:
+
+| ID | Scenario | Chain | Expected T(final) | Result |
+|----|----------|-------|-------------------|--------|
+| KB17 | 2-hop contagion | A→mem→B | 0.9×0.95×0.80 = 0.684 | **PASS** |
+| KB18 | 3-hop chain | A→mem→B→tool→C | T(C)=0.684×0.85=0.581 | **PASS** |
+| KB19 | Converging sources | X,Y→mem→Z | max(0.608, 0.456)=0.608 | **PASS** |
+| KB20 | Time-decayed chain | src→dst (5hr old edge) | 0.9×0.80×e^{−0.5}=0.437 | **PASS** |
+
+KB17 is notable: T(B)=0.684 falls below the quarantine threshold Q=0.7, demonstrating that MTP correctly taints the agent without triggering quarantine — appropriate for a second-order contagion signal that should raise suspicion but not block.
+
 ---
 
 ## 6. Evaluation
