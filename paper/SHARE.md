@@ -1,123 +1,95 @@
 # Social Share Copy
 
----
-
 ## LinkedIn Post
 
-Most agent security tools are solving the wrong problem.
+**We built a firewall for AI agents. Here's what we learned. 🧵**
 
-They sit at the content layer — scanning inputs, flagging outputs. That works fine if your threat model is a chatbot. It breaks completely once you have agents calling tools, reading memory, and spawning sub-agents.
+Multi-agent AI systems have a security problem no one is fully talking about.
 
-I've been thinking about this for a while. Here's what the actual threat surface looks like:
+There are 3 distinct attack surfaces:
 
-An attacker poisons a document. An agent reads it during a retrieval call — no write access, just a read. That's enough. The injected instruction travels with the agent's context into whatever it does next. MINJA demonstrated 98.2% success with exactly this pattern. The content filter saw nothing because the content was technically fine.
+**1️⃣ Input Corruption** — Prompt injection via documents, web content, or API responses. MINJA (arxiv 2503.03704) demonstrated 98.2% injection success via *query-only* interaction. The attacker never needs write access.
 
-That's attack surface one. Surface two is subtler. `send_email` after `read_secret` looks identical to `send_email` for a meeting invite at the network layer. Same endpoint, same format. The difference is *why* it was called — and you can only know that if you tracked what happened before it.
+**2️⃣ Capability Abuse** — An agent uses a legitimate tool for an illegitimate purpose. `send_email` after `read_secret` looks identical to `send_email` for legitimate comms at the network layer. Wire-level enforcement is blind to intent.
 
-Surface three is what kept me up at night. Agent A gets compromised. It writes to shared memory. Agent B — completely clean, never interacted with the attacker — does a routine query-only read. At the wire level, nothing happened. But B just inherited the attack.
+**3️⃣ Multi-Agent Contagion** — A compromised agent writes to shared memory. Downstream agents inherit taint through read-only queries. **No published defense existed for this.**
 
-No published system handled all three. So I built one.
+We built WatchTower to address all three.
 
-WatchTower intercepts at the tool-call level, not the content level. Every call gets tagged with its full call tree. A YAML policy can say "block this tool call if `read_secret` appears anywhere in the chain" — deterministically, in 0.011ms. Cross-session taint propagates through memory reads before the next call executes.
+Key results:
+- ✅ 100% detection on 17-case known-bad corpus
+- ⚡ 0.011ms p99 enforcement latency (vs 106ms state-of-art — 9,636× faster)
+- 🔒 Cross-session taint propagation: MINJA detected before the next tool call executes
+- 0️⃣ False positives on benign workload
+- No GPU required
 
-17 known-bad test cases. 100% detection. Zero false positives on clean workloads. 9,636× faster than the closest published system — and that one needs an A100 GPU.
+The core insight: **enforcement and observability must be co-designed**. A firewall without call-tree context can't distinguish *why* a tool was called. An observer without enforcement produces alerts after the fact.
 
-The paper is out. IEEEtran format, formal taint model, full evaluation. Targeting IEEE S&P / USENIX Security.
+We're targeting IEEE S&P / USENIX Security.
 
-Code: github.com/beejak/agentwatch
-Paper: github.com/beejak/agentwatch/blob/master/paper/index.html
-
-Happy to discuss — especially if you're working on agent infrastructure and have seen variants of these attacks in the wild.
+Open source: github.com/beejak/agentwatch
+Full paper: [link to paper/index.html]
 
 ---
 
 ## X / Twitter Thread
 
-**1/**
-Most agent security work is solving a 2023 problem in 2026.
+**🔐 We built an agent firewall. 17/17 attacks blocked. 0.011ms p99. Here's how.**
 
-Scanning inputs. Filtering outputs. That's fine for chatbots.
+**1/** Multi-agent AI has 3 attack surfaces. Almost every existing defense covers only one.
 
-It doesn't work once agents have tool access, shared memory, and sub-agents. Here's why — and what a different architecture looks like.
+**2/** Surface 1: Input Corruption
+MINJA (Mar 2025) proved adversaries can achieve 98.2% injection success via *query-only* interaction — no write access needed. Standard content filters don't stop multi-hop contagion.
 
-**2/**
-The attack that changed my thinking: MINJA (arXiv:2503.03704)
+**3/** Surface 2: Capability Abuse
+`send_email(to="partner@corp.com", body="api_key=sk-abc123...")` looks identical to legitimate email at the network layer. The difference is *why* it was called — which requires call-tree context.
 
-98.2% injection success. Query-only. The attacker never wrote anything.
+**4/** Surface 3: Multi-Agent Contagion
+Compromised Agent A writes to shared memory → Clean Agent B does a query-only read → B inherits taint. No existing system tracked this cross-session. We do.
 
-The agent read a poisoned document during retrieval. That was enough. Content filter saw clean content — because the content *was* clean. The instruction was in the structure, not the text.
+**5/** WatchTower's approach: 9-layer enforcement
+- L0: Ed25519 identity fabric per agent
+- L3: Deterministic YAML policy rules (zero ML, 0.011ms)
+- L4: Trust gate (routes, never hard-blocks alone)
+- L6/L7: Async BFT swarm + task-completion barrier
+- L8: ClickHouse append-only chronicle
 
-**3/**
-Surface 2 is the one nobody talks about enough.
+**6/** The key innovation: `call_tree_contains`
+Our policy DSL can say "block send_email only when read_secret appears in the call tree." Wire-level firewalls can't do this. LLM-based checkers add 100ms+ latency. We do it deterministically in 0.011ms.
 
-`send_email(body="api_key=sk-...")` after `read_secret` vs `send_email` for a normal reply.
+**7/** MINJA defense (Q2 proof):
+- Agent A tainted at level 0.9 (T2 capability abuse)
+- A writes poisoned memory
+- B does query-only read
+- WatchTower propagates: T_B = 0.9 × 0.8 = 0.72
+- 0.72 ≥ quarantine threshold 0.7
+- B blocked BEFORE its next tool call executes
 
-Same endpoint. Same HTTP method. Completely different intent.
+**8/** Results vs prior work:
+- LlamaFirewall: S1 only, >100ms
+- AgentSpec: S2 only, 70.96% recall
+- Distributed Sentinel: partial S1+S2, 106ms, requires A100 GPU
+- Claw Patrol: S2 only, no semantic context
+- WatchTower: all 3, 0.011ms, SQLite not GPU
 
-You can't block one without allowing the other — unless you tracked the call chain that led there.
+**9/** Open source, targeting IEEE S&P / USENIX Security.
 
-**4/**
-Surface 3 is the scary one.
-
-Agent A gets compromised → writes poisoned memory → Agent B does a routine read → B inherits the attack vector.
-
-B never interacted with the attacker. At the wire level, nothing happened. But the taint moved.
-
-No published system was tracking this cross-session.
-
-**5/**
-So the architecture I built — WatchTower — intercepts at the tool-call level, not content level.
-
-Every call gets its full call tree. A policy can say:
-
-```yaml
-match:
-  tool: send_email
-  context:
-    call_tree_contains: [read_secret]
-verdict: BLOCK
-```
-
-Zero ML. 0.011ms. Deterministic.
-
-**6/**
-Taint propagation in practice:
-
-Agent A tainted at 0.9 → writes to shared memory → Agent B reads it → T(B) = 0.9 × 0.8 = 0.72 → quarantine threshold is 0.7 → B blocked before its next call.
-
-This all happens in under 1ms. Quarantine expires in ~2.5 hours. No permanent lockout.
-
-**7/**
-Numbers vs the field:
-
-- LlamaFirewall: surface 1 only, >100ms
-- AgentSpec: surface 2 only, 70.96% recall  
-- Distributed Sentinel: surfaces 1+2 partial, 106ms, requires A100
-- WatchTower: all 3 surfaces, 0.011ms, runs on SQLite
-
-17 known-bad cases. 100% detection. 0% false positives.
-
-**8/**
-Full paper written — IEEEtran, formal proofs, benchmarks, 16 references.
-
-Code + paper: github.com/beejak/agentwatch
-
-If you're building agent infrastructure and have seen these attack patterns in the wild, I want to talk.
+Code: github.com/beejak/agentwatch
+Paper: [link]
 
 ---
 
-## Short Caption (paper link share)
+## Short LinkedIn Caption (for sharing the paper link)
 
-Something I've been sitting on for a while.
+**New research: WatchTower — an observation-first agent security framework.**
 
-Multi-agent systems have a taint propagation problem that content-layer security completely misses. Agent A gets compromised, writes to shared memory, Agent B reads it in a routine query — and inherits the attack. No write access required. No direct interaction. Just a read.
+Three attack surfaces. One system. 0.011ms enforcement.
 
-WatchTower is my answer to it: tool-call interception with semantic call-tree context and cross-session taint tracking. 0.011ms enforcement. Runs on SQLite, not a GPU cluster.
+The part no one else has solved: **multi-agent contagion**. When Agent A is compromised and writes to shared memory, Agent B can inherit the attack through a read-only query — no direct interaction required. WatchTower detects this cross-session, before B's next tool call executes.
 
-17 attack cases. 100% detection. Paper in IEEEtran format.
+100% on a 17-case known-bad corpus. 9,636× faster than the closest competitor. No GPU required.
 
-github.com/beejak/agentwatch
+📄 Full paper: [link]
+💻 Code: github.com/beejak/agentwatch
 
-— Rohit Jinsiwale
-
-#AIAgents #LLMSecurity #AgentSecurity #PromptInjection #MultiAgentSystems
+#AIAgents #LLMSecurity #MultiAgentSystems #AIFirewall #AgentSecurity #LLM #GenAI
