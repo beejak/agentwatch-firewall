@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
@@ -66,6 +67,25 @@ class Taint(BaseModel):
     reason:     str = ""
     ts:         float = Field(default_factory=time.time)
     session_id: str = ""
+
+
+class EdgeType(str, Enum):
+    WRITE      = "write"       # agent → memory_entry
+    READ       = "read"        # memory_entry → agent
+    DELEGATE   = "delegate"    # agent → agent (sub-agent spawn)
+    TOOL_CALL  = "tool_call"   # agent → agent (tool invocation)
+
+
+class TaintEdge(BaseModel):
+    edge_id:    str = Field(default_factory=lambda: str(uuid.uuid4()))
+    src:        str          # node ID (agent_id or memory key)
+    src_type:   str          # "agent" | "memory"
+    dst:        str          # node ID
+    dst_type:   str          # "agent" | "memory"
+    edge_type:  EdgeType
+    weight:     float        # propagation weight for this edge type
+    ts:         datetime
+    session_id: Optional[str] = None
 
 
 class FirewallVerdict(BaseModel):
