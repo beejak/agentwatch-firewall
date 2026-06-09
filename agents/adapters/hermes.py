@@ -30,6 +30,7 @@ from firewall.core.signal import (
     Taint,
     Verdict,
 )
+from firewall.integration.chronicle_bridge import write_verdict
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ _cavemem: Any = None
 _superpowers: Any = None
 _ruflo: Any = None
 _chronicle: Any = None
+_wt_chronicle: Any = None   # watchtower ChronicleWriter (set via configure_chronicle)
 
 # In-process trust cache (TTL 5s) — keeps hot-path latency < 2ms
 _trust_cache: dict[str, tuple[float, float]] = {}   # aid -> (score, expires_at)
@@ -67,6 +69,16 @@ async def on_load(ctx) -> None:
         logger.info("firewall: adapters loaded")
     except Exception as e:
         logger.error("firewall: adapter load failed — fail-safe active: %s", e)
+
+
+def configure_chronicle(writer) -> None:
+    """
+    Wire a watchtower ChronicleWriter so every firewall verdict is appended to the
+    shared append-only Chronicle (the integration seam, paper layer L8). Call once
+    at startup. `writer` is a started watchtower.chronicle.writer.ChronicleWriter.
+    """
+    global _wt_chronicle
+    _wt_chronicle = writer
 
 
 async def pre_tool_call(ctx, tool: str, args: dict) -> dict | None:
@@ -99,7 +111,7 @@ async def pre_tool_call(ctx, tool: str, args: dict) -> dict | None:
         )
 
     verdict.latency_ms = (time.perf_counter() - t0) * 1000
-    asyncio.create_task(_record(verdict))
+    asyncio.create_task(_record(verdict, event))
 
     if verdict.action == Verdict.BLOCK:
         return {"block": True, "reason": verdict.reason}
@@ -201,7 +213,7 @@ async def _async_analyze(
         if not future.done():
             future.set_result(v)
     finally:
-        asyncio.create_task(_record(v))
+        asyncio.create_task(_record(v, event))
         if _cavemem:
             await _cavemem.propagate_taint_if_blocked(event.agent_id, v)
 
@@ -287,10 +299,13 @@ def _verdict(
     )
 
 
-async def _record(verdict: FirewallVerdict) -> None:
+async def _record(verdict: FirewallVerdict, event: Optional[HookEvent] = None) -> None:
     """Append-only write to Chronicle + cavemem. Never raises."""
     try:
-        if _chronicle:
+        if _wt_chronicle is not None:
+            # Integration seam: verdict → watchtower Signal → append-only Chronicle (L8).
+            await write_verdict(_wt_chronicle, verdict, event)
+        elif _chronicle:
             await _chronicle.write_event("interceptor_acts", {
                 "trace_id":  verdict.verdict_id,
                 "agent_id":  verdict.agent_id,
