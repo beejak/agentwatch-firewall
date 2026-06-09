@@ -31,5 +31,9 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "gate_*.py", "scenario_*.py"]
 pythonpath = ["."]
 
+[tool.hatch.metadata]
+# Required to allow the `watchtower @ git+...` pinned dependency.
+allow-direct-references = true
+
 [tool.hatch.build.targets.wheel]
 packages = ["firewall", "agents", "eval"]
