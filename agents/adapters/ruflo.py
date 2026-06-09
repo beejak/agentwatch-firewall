@@ -14,6 +14,29 @@ from firewall.core.signal import EnrichedEvent, FirewallVerdict, Verdict
 
 logger = logging.getLogger(__name__)
 
+
+class RufloAdapter:
+    """
+    Async deep-analysis adapter — the interface hermes._async_analyze calls
+    (`await _ruflo.analyze(event, enriched, trust, taint)`).
+
+    The production target is a ruflo BFT consensus swarm; today this delegates to
+    the semantic tier (firewall/semantic/judge.SemanticJudge), which uses an LLM
+    classifier when configured and a deterministic structural scorer otherwise.
+    Returns a JudgeResult exposing .action ("BLOCK"|"ALLOW"), .score, .reason.
+    Off the hot path — only invoked on trust-gate ESCALATE/NARROW.
+    """
+
+    def __init__(self, judge: "object | None" = None) -> None:
+        if judge is None:
+            from firewall.semantic.judge import SemanticJudge
+            judge = SemanticJudge()
+        self._judge = judge
+
+    async def analyze(self, event, enriched=None, trust: float = 0.5, taint: float = 0.0):
+        return await self._judge.analyze(event, enriched, trust, taint)
+
+
 # Swarm verdict timeout — task-completion barrier blocks until this expires.
 SWARM_TIMEOUT_S = 5.0
 
