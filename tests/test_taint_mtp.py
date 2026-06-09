@@ -20,7 +20,7 @@ def test_monotonic_and_bounded():
         initial_taint={"x": 1.0},
     )
     assert 0.0 <= res.taint["z"] <= 1.0
-    assert res.taint["z"] == 0.64  # 1.0*0.8*0.8
+    assert abs(res.taint["z"] - 0.64) < 1e-9  # 1.0*0.8*0.8 (float-safe)
 
 
 def test_convergence_terminates():
