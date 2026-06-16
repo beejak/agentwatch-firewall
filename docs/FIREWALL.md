@@ -1,257 +1,134 @@
-# WatchTower Firewall Layer
+# tracewall — architecture
 
-Two-tier enforcement on top of the 16-layer observability stack.  
-**Hot path: < 10ms p99. Cold path: async BFT swarm. Fail-safe: any error → BLOCK.**
-
----
-
-## Architecture
-
-```
-pre_tool_call hook (hermes)
-        │
-        ▼
-L0  Identity check     token expiry · delegation depth · capability set
-        │
-        ▼
-L1  Intercept          hermes plugin, returns block dict or None
-        │
-        ▼
-L2  Enrichment         graphify AST path (cached; miss → needs_async)
-        │
-        ▼
-L3  Deterministic      superpowers YAML policy match  ──► BLOCK (known-bad)
-        │ (no match)
-        ▼
-L4  Trust gate         cavemem score: >0.7 ALLOW · 0.3–0.7 ESCALATE · <0.3 NARROW
-        │ (ALLOW)         │ (ESCALATE / NARROW)
-        ▼                 ▼
-      ALLOW          register hold + submit to ruflo swarm
-                          │
-                          ▼ (async, off hot-path)
-                    L6  Ruflo BFT consensus (3 agents, 5s timeout)
-                          │
-                          ▼
-                    L7  Barrier resolves hold → return verdict
-        │
-        ▼
-L8  Chronicle       append-only ClickHouse write (always)
-```
-
----
-
-## Adapters
-
-### `hermes.py` — Hook Interceptor
-
-Entry point. Implements `pre_tool_call` and `pre_gateway_dispatch` as Hermes plugin hooks.
-
-**`_enforce(event: HookEvent) -> FirewallVerdict`**
-
-Pipeline:
-1. Build `EnrichedEvent` from `HookEvent` + graphify AST enrichment
-2. Check identity (L0): token expiry, delegation depth, capability membership
-3. Evaluate superpowers rules (L3)
-4. Get trust score from cavemem (L4)
-5. Route: ALLOW / ESCALATE to ruflo / NARROW
-6. If ESCALATE/NARROW: register asyncio.Future hold, submit to ruflo swarm
-7. Fail-safe: any exception → `FirewallVerdict(action=BLOCK, source="fail_safe")`
-
-**In-process trust cache:** 5-second TTL. Reduces cavemem reads on repeated calls.
-
-**Hold registry:** `_holds: dict[str, asyncio.Future]` — keyed by `event_id`. Async verdicts must match a registered hold to be accepted (KB15 — unauthenticated verdict rejection).
-
----
-
-### `cavemem.py` — Taint Ledger + Trust Store
-
-SQLite + aiosqlite. MCP-accessible. Cross-session persistent.
-
-**Tables:**
-- `agents` — identity registration (`agent_id`, `caps`, `delegation_depth`, `trust`)
-- `taint` — taint records (`agent_id`, `level`, `source`, `reason`, `ts`, `session_id`)
-- `verdicts` — append-only verdict log
-
-**Key methods:**
+A standalone, pluggable agent firewall. It decides **ALLOW / BLOCK** on every
+tool call an agent makes, behind one stable async seam:
 
 ```python
-await cavemem.get_trust(agent_id)                   # → float [0,1]
-await cavemem.on_clean_call(agent_id, tool)          # trust += α(1-trust), α=0.02
-await cavemem.on_taint_event(agent_id, severity)     # trust *= (1 - β×sev), β=0.6
-await cavemem.get_taint(agent_id)                    # → Taint | None (with time decay)
-await cavemem.set_taint(agent_id, taint)
-await cavemem.propagate_read_taint(reader_id, writer_taint)  # T3 contagion
-await cavemem.propagate_taint_if_blocked(agent_id, verdict)  # T2 capability abuse
-await cavemem.register_identity(ctx: IdentityCtx)
-await cavemem.get_identity(agent_id)
-await cavemem.record_verdict(v: FirewallVerdict)     # append-only, never UPDATE
+from tracewall import Firewall
+verdict = await firewall.check(event)   # -> FirewallVerdict
 ```
 
-**Taint propagation constants:**
-
-| Constant | Value | Meaning |
-|----------|-------|---------|
-| ρ (rho) | 0.8 | Hop decay — `T_B = T_A × ρ` |
-| λ (lambda) | 0.1/hr | Time decay — `T(t) = T₀ × e^{−λt}` |
-| α (alpha) | 0.02 | Trust recovery per clean call |
-| β (beta) | 0.6 | Trust degradation factor |
-| Q | 0.7 | Quarantine threshold |
-
-**Quarantine recovery** (P5 — no permanent DoS):  
-For `T₀=0.9`: quarantine lifts at `t₀ + 2.52 hours`.  
-For `T₀=1.0`: quarantine lifts at `t₀ + 3.57 hours`.
+Key-free and infra-free by default. **Fail-safe: any internal error → BLOCK.**
 
 ---
 
-### `superpowers.py` — Policy Evaluator
+## Pipeline (`tracewall/core/firewall.py`)
 
-Loads `*.yaml` from `policies/` at session start. Compiles to per-tool lookup table.
-
-**Evaluation:** O(1) tool lookup + O(rules) linear scan. Returns first BLOCK match, or `None` (ALLOW). Keeps last-good ruleset if reload fails (partial parse protection).
-
-**`_matches(rule, event) -> bool`**
-
-1. `context.call_tree_contains` — checks both `event.call_tree` and `event.event.caller_chain` (combined list)
-2. `any` clauses — OR, short-circuits on first match
-3. `all` clauses — AND, short-circuits on first miss
-
-**`_eval_op(op, val, operand) -> bool`**
-
-| Operator | Type | Description |
-|----------|------|-------------|
-| `not_in_domain` | `list[str]` | Email domain not in allowed list |
-| `in` | `list` | Value in list |
-| `not_in` | `list` | Value not in list |
-| `matches_secret_pattern` | `bool` | Regex: API keys, tokens, private keys |
-| `regex` | `str` | `re.search(operand, str(val))` |
-| `glob` | `str` | `fnmatch(str(val), operand)` |
-| `rate_exceeds` | `int` | Delegated to rate tracker (stub) |
-| `delegation_depth_gt` | `int` | Integer comparison |
-| `taint_gte` | `float` | Float comparison against taint level |
-
-**Secret patterns matched by `matches_secret_pattern`:**
 ```
-(?i)(api[_-]?key|password|secret|token|bearer|credentials?)\s*[:=]\s*\S+
-(?i)(sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|xox[bporas]-[0-9A-Za-z-]+)
-(?i)-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----
+HookEvent
+   │
+   ▼
+L0  identity        token expiry · delegation depth ≤ 8 · capability set
+   │ (ok)
+   ▼
+enrich              attach optional call-tree context (caller_chain)
+   │
+   ▼
+tier-0 content      surface-form injection screen — NOISY PRIOR, never blocks alone
+   │
+   ▼
+tier-1 policy       deterministic YAML DSL  ──► BLOCK (known-bad)
+   │ (no match)
+   ▼
+trust/taint gate    _route(trust, taint): ALLOW · ESCALATE · NARROW
+   │ ALLOW & not flagged      │ ESCALATE / NARROW / content-flagged
+   ▼                          ▼
+ ALLOW                  tier-2 semantic judge (await; off the fast path)
+   │                          │
+   └───────────┬──────────────┘
+               ▼
+        FirewallVerdict ──► audit sink (always, append-only)
 ```
 
----
+The deterministic tiers (L0 → content → policy → gate) are the fast path
+(in-process p99 < 10ms). Only ESCALATE/NARROW (or a tier-0 flag) awaits the
+semantic judge. `context_completeness` on every verdict records which signals
+(`identity`, `call_tree`, `ledger`) were actually available — so a
+context-starved transport never silently over-claims.
 
-### `graphify.py` — AST Enrichment
+`_route(trust, taint)`:
 
-Wraps graphify-ts (tree-sitter WASM, 12 languages) via subprocess bridge to Node.js.
-
-Returns `(ast_path: str | None, cache_hit: bool)`.
-
-**Cache miss behaviour:** sets `needs_async=True` on `EnrichedEvent`. This routes the event to L5/L6 for async analysis but **never blocks inline** (KB16 — cache miss must not block).
-
-**Fallback:** if Node.js is unavailable, returns `(None, False)` gracefully. No exception. No BLOCK.
-
----
-
-### `ruflo.py` — Async BFT Swarm
-
-3-agent consensus off the hot path. Runs inside `asyncio.ensure_future`.
-
-**Roles:** `semantic` · `contagion` · `intent` — each votes 0.0–1.0 suspicion.
-
-**Quorum:** ≥ 2/3 block votes → `BLOCK`. Otherwise → `ALLOW`.
-
-**Timeout:** 5 seconds → `ALLOW` (not BLOCK — to prevent DoS via swarm delay).
-
-**Error:** exception in swarm → `BLOCK, source="fail_safe"` (P3 — fail-safe applies here too).
+| condition | route |
+|---|---|
+| `taint ≥ 0.7` | ESCALATE (quarantine threshold) |
+| `trust > 0.7` | ALLOW |
+| `trust ≥ 0.3` | ESCALATE |
+| else | NARROW |
 
 ---
 
-### `claude_mem.py` — Persistent Memory Client
+## Modules
 
-Thin client over the cavemem MCP server. Tracks writer provenance for every memory entry.
+### `core/signal.py` — the wire contract
+`HookEvent` (one mandatory field: `agent_id`), `EnrichedEvent`, `IdentityCtx`,
+`Taint`, `FirewallVerdict` (`action`/`score`/`source`/`reason`/`context_completeness`),
+`EdgeType`, `TaintEdge`. Defined once; transports build a `HookEvent` and get a
+`FirewallVerdict` — the core sees nothing else.
 
-Callers are responsible for checking writer taint and calling `cavemem.propagate_read_taint` if the writer is tainted — this is the taint propagation entry point for memory reads.
+### `core/firewall.py` — `Firewall` facade
+`Firewall(ledger, policy, judge, content_filter=…, audit=…)`. `await check(event)`
+runs the pipeline above and always writes to the audit sink. Wraps the body so any
+exception → `FirewallVerdict(action=BLOCK, source="fail_safe")`.
 
----
-
-### `caveman.py` — Token Compression
-
-UTC compression via JuliusBrussee/caveman. Used to keep args lean before policy evaluation.
-
-`compress_args(args, max_tokens=512)` — compresses all string values in an args dict. ~75% reduction on verbose LLM output.
-
----
-
-## Signal shapes (`firewall/core/signal.py`)
+### `taint/ledger.py` — `Ledger` (trust / taint / identity / graph)
+Local SQLite, clock-injectable for deterministic decay. Per `agent_id`:
 
 ```python
-class Verdict(str, Enum):
-    ALLOW = "ALLOW"
-    BLOCK = "BLOCK"
-    HOLD  = "HOLD"
-
-class HookEvent(BaseModel):
-    event_id:     str             # UUID, unique per call
-    agent_id:     str
-    tool:         str
-    args:         dict
-    call_site:    Optional[str]   # source location if available
-    caller_chain: list[str]       # call stack as tool names
-    session_id:   Optional[str]
-    ts:           datetime
-
-class EnrichedEvent(BaseModel):
-    event:       HookEvent
-    ast_path:    Optional[str]   # graphify result; None on cache miss
-    call_tree:   list[str]       # combined tree from graphify + caller_chain
-    cache_hit:   bool
-    needs_async: bool            # True → route to ruflo, not inline block
-
-class IdentityCtx(BaseModel):
-    agent_id:         str
-    parent_id:        Optional[str]
-    delegation_depth: int = 0    # MAX_DEPTH = 8
-    caps:             list[str]  # allowed tools
-    trust:            float = 0.5
-    taint:            float = 0.0
-    token_exp:        Optional[datetime]
-
-class Taint(BaseModel):
-    agent_id:   str
-    level:      float           # [0.0, 1.0]
-    source:     str             # "T1" | "T2" | "T3"
-    reason:     str
-    ts:         datetime
-    session_id: Optional[str]
-
-class FirewallVerdict(BaseModel):
-    verdict_id:  str            # UUID
-    event_id:    str            # matches HookEvent.event_id
-    agent_id:    str
-    tool:        str
-    action:      Verdict
-    score:       float          # [0.0, 1.0]
-    source:      str            # "superpowers" | "trust_gate" | "ruflo_swarm" | "fail_safe"
-    reason:      str
-    latency_ms:  float = 0.0
-    ts:          datetime
+await ledger.get_trust(aid)                     # → float [0,1]
+await ledger.on_clean_call(aid, tool)            # trust += α(1-trust),  α=0.02   (recovering)
+await ledger.on_taint_event(aid, severity)       # trust *= (1 - β·sev), β=0.6
+await ledger.get_taint(aid)                      # → Taint | None (with time decay)
+await ledger.set_taint(aid, taint)
+await ledger.propagate_read_taint(reader, w)     # T3 contagion: max(reader, w·ρ)
+await ledger.register_identity(ctx) / get_identity(aid)
+await ledger.record_edge(src, …, dst, …, edge_type)
+await ledger.propagate_graph()                   # drives taint/mtp.propagate()
+await ledger.get_blast_radius(node, threshold)
 ```
 
-**Taint source codes:**
+Constants: ρ=0.8 hop decay · α=0.02 trust recovery · β=0.6 degrade · λ=0.1/hr
+time decay · Q=0.7 quarantine. Edge weights: WRITE 0.95 · READ 0.80 · DELEGATE
+0.90 · TOOL_CALL 0.85.
 
-| Code | Meaning |
-|------|---------|
-| T1 | Direct injection detected in content |
-| T2 | Capability abuse — tool call blocked |
-| T3 | Contagion — inherited from tainted memory writer |
+### `taint/mtp.py` — multi-hop taint propagation (the moat)
+Pure, DB-free fixed-point solver — single source of truth (the ledger drives it).
+`T^(k+1)[v] = max(T^(k)[v], max_{u→v} T^(k)[u]·w·e^{-λΔt})`. Converges in ≤ |V|
+iterations (monotone, bounded, strict decay); proof + `convergence_bound()` in the
+module docstring. Quarantine recovers — no permanent DoS.
+
+### `policy/engine.py` — `PolicyEngine` (tier-1)
+Loads `policy/rules/*.yaml`, compiles to a per-tool lookup. `await evaluate(event)`
+returns the first BLOCK `RuleMatch` or `None`. Pure-deterministic, hot-path. Keeps
+the last-good ruleset if a reload fails.
+
+### `content/filter.py` — tier-0 pre-filter
+Standalone instruction-injection regex family (`flagged(text) -> bool`). No YAML,
+no network. High-recall / lower-precision; routes into the semantic tier, never the
+sole authority.
+
+### `semantic/judge.py` — `SemanticJudge` (tier-2)
+Two backends behind one interface. **Deterministic** structural scorer (key-free,
+reproducible — the default and the fail-open fallback). **LLM** (provider-agnostic,
+OpenAI-compatible; opt-in via `LLM_API_KEY`, disable with `TRACEWALL_SEMANTIC_LLM=0`).
+The judge treats the call as UNTRUSTED DATA and never obeys instructions in it.
+
+### `audit/sink.py` — append-only audit
+`AuditSink` ABC + `LocalAuditSink` (JSONL, default) + `NullAuditSink`. Auditing
+never breaks enforcement (errors swallowed + logged).
+
+### `transports/` — how it plugs in
+- `python_guard.py` — in-process `guard(fw, tool, args, ctx)` + `@guarded` decorator.
+  Full context passthrough; `agent_id` required; fail-closed default.
+- `mcp_proxy.py` — MCP stdio gateway proxy: spawns the real server, screens only
+  `tools/call`; BLOCK → MCP `isError` tool result. Optional `_meta.tracewall`
+  context convention; degrades gracefully when absent.
 
 ---
 
 ## Writing a policy
 
-1. Create `policies/<name>.yaml`
-2. Policies are hot-reloaded at session start. Reload manually via `sp.load_policies("policies/")`
-3. Test with `pytest tests/known_bad/test_firewall_kb.py -k <your_test>`
+`policy/rules/<name>.yaml`:
 
-**Template:**
 ```yaml
 rule:    my_rule_id
 surface: capability_abuse          # or: input_corruption | contagion
@@ -260,55 +137,46 @@ match:
   tool: the_tool_name
   any:
     - arg.some_field: { regex: "pattern" }
-    - arg.other_field: { in: ["val1", "val2"] }
+    - arg.other_field: { in: ["a", "b"] }
   context:
-    call_tree_contains: [required_caller]   # optional — semantic context
+    call_tree_contains: [read_secret]   # optional — only fires with this caller present
 verdict:  BLOCK
-reason:   "human-readable reason for audit log"
-severity: 0.8                      # used for taint update on block
+reason:   "human-readable reason for the audit log"
+severity: 0.9
 ```
 
-**Dotted arg paths:** `arg.body` → `args["body"]`, `arg.config.key` → `args["config"]["key"]`
+Operators (`_eval_op`): `regex` · `glob` · `in` · `not_in` · `not_in_domain` ·
+`matches_secret_pattern` · `delegation_depth_gt` · `taint_gte`. Dotted arg paths:
+`arg.body` → `args["body"]`.
 
 ---
 
-## Adding a test case to the gate corpus
+## Evaluation
 
-```python
-# tests/known_bad/test_firewall_kb.py
+`tracewall/eval/` — a frozen, human-labeled corpus + a deterministic ablation
+harness (per-tier precision/recall/F1/FPR with bootstrap 95% CIs on a held-out
+split). Tiers: `tier0_content`, `tier1_policy`, `tier2_semantic`, plus
+`integrated_or` (naive OR) and `integrated` (**gated**: policy OR semantic; tier-0
+routes only). Gated beats naive OR on the held-out split (higher precision, lower
+FPR, same recall) — the verdict is gated, not a blunt union. The deterministic
+result is the stable baseline; an LLM run is a dated, non-reproducible snapshot and
+never gates tests.
 
-@pytest.mark.asyncio
-async def test_KB_my_case(policies):
-    ev = make_event("tool_name", {"arg": "value"}, caller_chain=["optional_caller"])
-    match = await policies.evaluate(ev)
-    assert match is not None, "KB_my_case: not blocked"
-    assert match.verdict == "BLOCK"
+```bash
+python -m tracewall.eval.harness --split test          # deterministic
+python -m tracewall.eval.harness --split test --llm     # LLM backend (needs key)
 ```
 
-All cases in the gate file must pass. Adding a case that fails = failing the gate. Fix the policy first, then add the test.
-
 ---
 
-## Fail-safe checklist
+## Testing invariants
 
-Before deploying, verify all five security properties hold:
+Pure, infra-free, deterministic (`pytest -q`, no services):
+- known-bad gate (3 surfaces + fail-safe + proofs + perf), MTP taint math,
+  semantic tier, full `Firewall.check` paths, both transports;
+- frozen-corpus hash + eval-reproducibility + pure-tier regression pins;
+- LLM path mocked (never live in the gate); frozen agent-trace replay (data only).
 
-- [ ] **P1** `pytest tests/known_bad/ -v` → 17/17 pass
-- [ ] **P2** KB09, KB10, Q2 pass — taint propagation working
-- [ ] **P3** KB13 pass — `source="fail_safe"` on crash → `action=BLOCK`
-- [ ] **P4** PB01 pass — p99 < 10ms on N=1000
-- [ ] **P5** KB12 pass — trust recovers after 10 clean calls
-
----
-
-## Performance notes
-
-| Path | Budget | Current |
-|------|--------|---------|
-| L3 policy eval (in-process) | < 10ms | 0.011ms |
-| L2 graphify (cache hit) | < 3ms | ~0.1ms |
-| L2 graphify (cache miss) | no inline block | routes to async |
-| L4 cavemem trust (in-proc cache) | < 1ms | ~0.05ms |
-| L6 ruflo swarm | off hot-path | < 5s |
-
-The in-process trust cache (5s TTL) means cavemem SQLite reads happen at most once per 5 seconds per agent. On cache hit the full L0–L5 pipeline costs ~0.2ms end-to-end.
+Fail-safe checklist: identity/policy/semantic blocks fire; any internal error →
+`source="fail_safe"`, `action=BLOCK`; trust recovers after clean calls (no
+permanent DoS); deterministic hot path p99 < 10ms.
