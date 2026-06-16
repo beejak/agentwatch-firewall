@@ -1,22 +1,25 @@
 """
-eval/harness.py — deterministic evaluation harness for the frozen corpus.
+tracewall/eval/harness.py — deterministic evaluation harness for the frozen corpus.
 
 Runs the detector tiers as ablation baselines against the frozen, human-labeled
-corpus and reports precision / recall / F1 / FP-rate with bootstrap 95% CIs, on a
+corpus and reports precision / recall / F1 / FP-rate with bootstrap 95% CIs on a
 held-out split. Results are written to eval/results/ as preserved, reproducible
-artifacts for the paper.
+artifacts for the paper. Key-free and infra-free: the deterministic backend is
+the stable, reproducible default.
 
 Evaluators (ablation):
-  tier0_regex   — watchtower ContentInspector + MIM (surface-string match)
-  tier1_policy  — superpowers policy DSL (deterministic rules, incl. call_tree)
-  tier2_semantic— SemanticJudge (deterministic backend by default; --llm for LLM)
-  integrated    — BLOCK if ANY tier blocks (the layered system)
+  tier0_content  — standalone content pre-filter (tracewall.content.filter)
+  tier1_policy   — deterministic policy DSL (PolicyEngine, incl. call_tree context)
+  tier2_semantic — SemanticJudge (deterministic backend by default; --llm for LLM)
+  integrated_or  — naive OR of all three tiers (kept for comparison; inherits tier-0 FPR)
+  integrated     — GATED: policy OR semantic. tier-0 routes/escalates only, never
+                   blocks alone — mirrors Firewall.check and fixes the OR FP inflation.
 
 Usage:
-  python -m eval.harness                          # test split, deterministic
-  python -m eval.harness --split all
-  python -m eval.harness --llm                    # tier2 uses the LLM backend
-  python -m eval.harness --out eval/results/run.json
+  python -m tracewall.eval.harness                       # test split, deterministic
+  python -m tracewall.eval.harness --split all
+  python -m tracewall.eval.harness --llm                 # tier2 uses the LLM backend
+  python -m tracewall.eval.harness --out eval/results/run.json
 """
 from __future__ import annotations
 
@@ -25,10 +28,8 @@ import asyncio
 import json
 import os
 import random
-import statistics
 import time
 from pathlib import Path
-from typing import Callable
 
 CORPUS = Path(__file__).parent / "corpus" / "corpus_v0.1.jsonl"
 RESULTS_DIR = Path(__file__).parent / "results"
@@ -48,26 +49,22 @@ def _content(case: dict) -> str:
     return a.get("content") or a.get("body") or a.get("command") or json.dumps(a)
 
 
-# ── Evaluators (each returns True if it would BLOCK the case) ─────────────────
-async def _tier0_regex(case: dict) -> bool:
-    from watchtower.content_inspection.inspector import ContentInspector
-    from watchtower.memory_monitor.detectors.minja import contains_instruction_like_content
-    content = _content(case)
-    flagged = (await ContentInspector().inspect(content)).flagged
-    mim, _ = contains_instruction_like_content(content)
-    return bool(flagged or mim)
-
-
 def _enriched(case: dict):
-    from firewall.core.signal import HookEvent, EnrichedEvent
+    from tracewall.core.signal import EnrichedEvent, HookEvent
     he = HookEvent(agent_id="eval", tool=case["tool"], args=case.get("args", {}),
                    caller_chain=list(case.get("call_tree", [])))
     return he, EnrichedEvent(event=he, call_tree=list(case.get("call_tree", [])))
 
 
-async def _tier1_policy(case: dict, sp) -> bool:
+# ── Evaluators (each returns True if it would BLOCK the case) ─────────────────
+def _tier0_content(case: dict) -> bool:
+    from tracewall.content.filter import flagged
+    return bool(flagged(_content(case)))
+
+
+async def _tier1_policy(case: dict, engine) -> bool:
     _, en = _enriched(case)
-    m = await sp.evaluate(en)
+    m = await engine.evaluate(en)
     return bool(m and m.verdict == "BLOCK")
 
 
@@ -112,25 +109,32 @@ def _bootstrap_ci(pairs: list[tuple[bool, bool]], metric: str) -> list[float]:
 
 async def run_eval(split: str = "test", use_llm: bool = False) -> dict:
     if not use_llm:
-        os.environ["WT_SEMANTIC_LLM"] = "0"   # force deterministic, reproducible backend
-    from agents.adapters.superpowers import SuperpowersAdapter
-    from firewall.semantic.judge import SemanticJudge
+        os.environ["TRACEWALL_SEMANTIC_LLM"] = "0"   # force deterministic, reproducible backend
+    from tracewall.policy.engine import PolicyEngine
+    from tracewall.semantic.judge import SemanticJudge
 
     cases = load_corpus(split)
-    sp = SuperpowersAdapter()
-    await sp.load_policies("policies/")
+    engine = PolicyEngine()
+    await engine.load_policies()
     judge = SemanticJudge()
 
     # Compute each tier's prediction per case once.
-    preds: dict[str, list[bool]] = {"tier0_regex": [], "tier1_policy": [], "tier2_semantic": []}
+    preds: dict[str, list[bool]] = {"tier0_content": [], "tier1_policy": [], "tier2_semantic": []}
     labels: list[bool] = []
     for c in cases:
         labels.append(c["label"] == "malicious")
-        preds["tier0_regex"].append(await _tier0_regex(c))
-        preds["tier1_policy"].append(await _tier1_policy(c, sp))
+        preds["tier0_content"].append(_tier0_content(c))
+        preds["tier1_policy"].append(await _tier1_policy(c, engine))
         preds["tier2_semantic"].append(await _tier2_semantic(c, judge))
-    preds["integrated"] = [a or b or d for a, b, d in zip(
-        preds["tier0_regex"], preds["tier1_policy"], preds["tier2_semantic"])]
+
+    # Naive OR (kept for comparison) inherits tier-0's false positives.
+    preds["integrated_or"] = [a or b or d for a, b, d in zip(
+        preds["tier0_content"], preds["tier1_policy"], preds["tier2_semantic"])]
+    # Gated: tier-0 routes/escalates only (never blocks alone) — the precise tiers decide.
+    # Mirrors Firewall.check, where content_flag forces semantic evaluation but the
+    # policy/semantic verdict is authoritative.
+    preds["integrated"] = [b or d for b, d in zip(
+        preds["tier1_policy"], preds["tier2_semantic"])]
 
     evaluators: dict[str, dict] = {}
     for name, plist in preds.items():

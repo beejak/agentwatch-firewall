@@ -3,37 +3,38 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agentwatch-firewall"
+name = "tracewall"
 version = "0.1.0"
-description = "Agent firewall — interception, identity, policy DSL, cross-session taint, semantic tier. Layers on top of watchtower observability."
+description = "Standalone pluggable agent firewall — interception, identity, deterministic policy DSL, cross-session multi-hop taint propagation, and a semantic tier. Key-free and infra-free by default."
 requires-python = ">=3.12"
 dependencies = [
-  # The firewall depends on watchtower as a library (signal model, chronicle).
-  # Pinned to a tag for reproducible builds (the paper's evidence must be repeatable).
-  "watchtower @ git+https://github.com/beejak/agentwatch.git@watchtower-v0.1.0",
   "pydantic>=2.7",
   "pyyaml>=6.0",
   "aiosqlite>=0.19",
-  "openai>=1.30",
 ]
 
 [project.optional-dependencies]
+llm = [
+  "openai>=1.30",
+]
+bench = [
+  # AgentDojo adapter (transport #2 wrapper); pinned so a benchmark bump never touches core.
+  "agentdojo==0.1.23",
+]
 dev = [
   "pytest>=8.0",
   "pytest-asyncio>=0.23",
   "pytest-cov>=5.0",
-  "clickhouse-connect>=0.7",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests"]
-python_files = ["test_*.py", "gate_*.py", "scenario_*.py"]
+testpaths = ["tracewall/tests"]
+python_files = ["test_*.py"]
 pythonpath = ["."]
-
-[tool.hatch.metadata]
-# Required to allow the `watchtower @ git+...` pinned dependency.
-allow-direct-references = true
+markers = [
+  "llm: live LLM test — requires LLM_API_KEY; skipped otherwise (never gates CI)",
+]
 
 [tool.hatch.build.targets.wheel]
-packages = ["firewall", "agents", "eval"]
+packages = ["tracewall"]

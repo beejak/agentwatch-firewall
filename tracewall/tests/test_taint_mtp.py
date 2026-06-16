@@ -1,8 +1,8 @@
-"""Multi-hop taint propagation (firewall/taint/mtp.py) — moved from watchtower.
+"""Multi-hop taint propagation (tracewall/taint/mtp.py) — pure, no DB.
 
-Covers the paper's KB17 chain and the convergence bound.
+Covers the KB17 chain and the convergence bound.
 """
-from firewall.taint.mtp import propagate, MultiHopTaintPropagator, convergence_bound, GraphEdge
+from tracewall.taint.mtp import GraphEdge, MultiHopTaintPropagator, convergence_bound, propagate
 
 
 def test_kb17_two_hop_chain():
