@@ -56,6 +56,16 @@ except GuardBlocked as b:
     ...  # b.verdict has the reason
 ```
 
+Or drop it in front of an MCP server with **zero agent code change** — the proxy
+spawns the real server and screens every `tools/call` on the wire:
+
+```bash
+python -m tracewall.transports.mcp_proxy -- npx @modelcontextprotocol/server-filesystem /data
+```
+A cooperating client can pass `agent_id` / `caller_chain` via the MCP `_meta`
+field to feed the taint and call-tree tiers; without it the proxy degrades
+gracefully and records reduced `context_completeness`.
+
 Optional extras: `.[llm]` (LLM semantic backend), `.[bench]` (AgentDojo adapter).
 
 ## Evaluation
@@ -68,5 +78,6 @@ an LLM run is a dated snapshot and is never used to gate tests. See
 
 ## Status
 
-v1: in-process Python guard transport. MCP gateway proxy, framework callback
-adapters, and an HTTP sidecar are designed-for and on the roadmap.
+v1 transports: in-process Python guard + MCP stdio gateway proxy. Framework
+callback adapters (LangChain/LangGraph/CrewAI) and an HTTP sidecar are
+designed-for and on the roadmap.
