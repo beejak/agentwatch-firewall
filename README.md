@@ -1,44 +1,83 @@
-# agentwatch-firewall
+# tracewall
 
-Agent firewall — the **enforcement** layer for AI agents: hook-level interception,
-identity/delegation checks, a deterministic policy DSL, cross-session taint
-propagation, and a semantic detection tier. It exists to keep agents **contained**
-(no interference from the outside environment) by deciding ALLOW / BLOCK / HOLD on
-every tool call and cross-agent message.
+A standalone, pluggable **agent firewall**: it decides ALLOW / BLOCK on every
+tool call an AI agent makes, so a compromised prompt or a poisoned memory can't
+turn into a destructive or exfiltrating action.
 
-## Relationship to watchtower
+Transport-agnostic enforcement core behind one stable seam:
 
-This repo **depends on** [`watchtower`](https://github.com/beejak/agentwatch) (the
-mature observability platform) as a library — for the canonical signal model and
-the append-only Chronicle, and as a stable test harness. The dependency is
-**one-directional**: firewall → watchtower. watchtower never imports firewall.
-
-```
-runtime:   agent tool call → [firewall: intercept + enforce] → [watchtower: observe + audit]
-code dep:   firewall  ──imports──▶  watchtower   (pinned by tag for reproducibility)
+```python
+from tracewall import Firewall
+verdict = await firewall.check(event)   # -> FirewallVerdict (allow / block)
 ```
 
-Splitting the firewall into its own repo lets it iterate quickly against a frozen,
-mature watchtower without churning the observability codebase.
+Key-free and infra-free by default — `pip install` and run, no services.
 
-## Layout
-- `firewall/` — core signal model, the watchtower↔firewall chronicle bridge, semantic judge
-- `agents/adapters/` — hermes (hooks), cavemem (taint ledger), superpowers (policy DSL), graphify, ruflo, …
-- `policies/` — YAML policy rules (injection, exfil, destructive ops)
-- `eval/` — frozen corpus + ablation harness (see `eval/README.md`)
-- `tests/` — `known_bad/` (KB corpus), `integration/` (seam + e2e), `eval/`
+## What's inside
 
-## Develop
+- **Identity / delegation** — token expiry, delegation-depth cap, capability set.
+- **Deterministic policy DSL** — human-writable YAML rules (injection, exfil,
+  destructive ops); zero ML, runs on the hot path.
+- **Cross-session multi-hop taint propagation** — a fixed-point solver with a
+  convergence proof and recovering quarantine dynamics (no permanent DoS). This
+  is the part the literature doesn't do quantitatively.
+- **Semantic tier** — an intent classifier for the ambiguous cases the trust
+  gate escalates. Deterministic structural scorer by default; an optional,
+  provider-agnostic LLM backend when a key is configured.
+- **Append-only audit** — every verdict written to a pluggable sink (local JSONL
+  by default).
+
+## Pipeline
+
+```
+HookEvent ─▶ L0 identity ─▶ tier-0 content screen ─▶ tier-1 policy DSL
+          ─▶ trust/taint gate ─(escalate)▶ tier-2 semantic judge ─▶ verdict ─▶ audit
+```
+Deterministic tiers are the fast path; only escalations await the judge. Any
+internal error → fail-safe **BLOCK**.
+
+## Install & use
+
 ```bash
-make install          # creates .venv, installs this + watchtower (pinned tag)
-make infra-up         # ClickHouse (needed by integration tests)
-make test             # deterministic, key-free
-make eval             # held-out evaluation metrics
+pip install -e ".[dev]"        # base + test deps
+pytest -q                      # pure, infra-free, deterministic
+python -m tracewall.eval.harness --split test   # held-out eval on the frozen corpus
 ```
-The semantic tier uses a deterministic structural backend by default; set
-`LLM_API_KEY` (and unset `WT_SEMANTIC_LLM=0`) to exercise the LLM classifier.
+
+Plug it into an agent loop with the in-process guard:
+
+```python
+from tracewall.transports.python_guard import guard, GuardBlocked
+
+try:
+    await guard(firewall, "send_email", {"to": addr, "body": body},
+                ctx={"agent_id": agent_id, "caller_chain": chain})
+except GuardBlocked as b:
+    ...  # b.verdict has the reason
+```
+
+Or drop it in front of an MCP server with **zero agent code change** — the proxy
+spawns the real server and screens every `tools/call` on the wire:
+
+```bash
+python -m tracewall.transports.mcp_proxy -- npx @modelcontextprotocol/server-filesystem /data
+```
+A cooperating client can pass `agent_id` / `caller_chain` via the MCP `_meta`
+field to feed the taint and call-tree tiers; without it the proxy degrades
+gracefully and records reduced `context_completeness`.
+
+Optional extras: `.[llm]` (LLM semantic backend), `.[bench]` (AgentDojo adapter).
+
+## Evaluation
+
+`tracewall/eval/` carries a **frozen, human-labeled corpus** and a deterministic
+ablation harness (per-tier precision/recall/F1/FPR with bootstrap 95% CIs on a
+held-out split). The deterministic backend is the stable, reproducible baseline;
+an LLM run is a dated snapshot and is never used to gate tests. See
+`tracewall/eval/results/` for committed metrics.
 
 ## Status
-Active development. `graphify` (call-tree enrichment) and `ruflo` (swarm) are
-maturing; the semantic tier and taint ledger are functional. See `eval/README.md`
-for honest, held-out metrics and their caveats.
+
+v1 transports: in-process Python guard + MCP stdio gateway proxy. Framework
+callback adapters (LangChain/LangGraph/CrewAI) and an HTTP sidecar are
+designed-for and on the roadmap.

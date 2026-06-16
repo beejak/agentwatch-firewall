@@ -1,0 +1,102 @@
+{
+  "corpus": "corpus_v0.1",
+  "split": "test",
+  "n_cases": 27,
+  "n_malicious": 13,
+  "n_benign": 14,
+  "semantic_backend": "deterministic",
+  "bootstrap_B": 2000,
+  "generated_at": "2026-06-16T07:55:48Z",
+  "evaluators": {
+    "tier0_content": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 13,
+      "tn": 12,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "fpr": 0.143,
+      "f1_ci95": [
+        0.0,
+        0.0
+      ],
+      "recall_ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "tier1_policy": {
+      "tp": 1,
+      "fp": 1,
+      "fn": 12,
+      "tn": 13,
+      "precision": 0.5,
+      "recall": 0.077,
+      "f1": 0.133,
+      "fpr": 0.071,
+      "f1_ci95": [
+        0.0,
+        0.375
+      ],
+      "recall_ci95": [
+        0.0,
+        0.25
+      ]
+    },
+    "tier2_semantic": {
+      "tp": 6,
+      "fp": 1,
+      "fn": 7,
+      "tn": 13,
+      "precision": 0.857,
+      "recall": 0.462,
+      "f1": 0.6,
+      "fpr": 0.071,
+      "f1_ci95": [
+        0.308,
+        0.824
+      ],
+      "recall_ci95": [
+        0.188,
+        0.733
+      ]
+    },
+    "integrated_or": {
+      "tp": 6,
+      "fp": 3,
+      "fn": 7,
+      "tn": 11,
+      "precision": 0.667,
+      "recall": 0.462,
+      "f1": 0.545,
+      "fpr": 0.214,
+      "f1_ci95": [
+        0.25,
+        0.762
+      ],
+      "recall_ci95": [
+        0.188,
+        0.733
+      ]
+    },
+    "integrated": {
+      "tp": 6,
+      "fp": 2,
+      "fn": 7,
+      "tn": 12,
+      "precision": 0.75,
+      "recall": 0.462,
+      "f1": 0.571,
+      "fpr": 0.143,
+      "f1_ci95": [
+        0.267,
+        0.8
+      ],
+      "recall_ci95": [
+        0.188,
+        0.733
+      ]
+    }
+  }
+}

@@ -1,27 +1,18 @@
-.PHONY: install test eval infra-up infra-down clean
-PYTEST = .venv/bin/python -m pytest
-PYTEST_FLAGS = -v --tb=short --asyncio-mode=auto -o addopts=""
+.PHONY: install test eval clean
 
-## Install (pulls watchtower from the pinned git tag)
+## Install (standalone — no external services)
 install:
 	python3 -m venv .venv || true
 	.venv/bin/pip install -e ".[dev]"
 
-## Infra — only ClickHouse is needed for the integration tests
-infra-up:
-	docker compose up -d clickhouse
-
-infra-down:
-	docker compose down
-
-## Tests — deterministic semantic backend (no API key); set LLM_API_KEY + drop
-## WT_SEMANTIC_LLM=0 to exercise the LLM tier.
+## Tests — pure, infra-free, deterministic semantic backend (no API key).
+## Set LLM_API_KEY to also run the optional `-m llm` live test.
 test:
-	WT_SEMANTIC_LLM=0 $(PYTEST) tests/ $(PYTEST_FLAGS)
+	.venv/bin/python -m pytest -q
 
 ## Evaluation harness against the frozen corpus (held-out split)
 eval:
-	WT_SEMANTIC_LLM=0 .venv/bin/python -m eval.harness --split test
+	.venv/bin/python -m tracewall.eval.harness --split test
 
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
