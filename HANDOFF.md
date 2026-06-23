@@ -79,6 +79,43 @@ python -m tracewall.eval.adapters.agentdojo --suite banking --arm defended
 - HTTP sidecar transport; multi-agent contagion proof (Q2).
 - Target venue: IEEE S&P / USENIX.
 
+## Paper 2 — tracewall enforcement paper (decided 2026-06-23)
+
+Decisions:
+- **Brand/scope: tracewall, enforcement-only.** Rebrand the `paper/` draft away
+  from "WatchTower / observation-first" (that's Paper 1 / agentwatch). Paper 2 is
+  purely enforcement: policy DSL + multi-hop taint solver + semantic tier +
+  AgentDojo. Drop the observation framing that overlaps Paper 1.
+- **Evidence bar: gold.** AgentDojo external benchmark (base vs defended, multiple
+  suites) AND a refreshed n=27 corpus LLM eval. This is the credibility centerpiece.
+
+Current draft state (`paper/`): substantial but STALE — titled "WatchTower",
+claims a 17-case corpus / 0.011ms p99 (pre-split, L3-only). `PAPER.md` (5.1k w)
+and `watchtower.tex` (5.5k w) are OUT OF SYNC — pick one canonical source before
+editing. Builds with **tectonic** (not the Makefile's pdflatex).
+
+Do this on the keyed machine, in one focused pass:
+1. **Run the evidence** (needs `[bench,llm]` + DeepSeek key):
+   ```bash
+   pip install -e ".[dev,bench,llm]"
+   export LLM_API_KEY=... LLM_MODEL=<deepseek-v4-pro-id>
+   # refreshed corpus LLM eval (overwrites the snapshot):
+   python -m tracewall.eval.harness --split test --llm
+   # AgentDojo, base vs defended, per suite:
+   for s in banking slack travel workspace; do
+     python -m tracewall.eval.adapters.agentdojo --suite "$s" --attack important_instructions --arm both
+   done
+   ```
+   Smoke-test at one suite / few tasks first before the full sweep (LESSON: don't
+   burn budget on a silently-failing rig — assert non-trivial output).
+2. **Rebrand + refresh** the canonical source: retitle to tracewall, cut Paper-1
+   overlap, align §4 design to the shipped 5-tier pipeline, replace all 17-case /
+   0.011ms numbers with the current corpus + latency, add a new §6 AgentDojo
+   subsection (ASR base vs defended, utility delta).
+3. **Render + VERIFY** with tectonic: confirm page count, every float present, zero
+   blank trailing pages — never trust exit 0 (LESSON from the agentwatch float-drop).
+4. Build SHARE assets like agentwatch (post copy, hero figure) once numbers final.
+
 ## Conventions
 
 - Commits: no AI attribution, no Co-Authored-By. Author `beejak
