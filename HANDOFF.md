@@ -17,19 +17,21 @@ Pick-up notes for continuing this repo on another machine. Last updated 2026-06-
 
 Two uncommitted artifacts were carried here on branch `wip/agentdojo-handoff`:
 
-1. `tracewall/eval/adapters/agentdojo.py` — AgentDojo benchmark adapter, rewritten
-   82→166 lines (async ledger binding, DeepSeek LLM backend, ASR + utility
-   reporting). **STATUS: SCAFFOLD, NOT WORKING.** It has never run successfully.
-   Known blockers (from review):
-   - `agentdojo.py:65` — nested `run_until_complete()` inside the sync `query()`
-     method crashes with "event loop is already running" on any real run.
-   - `agentdojo.py:37` — same nested-loop crash when the setup loop is reused.
-   - `:118-119` event loop never closed; `:131` temp dir leak; `:38` temp file fd
-     leak; `:105` `os.environ["LLM_API_KEY"]` raw KeyError; `:147-148` `nargs="*"
-     default=None` yields `[]` not `None` so the "use all tasks" path is dead.
-   **Fix these before the adapter is used as the Paper 2 benchmark** — a broken
-   benchmark is a retraction risk.
-   - `[bench]` extra (AgentDojo) is likely not installed; install before running.
+1. `tracewall/eval/adapters/agentdojo.py` — AgentDojo benchmark adapter (async
+   ledger binding, DeepSeek LLM backend, ASR + utility reporting). **STATUS:
+   review fixes applied; end-to-end benchmark run still UNVERIFIED here** (needs
+   `[bench,llm]` installed + a live LLM key).
+   - Fixed (2026-06-23): tempfile fd leak (`mkstemp`+close), raw
+     `os.environ["LLM_API_KEY"]` → explicit `SystemExit`, event loop never closed
+     and temp logdir never removed → `try/finally` cleanup.
+   - Reviewed and rejected as false positives: the `run_until_complete()` "event
+     loop already running" findings — AgentDojo is synchronous, so the loop is a
+     set-as-current sync→async driver, never a running loop. The bridge is correct.
+   - Pure tests added (`tracewall/tests/test_agentdojo_adapter.py`): lazy-import
+     contract + ASR/utility math + argparse defaults. Suite: 65 pass / 1 skip.
+   - **Still TODO on the keyed machine:** `pip install -e ".[bench,llm]"`, set the
+     DeepSeek env, run `python -m tracewall.eval.adapters.agentdojo --suite banking
+     --arm both` and confirm it completes + the ASR/utility numbers are sane.
 
 2. `tracewall/eval/results/corpus_v0.1_test_llm.json` — dated LLM-tier eval
    snapshot from `python -m tracewall.eval.harness --split test` (LLM backend on),

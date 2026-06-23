@@ -35,7 +35,9 @@ def _build_firewall(loop: asyncio.AbstractEventLoop):
 
     policy = PolicyEngine()
     loop.run_until_complete(policy.load_policies())
-    ledger = Ledger(tempfile.NamedTemporaryFile(suffix=".db", delete=False).name)
+    fd, dbpath = tempfile.mkstemp(suffix=".db")   # close the handle; the Ledger opens its own
+    os.close(fd)
+    ledger = Ledger(dbpath)
     return Firewall(ledger=ledger, policy=policy, judge=SemanticJudge(), audit=NullAuditSink())
 
 
@@ -102,7 +104,11 @@ def _build_pipeline(name: str, llm, defense_element=None):
 def _deepseek_llm():
     import openai
     from agentdojo.agent_pipeline import OpenAILLM
-    client = openai.OpenAI(api_key=os.environ["LLM_API_KEY"],
+    key = os.environ.get("LLM_API_KEY")
+    if not key:
+        raise SystemExit("LLM_API_KEY not set — required for the DeepSeek backend "
+                         "(set LLM_BASE_URL / LLM_MODEL too if not using the defaults).")
+    client = openai.OpenAI(api_key=key,
                            base_url=os.environ.get("LLM_BASE_URL", "https://api.deepseek.com"))
     return OpenAILLM(client, os.environ.get("LLM_MODEL", "deepseek-chat"))
 
@@ -110,30 +116,35 @@ def _deepseek_llm():
 def run(suite_name="banking", attack_name="important_instructions",
         user_tasks: Optional[list[str]] = None, injection_tasks: Optional[list[str]] = None,
         with_defense=True):
+    import shutil
+    from pathlib import Path
+
     from agentdojo.attacks.attack_registry import load_attack
     from agentdojo.benchmark import benchmark_suite_with_injections
+    from agentdojo.logging import OutputLogger
     from agentdojo.task_suite.load_suites import get_suites
 
     suite = get_suites("v1")[suite_name]
+    # One loop for the whole run so the aiosqlite ledger binds to it. AgentDojo is
+    # synchronous, so this loop is a set-as-current driver, never a running loop.
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-
-    llm = _deepseek_llm()
-    defense = _make_element(_build_firewall(loop), loop) if with_defense else None
-    name = f"tracewall-{'def' if with_defense else 'base'}-{os.environ.get('LLM_MODEL','deepseek-chat')}"
-    pipeline = _build_pipeline(name, llm, defense)
-
-    from pathlib import Path
-
-    from agentdojo.logging import OutputLogger
-
-    attack = load_attack(attack_name, suite, pipeline)
     logdir = Path(tempfile.mkdtemp(prefix="adojo_"))
-    with OutputLogger(str(logdir)):
-        results = benchmark_suite_with_injections(
-            pipeline, suite, attack, logdir=logdir, force_rerun=True,
-            user_tasks=user_tasks, injection_tasks=injection_tasks, verbose=False)
-    return results
+    try:
+        llm = _deepseek_llm()
+        defense = _make_element(_build_firewall(loop), loop) if with_defense else None
+        name = f"tracewall-{'def' if with_defense else 'base'}-{os.environ.get('LLM_MODEL','deepseek-chat')}"
+        pipeline = _build_pipeline(name, llm, defense)
+        attack = load_attack(attack_name, suite, pipeline)
+        with OutputLogger(str(logdir)):
+            results = benchmark_suite_with_injections(
+                pipeline, suite, attack, logdir=logdir, force_rerun=True,
+                user_tasks=user_tasks, injection_tasks=injection_tasks, verbose=False)
+        return results
+    finally:
+        asyncio.set_event_loop(None)
+        loop.close()
+        shutil.rmtree(logdir, ignore_errors=True)
 
 
 def _rate(d: dict) -> float:
