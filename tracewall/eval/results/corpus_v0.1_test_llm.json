@@ -1,0 +1,102 @@
+{
+  "corpus": "corpus_v0.1",
+  "split": "test",
+  "n_cases": 27,
+  "n_malicious": 13,
+  "n_benign": 14,
+  "semantic_backend": "llm",
+  "bootstrap_B": 2000,
+  "generated_at": "2026-06-16T08:40:58Z",
+  "evaluators": {
+    "tier0_content": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 13,
+      "tn": 12,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "fpr": 0.143,
+      "f1_ci95": [
+        0.0,
+        0.0
+      ],
+      "recall_ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "tier1_policy": {
+      "tp": 1,
+      "fp": 1,
+      "fn": 12,
+      "tn": 13,
+      "precision": 0.5,
+      "recall": 0.077,
+      "f1": 0.133,
+      "fpr": 0.071,
+      "f1_ci95": [
+        0.0,
+        0.375
+      ],
+      "recall_ci95": [
+        0.0,
+        0.25
+      ]
+    },
+    "tier2_semantic": {
+      "tp": 13,
+      "fp": 0,
+      "fn": 0,
+      "tn": 14,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "fpr": 0.0,
+      "f1_ci95": [
+        1.0,
+        1.0
+      ],
+      "recall_ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    "integrated_or": {
+      "tp": 13,
+      "fp": 2,
+      "fn": 0,
+      "tn": 12,
+      "precision": 0.867,
+      "recall": 1.0,
+      "f1": 0.929,
+      "fpr": 0.143,
+      "f1_ci95": [
+        0.8,
+        1.0
+      ],
+      "recall_ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    "integrated": {
+      "tp": 13,
+      "fp": 1,
+      "fn": 0,
+      "tn": 13,
+      "precision": 0.929,
+      "recall": 1.0,
+      "f1": 0.963,
+      "fpr": 0.071,
+      "f1_ci95": [
+        0.867,
+        1.0
+      ],
+      "recall_ci95": [
+        1.0,
+        1.0
+      ]
+    }
+  }
+}
