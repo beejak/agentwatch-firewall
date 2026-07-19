@@ -175,6 +175,7 @@ Tracewall is a practical tool-call firewall: deterministic policy and taint-awar
 | Architecture | [`docs/FIREWALL.md`](../docs/FIREWALL.md) |
 | Goals | [`docs/GOALS.md`](../docs/GOALS.md) |
 
-## Appendix B — LaTeX
+## Appendix B — LaTeX / PDF
 
-`watchtower.tex` remains a **stale** IEEE draft under the old brand. Port figures from this markdown + EVIDENCE before venue PDF; do not submit the stale `.tex` as-is.
+- **Current PDF:** [`tracewall.pdf`](tracewall.pdf) from [`tracewall.tex`](tracewall.tex) (IEEE 2-col draft, evidence-aligned, ~2 pp).
+- `watchtower.tex` remains **stale** (old brand/metrics) — do not submit.

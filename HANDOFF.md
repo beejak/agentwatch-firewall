@@ -27,7 +27,7 @@ Pick-up notes. **Last updated 2026-07-19.**
 ## Still open
 
 1. **AgentDojo live expand** — banking `direct` 1×4 VERIFIED (ASR 1.0→0.0; util tax 1.0→0.25). More suites / softer abort policy optional.
-2. **Venue PDF** — port [`paper/PAPER.md`](paper/PAPER.md) into IEEE `.tex` when ready; do not submit stale `watchtower.tex`.
+2. **Venue PDF** — [`paper/tracewall.pdf`](paper/tracewall.pdf) from `tracewall.tex` (2 pp draft). Expand related work / figures before submit; do not use stale `watchtower.tex`.
 3. **MCP Content-Length framing** — deferred until after paper data + expanded G4 (not blocking draft).
 4. Optional: LangGraph adapter / HTTP sidecar.
 5. Harden IBAN normalization (ZWSP) + `schedule_transaction` policy (tracked as expected_limit).
