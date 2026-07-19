@@ -6,12 +6,19 @@ build-backend = "hatchling.build"
 name = "tracewall"
 version = "0.1.0"
 description = "Standalone pluggable agent firewall — interception, identity, deterministic policy DSL, cross-session multi-hop taint propagation, and a semantic tier. Key-free and infra-free by default."
+readme = "README.md"
+license = "MIT"
 requires-python = ">=3.12"
+authors = [{ name = "Tracewall contributors" }]
 dependencies = [
   "pydantic>=2.7",
   "pyyaml>=6.0",
   "aiosqlite>=0.19",
 ]
+
+[project.urls]
+Homepage = "https://github.com/beejak/agentwatch-firewall"
+Documentation = "https://github.com/beejak/agentwatch-firewall/blob/master/docs/FIREWALL.md"
 
 [project.optional-dependencies]
 llm = [

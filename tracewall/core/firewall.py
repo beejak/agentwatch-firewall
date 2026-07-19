@@ -15,8 +15,15 @@ semantic judge):
     trust/taint   — gate routes ALLOW / ESCALATE / NARROW
     tier-2 semantic (await) on ESCALATE/NARROW (or when tier-0 flagged)
     audit         — append the verdict (always)
+    ledger write  — on_clean_call (ALLOW) / on_taint_event (BLOCK from policy|semantic)
 
 Fail-safe: any internal error → BLOCK (source="fail_safe").
+
+`require_identity=True` fail-closes when no identity is registered for the agent
+(default False so MCP/context-starved transports still degrade gracefully).
+
+Verdict.score is always **0.0 bad … 1.0 clean** (semantic malicious scores are
+inverted at this facade).
 
 The HOLD verdict and an async hold/barrier are reserved for *networked* transports
 (MCP proxy / sidecar), which cannot await the judge inline; the in-process guard
@@ -54,6 +61,7 @@ class Firewall:
     judge:          semantic tier (tracewall.semantic.judge.SemanticJudge).
     content_filter: callable(str)->bool tier-0 screen (defaults to content.filter.flagged).
     audit:          AuditSink; defaults to a local append-only JSONL sink.
+    require_identity: if True, missing identity → BLOCK (fail-closed L0).
     """
 
     def __init__(
@@ -63,12 +71,14 @@ class Firewall:
         judge,
         content_filter: Callable[[str], bool] = content_flagged,
         audit: Optional[AuditSink] = None,
+        require_identity: bool = False,
     ) -> None:
         self._ledger = ledger
         self._policy = policy
         self._judge = judge
         self._content_filter = content_filter
         self._audit = audit if audit is not None else LocalAuditSink()
+        self._require_identity = require_identity
 
     async def check(self, event: HookEvent) -> FirewallVerdict:
         t0 = time.perf_counter()
@@ -94,6 +104,9 @@ class Firewall:
         # L0 — identity: token valid, caps include this tool, depth OK
         identity = await self._ledger.get_identity(aid)
         completeness["identity"] = identity is not None
+        if identity is None and self._require_identity:
+            return self._verdict(event, Verdict.BLOCK, 0.0, "identity",
+                                 "identity required but not registered", completeness)
         if identity:
             id_block = _check_identity(identity, event)
             if id_block:
@@ -109,6 +122,7 @@ class Firewall:
         # tier-1 deterministic policy match
         rule_match = await self._policy.evaluate(enriched)
         if rule_match and rule_match.verdict == "BLOCK":
+            await self._ledger_feedback(aid, Verdict.BLOCK, severity=rule_match.severity)
             return self._verdict(event, Verdict.BLOCK, 0.0, "deterministic",
                                  rule_match.reason, completeness)
 
@@ -117,14 +131,28 @@ class Firewall:
         route = _route(trust, taint)
 
         if route == "ALLOW" and not content_flag:
+            await self._ledger_feedback(aid, Verdict.ALLOW)
             return self._verdict(event, Verdict.ALLOW, trust, "trust_gate", "clean", completeness)
 
         # ESCALATE / NARROW (or tier-0 flagged) — await the semantic judge inline
         result = await self._judge.analyze(event, enriched, trust, taint)
         action = Verdict.BLOCK if result.action == "BLOCK" else Verdict.ALLOW
+        # JudgeResult.score is 0 clean .. 1 malicious; verdict score is 0 bad .. 1 clean
+        clean_score = max(0.0, min(1.0, 1.0 - float(result.score)))
         trigger = f"route={route}" + (", content_flag" if content_flag else "")
-        return self._verdict(event, action, result.score, "semantic",
+        await self._ledger_feedback(aid, action, severity=float(result.score))
+        return self._verdict(event, action, clean_score, "semantic",
                              f"{trigger}: {result.reason}", completeness)
+
+    async def _ledger_feedback(self, aid: str, action: Verdict, severity: float = 0.5) -> None:
+        """Persist trust dynamics so quarantine/recovery work on the live path."""
+        try:
+            if action == Verdict.ALLOW:
+                await self._ledger.on_clean_call(aid, "")
+            elif action == Verdict.BLOCK:
+                await self._ledger.on_taint_event(aid, max(0.0, min(1.0, severity)))
+        except Exception as e:
+            logger.warning("tracewall: ledger feedback failed: %s", e)
 
     async def _get_trust_taint(self, aid: str, completeness: dict[str, bool]) -> tuple[float, float]:
         trust = 0.5
@@ -159,13 +187,13 @@ class Firewall:
         )
 
 
-# ── Pure helpers (ported verbatim from the original enforcement path) ─────────
+# ── Pure helpers ─────────────────────────────────────────────────────────────
 
 def _route(trust: float, taint: float) -> str:
     if taint >= 0.7:   return "ESCALATE"   # quarantine threshold
     if trust > 0.7:    return "ALLOW"
     if trust >= 0.3:   return "ESCALATE"
-    return "NARROW"                         # NARROW caps + ESCALATE
+    return "NARROW"                         # NARROW reserved; currently escalates
 
 
 def _check_identity(identity: IdentityCtx, event: HookEvent) -> Optional[str]:

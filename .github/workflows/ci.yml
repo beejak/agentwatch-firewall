@@ -24,3 +24,6 @@ jobs:
 
       - name: Run tests (pure, infra-free, deterministic semantic backend)
         run: pytest -q
+
+      - name: Eval harness smoke (deterministic held-out)
+        run: python -m tracewall.eval.harness --split test

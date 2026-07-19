@@ -78,6 +78,14 @@ mistake) → *why*. Keep it terse and actionable.
 
 ## Session log (append per session; newest first)
 
+### 2026-07-19 — observe-first tooling + P0 live-path correctness
+- **Rule: expand policy placeholders or delete them — a literal `${ORG_DOMAIN}` is a silent allowlist bypass.** → *Happened:* exfil rule never matched real org domains; fixed via `TRACEWALL_ORG_DOMAINS` expansion at load.
+- **Rule: align vocabularies across policy / judge / corpus or deterministic recall lies.** → *Happened:* policy required only `read_secret` while corpus used `read_credentials`/`get_secret`/`read_env`; added `call_tree_contains_any`.
+- **Rule: wire research ledgers into the live `check()` path or contagion is demo-only.** → *Happened:* `on_clean_call` / `on_taint_event` existed but were unused by `Firewall.check`.
+- **Rule: invert score polarity at the facade when backends disagree on 0/1 meaning.** → Semantic judge uses 0=clean…1=malicious; verdict docs say 0=bad…1=clean.
+- **Rule: normalize CRLF before hashing frozen corpora on Windows.** → Disk hash ≠ git LF blob under `core.autocrlf`.
+- Added `docs/GOALS.md`, `docs/TEST_PLAN.md`, `paper/EVIDENCE.md`, `.cursor/skills/tracewall-paper`, Superpowers skill copies. Tier1 held-out TP 1→2 after secret-pattern fix; refreshed deterministic results JSON.
+
 ### 2026-06-23 — firewall AgentDojo adapter fixes + LESSONS moved into this repo
 - **Rule: verify a reviewer's "critical" before implementing it — the framework's
   execution model decides whether a bug is real.** → *Happened:* an automated review

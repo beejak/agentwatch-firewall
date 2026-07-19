@@ -2,15 +2,20 @@
 tracewall/policy/engine.py — deterministic policy DSL evaluator.
 
 Loads YAML rules from a rules directory and compiles them to a per-tool lookup.
-Human-writable, zero ML, hot-reloadable. Evaluation is pure-deterministic — no
-LLM calls — and runs on the enforcement hot path.
+Human-writable, zero ML. Evaluation is pure-deterministic — no LLM calls — and
+runs on the enforcement hot path.
+
+Placeholders: `${ORG_DOMAIN}` in YAML is expanded from TRACEWALL_ORG_DOMAINS
+(comma-separated; default org.com,trusted.com,customer.com).
+`rate_exceeds` is unsupported (never silently “works”).
 """
 from __future__ import annotations
 
 import logging
+import os
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import yaml
 from pydantic import BaseModel
@@ -21,6 +26,39 @@ logger = logging.getLogger(__name__)
 
 # Packaged default rules directory (tracewall/policy/rules/).
 DEFAULT_RULES_DIR = str(Path(__file__).parent / "rules")
+
+_DEFAULT_ORG_DOMAINS = ["org.com", "trusted.com", "customer.com"]
+_warned_ops: set[str] = set()
+
+
+def _org_domains() -> list[str]:
+    raw = os.environ.get("TRACEWALL_ORG_DOMAINS", "").strip()
+    if not raw:
+        return list(_DEFAULT_ORG_DOMAINS)
+    return [d.strip() for d in raw.split(",") if d.strip()]
+
+
+def _expand_placeholders(obj: Any) -> Any:
+    """Replace `${ORG_DOMAIN}` with the configured org domain list (or keep structure)."""
+    domains = _org_domains()
+    if isinstance(obj, str):
+        if obj == "${ORG_DOMAIN}":
+            return domains[0] if len(domains) == 1 else domains
+        if "${ORG_DOMAIN}" in obj:
+            return obj.replace("${ORG_DOMAIN}", domains[0])
+        return obj
+    if isinstance(obj, list):
+        out: list[Any] = []
+        for item in obj:
+            expanded = _expand_placeholders(item)
+            if item == "${ORG_DOMAIN}" and isinstance(expanded, list):
+                out.extend(expanded)
+            else:
+                out.append(expanded)
+        return out
+    if isinstance(obj, dict):
+        return {k: _expand_placeholders(v) for k, v in obj.items()}
+    return obj
 
 
 class RuleMatch(BaseModel):
@@ -61,12 +99,20 @@ class PolicyEngine:
         for f in path.glob("*.yaml"):
             try:
                 data = yaml.safe_load(f.read_text())
+                data = _expand_placeholders(data) if isinstance(data, dict) else data
+                match = data.get("match", {}) if isinstance(data, dict) else {}
+                if _match_uses_op(match, "rate_exceeds"):
+                    logger.error(
+                        "policy: skipping %s — operator 'rate_exceeds' is unsupported",
+                        f.name,
+                    )
+                    continue
                 rule = CompiledRule(
                     rule_id=data.get("rule", f.stem),
                     surface=data.get("surface", "unknown"),
                     on=data.get("on", "pre_tool_call"),
-                    tool=data.get("match", {}).get("tool"),
-                    match=data.get("match", {}),
+                    tool=match.get("tool"),
+                    match=match,
                     verdict=data.get("verdict", "BLOCK"),
                     reason=data.get("reason", ""),
                     severity=float(data.get("severity", 0.5)),
@@ -78,12 +124,14 @@ class PolicyEngine:
         if not rules and self._rules:
             logger.warning("policy: keeping last-good ruleset (%d rules)", len(self._rules))
             return
+        if not rules:
+            logger.error("policy: loaded 0 rules from %s — tier-1 is allow-all", directory)
 
         self._rules = rules
         self._by_tool = {}
         for r in rules:
             self._by_tool.setdefault(r.tool or "_any", []).append(r)
-        logger.info("policy: loaded %d rules", len(rules))
+        logger.info("policy: loaded %d rules (org domains=%s)", len(rules), _org_domains())
 
     async def evaluate(self, event: EnrichedEvent) -> Optional[RuleMatch]:
         """
@@ -107,11 +155,15 @@ class PolicyEngine:
         m = rule.match
         args = event.event.args
 
-        # call_tree_contains — semantic context check (deterministic)
+        # call_tree context (deterministic)
         if "context" in m:
-            required_callers = m["context"].get("call_tree_contains", [])
+            ctx = m["context"]
             actual_tree = list(event.call_tree or []) + list(event.event.caller_chain or [])
-            if required_callers and not all(c in actual_tree for c in required_callers):
+            required_all = ctx.get("call_tree_contains", [])
+            if required_all and not all(c in actual_tree for c in required_all):
+                return False
+            required_any = ctx.get("call_tree_contains_any", [])
+            if required_any and not any(c in actual_tree for c in required_any):
                 return False
 
         # arg checks
@@ -169,19 +221,36 @@ class PolicyEngine:
             from fnmatch import fnmatch
             return fnmatch(str(val), operand)
         if op == "rate_exceeds":
-            # rate limiting handled by rate tracker — stub returns False
+            if op not in _warned_ops:
+                logger.error("policy: operator 'rate_exceeds' is unsupported — treating as non-match")
+                _warned_ops.add(op)
             return False
         if op == "delegation_depth_gt":
             return isinstance(val, int) and val > operand
         if op == "taint_gte":
             return isinstance(val, float) and val >= operand
+        if op not in _warned_ops:
+            logger.warning("policy: unknown operator %r — treating as non-match", op)
+            _warned_ops.add(op)
         return False
+
+
+def _match_uses_op(match: Any, op_name: str) -> bool:
+    """True if any nested constraint dict uses op_name."""
+    if isinstance(match, dict):
+        if op_name in match:
+            return True
+        return any(_match_uses_op(v, op_name) for v in match.values())
+    if isinstance(match, list):
+        return any(_match_uses_op(v, op_name) for v in match)
+    return False
 
 
 _SECRET_PATTERNS = [
     re.compile(r"(?i)(api[_-]?key|password|secret|token|bearer|credentials?)\s*[:=]\s*\S+"),
     re.compile(r"(?i)(sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|xox[bporas]-[0-9A-Za-z-]+)"),
     re.compile(r"(?i)-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----"),
+    re.compile(r"(?i)\bprivate[_\s-]?key\b"),
 ]
 
 

@@ -11,21 +11,33 @@ from tracewall import Firewall
 verdict = await firewall.check(event)   # -> FirewallVerdict (allow / block)
 ```
 
-Key-free and infra-free by default — `pip install` and run, no services.
+Installable without cloud services. Deterministic tiers run key-free; an optional
+LLM semantic backend improves recall when configured. **Honest baseline:** on the
+frozen held-out corpus, deterministic integrated recall is ~0.46 (tier-1 policy
+alone ~0.08) — see `tracewall/eval/results/` and [`paper/EVIDENCE.md`](paper/EVIDENCE.md).
+Do not treat “key-free” as “security-complete.”
 
 ## What's inside
 
-- **Identity / delegation** — token expiry, delegation-depth cap, capability set.
+- **Identity / delegation** — token expiry, delegation-depth cap, capability set
+  (`require_identity=True` for fail-closed L0).
 - **Deterministic policy DSL** — human-writable YAML rules (injection, exfil,
   destructive ops); zero ML, runs on the hot path.
-- **Cross-session multi-hop taint propagation** — a fixed-point solver with a
-  convergence proof and recovering quarantine dynamics (no permanent DoS). This
-  is the part the literature doesn't do quantitatively.
-- **Semantic tier** — an intent classifier for the ambiguous cases the trust
-  gate escalates. Deterministic structural scorer by default; an optional,
-  provider-agnostic LLM backend when a key is configured.
-- **Append-only audit** — every verdict written to a pluggable sink (local JSONL
-  by default).
+- **Cross-session multi-hop taint propagation** — fixed-point solver with
+  recovering quarantine dynamics. Live `check()` updates trust via the ledger.
+- **Semantic tier** — intent classifier for escalations. Deterministic scorer by
+  default; optional OpenAI-compatible LLM when `LLM_API_KEY` is set.
+- **Append-only audit** — pluggable sink (local JSONL by default).
+
+## Where it runs
+
+| Placement | Status |
+|-----------|--------|
+| In-process Python (`guard` / `Firewall.check`) | Shipped |
+| MCP stdio proxy in front of a real server | Shipped |
+| LangGraph / HTTP sidecar | Roadmap |
+
+See [`docs/GOALS.md`](docs/GOALS.md) and [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md).
 
 ## Pipeline
 
@@ -39,10 +51,14 @@ internal error → fail-safe **BLOCK**.
 ## Install & use
 
 ```bash
-pip install -e ".[dev]"        # base + test deps
+pip install -e ".[dev]"        # base + test deps (Python >=3.12)
 pytest -q                      # pure, infra-free, deterministic
-python -m tracewall.eval.harness --split test   # held-out eval on the frozen corpus
+python -m tracewall.eval.harness --split test   # held-out eval
+python examples/guard_demo.py
 ```
+
+Org allowlist for email rules: `TRACEWALL_ORG_DOMAINS=acme.com,corp.com` (default
+`org.com,trusted.com,customer.com`).
 
 Plug it into an agent loop with the in-process guard:
 
@@ -74,7 +90,9 @@ Optional extras: `.[llm]` (LLM semantic backend), `.[bench]` (AgentDojo adapter)
 ablation harness (per-tier precision/recall/F1/FPR with bootstrap 95% CIs on a
 held-out split). The deterministic backend is the stable, reproducible baseline;
 an LLM run is a dated snapshot and is never used to gate tests. See
-`tracewall/eval/results/` for committed metrics.
+`tracewall/eval/results/` and [`paper/EVIDENCE.md`](paper/EVIDENCE.md).
+
+Pick-up / roadmap: [`HANDOFF.md`](HANDOFF.md). Process rules: [`LESSONS_LEARNED.md`](LESSONS_LEARNED.md).
 
 ## Status
 
