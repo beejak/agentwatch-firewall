@@ -17,6 +17,10 @@ May need a **new Cursor chat** for skills to appear.
 - [`docs/TEST_PLAN.md`](TEST_PLAN.md) — scenarios; harness = metrics only  
 - MCP brink: `python -m tracewall.eval.mcp_brink` → `eval/results/mcp_brink.json`
 
+## Doc map
+
+Full index: [`docs/README.md`](README.md). Architecture (incl. network/MCP): [`FIREWALL.md`](FIREWALL.md).
+
 ## Out of scope here
 
 Graphify, Ruflo-as-product, gstack reinstall.

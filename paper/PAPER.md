@@ -1,7 +1,12 @@
 # WatchTower: Observation-First Agent Security
 ## Taint Propagation and Semantic Enforcement in Multi-Agent Systems
 
-**Status:** DRAFT — empirical results captured
+> **STALE DRAFT — do not cite numbers from this file.**  
+> Product brand is **tracewall** (enforcement-only). Canonical metrics and claim
+> status live in [`EVIDENCE.md`](EVIDENCE.md) and `tracewall/eval/results/`.  
+> HANDOFF: rebrand + rewrite before any venue submission (G5).
+
+**Status:** DRAFT — OUT OF SYNC with shipped Tracewall (2026-07-19)  
 **Target:** IEEE S&P / USENIX Security / ACM CCS / arXiv preprint
 
 ---

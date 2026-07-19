@@ -1,6 +1,10 @@
 # Social Share Copy
 
-## LinkedIn Post
+> **DO NOT POST — copy is stale.** Numbers (17-case / 0.011ms / WatchTower) are
+> REFUTED relative to shipped Tracewall. Rebuild from [`EVIDENCE.md`](EVIDENCE.md)
+> after AgentDojo + paper rewrite (HANDOFF G4/G5).
+
+## LinkedIn Post (archived — outdated)
 
 **We built a firewall for AI agents. Here's what we learned. 🧵**
 

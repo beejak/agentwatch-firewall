@@ -8,7 +8,10 @@ from tracewall import Firewall
 verdict = await firewall.check(event)   # -> FirewallVerdict
 ```
 
-Key-free and infra-free by default. **Fail-safe: any internal error → BLOCK.**
+Installable without cloud services. Deterministic tiers are key-free; an optional
+LLM semantic backend is opt-in. **Fail-safe: any internal error → BLOCK.**
+
+Canonical goals / evidence: [`GOALS.md`](GOALS.md), [`../paper/EVIDENCE.md`](../paper/EVIDENCE.md).
 
 ---
 
@@ -19,7 +22,7 @@ HookEvent
    │
    ▼
 L0  identity        token expiry · delegation depth ≤ 8 · capability set
-   │ (ok)
+   │                (optional require_identity=True → missing identity BLOCK)
    ▼
 enrich              attach optional call-tree context (caller_chain)
    │
@@ -37,14 +40,18 @@ trust/taint gate    _route(trust, taint): ALLOW · ESCALATE · NARROW
    │                          │
    └───────────┬──────────────┘
                ▼
-        FirewallVerdict ──► audit sink (always, append-only)
+        FirewallVerdict ──► audit sink (always)
+                         ──► ledger feedback (ALLOW→on_clean_call, BLOCK→on_taint_event)
 ```
 
 The deterministic tiers (L0 → content → policy → gate) are the fast path
-(in-process p99 < 10ms). Only ESCALATE/NARROW (or a tier-0 flag) awaits the
+(target in-process p99 < 10ms). Only ESCALATE/NARROW (or a tier-0 flag) awaits the
 semantic judge. `context_completeness` on every verdict records which signals
 (`identity`, `call_tree`, `ledger`) were actually available — so a
 context-starved transport never silently over-claims.
+
+`FirewallVerdict.score` is always **0.0 bad … 1.0 clean** (semantic malicious
+scores are inverted at the facade).
 
 `_route(trust, taint)`:
 
@@ -53,7 +60,7 @@ context-starved transport never silently over-claims.
 | `taint ≥ 0.7` | ESCALATE (quarantine threshold) |
 | `trust > 0.7` | ALLOW |
 | `trust ≥ 0.3` | ESCALATE |
-| else | NARROW |
+| else | NARROW (reserved; currently escalates like ESCALATE) |
 
 ---
 
@@ -66,9 +73,10 @@ context-starved transport never silently over-claims.
 `FirewallVerdict` — the core sees nothing else.
 
 ### `core/firewall.py` — `Firewall` facade
-`Firewall(ledger, policy, judge, content_filter=…, audit=…)`. `await check(event)`
-runs the pipeline above and always writes to the audit sink. Wraps the body so any
-exception → `FirewallVerdict(action=BLOCK, source="fail_safe")`.
+`Firewall(ledger, policy, judge, content_filter=…, audit=…, require_identity=False)`.
+`await check(event)` runs the pipeline above, writes the audit sink, and updates
+ledger trust on ALLOW/BLOCK. Any exception →
+`FirewallVerdict(action=BLOCK, source="fail_safe")`.
 
 ### `taint/ledger.py` — `Ledger` (trust / taint / identity / graph)
 Local SQLite, clock-injectable for deterministic decay. Per `agent_id`:
@@ -90,38 +98,61 @@ Constants: ρ=0.8 hop decay · α=0.02 trust recovery · β=0.6 degrade · λ=0.
 time decay · Q=0.7 quarantine. Edge weights: WRITE 0.95 · READ 0.80 · DELEGATE
 0.90 · TOOL_CALL 0.85.
 
-### `taint/mtp.py` — multi-hop taint propagation (the moat)
-Pure, DB-free fixed-point solver — single source of truth (the ledger drives it).
+### `taint/mtp.py` — multi-hop taint propagation (the research moat)
+Pure, DB-free fixed-point solver — the ledger drives it.
 `T^(k+1)[v] = max(T^(k)[v], max_{u→v} T^(k)[u]·w·e^{-λΔt})`. Converges in ≤ |V|
-iterations (monotone, bounded, strict decay); proof + `convergence_bound()` in the
-module docstring. Quarantine recovers — no permanent DoS.
+iterations. Quarantine recovers — no permanent DoS.
 
 ### `policy/engine.py` — `PolicyEngine` (tier-1)
-Loads `policy/rules/*.yaml`, compiles to a per-tool lookup. `await evaluate(event)`
-returns the first BLOCK `RuleMatch` or `None`. Pure-deterministic, hot-path. Keeps
-the last-good ruleset if a reload fails.
+Loads `policy/rules/*.yaml`. `${ORG_DOMAIN}` expands from `TRACEWALL_ORG_DOMAINS`
+(comma-separated; default `org.com,trusted.com,customer.com`).
+`rate_exceeds` is **unsupported** (rules using it are skipped / never silently work).
+Unknown operators log a warning and non-match.
+
+Context keys:
+- `call_tree_contains` — all listed callers must appear
+- `call_tree_contains_any` — any listed caller (secret-reader aliases)
 
 ### `content/filter.py` — tier-0 pre-filter
-Standalone instruction-injection regex family (`flagged(text) -> bool`). No YAML,
-no network. High-recall / lower-precision; routes into the semantic tier, never the
-sole authority.
+Standalone instruction-injection regex family (`flagged(text) -> bool`). High-recall /
+lower-precision; never sole BLOCK authority.
 
 ### `semantic/judge.py` — `SemanticJudge` (tier-2)
-Two backends behind one interface. **Deterministic** structural scorer (key-free,
-reproducible — the default and the fail-open fallback). **LLM** (provider-agnostic,
-OpenAI-compatible; opt-in via `LLM_API_KEY`, disable with `TRACEWALL_SEMANTIC_LLM=0`).
-The judge treats the call as UNTRUSTED DATA and never obeys instructions in it.
+**Deterministic** structural scorer (default) or **LLM** (`LLM_API_KEY`, disable with
+`TRACEWALL_SEMANTIC_LLM=0`). Judge score is 0=clean…1=malicious; facade inverts for verdict.
 
 ### `audit/sink.py` — append-only audit
-`AuditSink` ABC + `LocalAuditSink` (JSONL, default) + `NullAuditSink`. Auditing
-never breaks enforcement (errors swallowed + logged).
+`AuditSink` ABC + `LocalAuditSink` (JSONL) + `NullAuditSink`.
 
 ### `transports/` — how it plugs in
-- `python_guard.py` — in-process `guard(fw, tool, args, ctx)` + `@guarded` decorator.
-  Full context passthrough; `agent_id` required; fail-closed default.
-- `mcp_proxy.py` — MCP stdio gateway proxy: spawns the real server, screens only
-  `tools/call`; BLOCK → MCP `isError` tool result. Optional `_meta.tracewall`
-  context convention; degrades gracefully when absent.
+
+```
+Agent / MCP client
+        │
+        ▼
+┌───────────────────┐     ┌────────────────────┐
+│ python_guard      │     │ mcp_proxy + profile │
+│ guard / @guarded  │     │ paranoid|balanced|  │
+└─────────┬─────────┘     │ permissive          │
+          │               └──────────┬─────────┘
+          └────────────┬─────────────┘
+                       ▼
+              Firewall.check(event)
+                       │
+                       ▼
+              real tool / MCP server
+```
+
+- `python_guard.py` — in-process `guard` / `@guarded`. `agent_id` required; fail-closed default.
+- `mcp_proxy.py` + `profiles.py` — MCP stdio proxy; screens only `tools/call`.
+  - **paranoid** — `require_identity=True`, fail-closed, full rules
+  - **balanced** — fail-closed, full rules (default)
+  - **permissive** — fail-open, destructive + MINJA rules only
+  - CLI: `--profile`, `--fail-closed` / `--fail-open`
+  - Optional `_meta.tracewall` (`agent_id`, `caller_chain`, `session_id`); without it, call-tree policies may miss (documented limit)
+
+**Network note:** current proxy is **NDJSON / readline** stdio. Full MCP
+`Content-Length` framing is a known gap (see brink / EVIDENCE).
 
 ---
 
@@ -139,44 +170,38 @@ match:
     - arg.some_field: { regex: "pattern" }
     - arg.other_field: { in: ["a", "b"] }
   context:
-    call_tree_contains: [read_secret]   # optional — only fires with this caller present
+    call_tree_contains_any: [read_secret, read_credentials, get_secret]
 verdict:  BLOCK
 reason:   "human-readable reason for the audit log"
 severity: 0.9
 ```
 
-Operators (`_eval_op`): `regex` · `glob` · `in` · `not_in` · `not_in_domain` ·
-`matches_secret_pattern` · `delegation_depth_gt` · `taint_gte`. Dotted arg paths:
-`arg.body` → `args["body"]`.
+Operators: `regex` · `glob` · `in` · `not_in` · `not_in_domain` ·
+`matches_secret_pattern` · `delegation_depth_gt` · `taint_gte`.
+Shipped packs: MINJA memory, destructive/remote-exec bash, exfil email/http/message/upload.
 
 ---
 
 ## Evaluation
 
-`tracewall/eval/` — a frozen, human-labeled corpus + a deterministic ablation
-harness (per-tier precision/recall/F1/FPR with bootstrap 95% CIs on a held-out
-split). Tiers: `tier0_content`, `tier1_policy`, `tier2_semantic`, plus
-`integrated_or` (naive OR) and `integrated` (**gated**: policy OR semantic; tier-0
-routes only). Gated beats naive OR on the held-out split (higher precision, lower
-FPR, same recall) — the verdict is gated, not a blunt union. The deterministic
-result is the stable baseline; an LLM run is a dated, non-reproducible snapshot and
-never gates tests.
+| Lane | Command | What it proves |
+|------|---------|----------------|
+| Held-out ablation | `python -m tracewall.eval.harness --split test` | Detection P/R/F1 on frozen corpus |
+| MCP brink | `python -m tracewall.eval.mcp_brink` | Profile success **and** expected limits |
+| AgentDojo | `python -m tracewall.eval.adapters.agentdojo …` | Live ASR/utility (needs key; often UNVERIFIED) |
+| Unit gate | `pytest -q` | Contracts / regressions |
 
-```bash
-python -m tracewall.eval.harness --split test          # deterministic
-python -m tracewall.eval.harness --split test --llm     # LLM backend (needs key)
-```
+Held-out deterministic snapshot (post policy pack): tier1 recall **1.0** / FPR **0**;
+integrated recall **1.0** / FPR ≈ **0.07**. That is a **regression bar**, not adaptive
+or AgentDojo proof — see EVIDENCE.
 
 ---
 
 ## Testing invariants
 
-Pure, infra-free, deterministic (`pytest -q`, no services):
-- known-bad gate (3 surfaces + fail-safe + proofs + perf), MTP taint math,
-  semantic tier, full `Firewall.check` paths, both transports;
-- frozen-corpus hash + eval-reproducibility + pure-tier regression pins;
-- LLM path mocked (never live in the gate); frozen agent-trace replay (data only).
+Pure, infra-free (`pytest -q`, Python ≥3.12):
+- known-bad + MTP + semantic + `Firewall.check` + transports + **MCP profiles**
+- frozen-corpus hash (CRLF-normalized) + eval reproducibility + pure-tier pins
+- brink JSON: all `kind=success` pass; `kind=expected_limit` must reproduce misses
 
-Fail-safe checklist: identity/policy/semantic blocks fire; any internal error →
-`source="fail_safe"`, `action=BLOCK`; trust recovers after clean calls (no
-permanent DoS); deterministic hot path p99 < 10ms.
+Fail-safe: internal error → `source="fail_safe"` BLOCK; trust recovers on clean calls.

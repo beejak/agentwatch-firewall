@@ -1,124 +1,78 @@
 # HANDOFF — agentwatch-firewall (tracewall)
 
-Pick-up notes for continuing this repo on another machine. Last updated 2026-06-23.
+Pick-up notes. **Last updated 2026-07-19.**
 
 ## Where things stand
 
-- `master` is clean and synced to `origin`. Tracewall standalone v1 is shipped:
-  enforcement core, deterministic policy DSL, multi-hop taint solver, optional
-  semantic tier, and two working transports (in-process Python guard + MCP stdio
-  proxy).
-- Test suite is green: `62 passed, 1 skipped` (skip = `test_llm_judge.py`, needs
-  `LLM_API_KEY`). All committed tests are pure / infra-free.
-- Companion repo `agentwatch` (Paper 1, observability) is the upstream library;
-  this repo is Paper 2 (enforcement). One-directional dependency.
+- Tracewall v1 core is shipped: enforcement pipeline, YAML policy pack, multi-hop
+  taint ledger (live `check()` trust feedback), optional semantic tier, Python
+  guard + **MCP stdio proxy with profiles** (paranoid / balanced / permissive).
+- Observe-first discipline: [`docs/GOALS.md`](docs/GOALS.md),
+  [`paper/EVIDENCE.md`](paper/EVIDENCE.md), [`docs/DETECTION.md`](docs/DETECTION.md).
+- Tests (this machine): **83 passed, 1 skipped** (`test_llm_judge` needs `LLM_API_KEY`).
+- CI: pytest + deterministic harness smoke + `mcp_brink`.
+- Companion repo `agentwatch` = Paper 1 (observability). This repo = Paper 2 (enforcement).
 
-## Work in progress (the reason for this branch)
+## Done recently (do not re-do)
 
-Two uncommitted artifacts were carried here on branch `wip/agentdojo-handoff`:
+| Item | Evidence |
+|------|----------|
+| P0 live-path fixes (ORG_DOMAIN, secret-reader aliases, ledger feedback, score polarity, `require_identity`) | commits `0321698`+; `test_p0_correctness.py` |
+| Default policy pack (paraphrases + egress + remote-exec) | held-out tier1 R=1.0 FPR=0; `corpus_v0.1_test_deterministic.json` |
+| MCP profiles + brink (success **and** expected limits) | `mcp_brink.json` 14/14; `test_mcp_profiles.py` |
 
-1. `tracewall/eval/adapters/agentdojo.py` — AgentDojo benchmark adapter (async
-   ledger binding, DeepSeek LLM backend, ASR + utility reporting). **STATUS:
-   review fixes applied; end-to-end benchmark run still UNVERIFIED here** (needs
-   `[bench,llm]` installed + a live LLM key).
-   - Fixed (2026-06-23): tempfile fd leak (`mkstemp`+close), raw
-     `os.environ["LLM_API_KEY"]` → explicit `SystemExit`, event loop never closed
-     and temp logdir never removed → `try/finally` cleanup.
-   - Reviewed and rejected as false positives: the `run_until_complete()` "event
-     loop already running" findings — AgentDojo is synchronous, so the loop is a
-     set-as-current sync→async driver, never a running loop. The bridge is correct.
-   - Pure tests added (`tracewall/tests/test_agentdojo_adapter.py`): lazy-import
-     contract + ASR/utility math + argparse defaults. Suite: 65 pass / 1 skip.
-   - **Still TODO on the keyed machine:** `pip install -e ".[bench,llm]"`, set the
-     DeepSeek env, run `python -m tracewall.eval.adapters.agentdojo --suite banking
-     --arm both` and confirm it completes + the ASR/utility numbers are sane.
+## Still open
 
-2. `tracewall/eval/results/corpus_v0.1_test_llm.json` — dated LLM-tier eval
-   snapshot from `python -m tracewall.eval.harness --split test` (LLM backend on),
-   generated 2026-06-16. Non-gating data (LLM runs never gate CI). Key finding:
-   the **semantic/LLM tier carries the system** (recall 1.0, prec 1.0) while the
-   deterministic tiers are weak on this corpus (tier0 recall 0.0, tier1 recall
-   0.077). Integrated: recall 1.0 / prec 0.929 / FPR 0.071.
+1. **AgentDojo live run** (gold external bar) — adapter code exists; e2e **UNVERIFIED** without `[bench,llm]` + key.
+2. **Paper rebrand** — `paper/PAPER.md` / `watchtower.tex` still WatchTower / stale metrics. Use EVIDENCE only until rewrite.
+3. **MCP Content-Length framing** — proxy is NDJSON readline; known gap.
+4. Optional: LangGraph adapter / HTTP sidecar (defer if MCP-first).
 
-## LLM / DeepSeek v4 Pro setup (env-only, no code change)
-
-The semantic tier and the AgentDojo adapter read the LLM from env vars
-(`tracewall/semantic/judge.py`, `tracewall/eval/adapters/agentdojo.py`):
+## LLM setup (env-only)
 
 ```bash
-export LLM_API_KEY="<deepseek key>"
-export LLM_BASE_URL="https://api.deepseek.com"   # default; override if needed
-export LLM_MODEL="<deepseek v4 pro model id>"     # default is "deepseek-chat"
-# TRACEWALL_SEMANTIC_LLM=0 disables the LLM tier even if a key is present
+export LLM_API_KEY="<key>"
+export LLM_BASE_URL="https://api.deepseek.com"   # default
+export LLM_MODEL="<model id>"                    # default deepseek-chat
+# TRACEWALL_SEMANTIC_LLM=0 disables LLM even if key present
+# TRACEWALL_ORG_DOMAINS=acme.com,corp.com        # email allowlist
 ```
-
-Set `LLM_MODEL` to the DeepSeek v4 Pro model string — that is the only change
-needed to run the stronger model.
 
 ## Run it
 
 ```bash
-source .venv/bin/activate            # or: python -m venv .venv && pip install -e ".[dev]"
-pytest -q                            # 62 pass, 1 skip without a key
-python -m tracewall.eval.harness --split test          # deterministic eval
-python -m tracewall.eval.harness --split test --llm    # LLM-tier eval (needs key)
-# benchmark adapter (after fixing the blockers above + pip install -e ".[bench,llm]"):
-python -m tracewall.eval.adapters.agentdojo --suite banking --arm defended
+py -3.12 -m venv .venv && .venv/Scripts/activate   # Windows; or python3.12 -m venv
+pip install -e ".[dev]"
+pytest -q
+python -m tracewall.eval.harness --split test
+python -m tracewall.eval.mcp_brink
+python examples/guard_demo.py
+python -m tracewall.transports.mcp_proxy --profile balanced -- <real-mcp-server-cmd>
 ```
 
-## Open roadmap (priority order suggested below)
+AgentDojo (keyed machine):
 
-- Fix `agentdojo.py` event-loop blockers, then run the benchmark.
-- Ship a curated **default policy pack** — deterministic tier currently catches
-  ~1/13 attacks without an LLM, so "key-free by default" is security-empty today.
-- Lead integration story with the **MCP proxy** (zero agent-code change); add 3
-  config profiles (paranoid / balanced / permissive).
-- Keep taint + semantic clearly opt-in (taint is the research differentiator —
-  do not remove it to simplify; simplify the integration surface instead).
-- One framework adapter at most (LangGraph), or defer all and lean on MCP proxy.
-- HTTP sidecar transport; multi-agent contagion proof (Q2).
-- Target venue: IEEE S&P / USENIX.
+```bash
+pip install -e ".[dev,bench,llm]"
+python -m tracewall.eval.adapters.agentdojo --suite banking --arm both
+```
 
-## Paper 2 — tracewall enforcement paper (decided 2026-06-23)
+## Roadmap (priority)
 
-Decisions:
-- **Brand/scope: tracewall, enforcement-only.** Rebrand the `paper/` draft away
-  from "WatchTower / observation-first" (that's Paper 1 / agentwatch). Paper 2 is
-  purely enforcement: policy DSL + multi-hop taint solver + semantic tier +
-  AgentDojo. Drop the observation framing that overlaps Paper 1.
-- **Evidence bar: gold.** AgentDojo external benchmark (base vs defended, multiple
-  suites) AND a refreshed n=27 corpus LLM eval. This is the credibility centerpiece.
+1. AgentDojo ASR/utility (smoke one suite, then all) — append EVIDENCE.
+2. Paper rewrite from EVIDENCE (Tracewall brand; drop 17-case / 0.011ms).
+3. MCP framing / process hardening if adoption needs it.
+4. Keep taint as research moat; don’t delete it to “simplify.”
+5. Venue: IEEE S&P / USENIX when G4+G5 VERIFIED.
 
-Current draft state (`paper/`): substantial but STALE — titled "WatchTower",
-claims a 17-case corpus / 0.011ms p99 (pre-split, L3-only). `PAPER.md` (5.1k w)
-and `watchtower.tex` (5.5k w) are OUT OF SYNC — pick one canonical source before
-editing. Builds with **tectonic** (not the Makefile's pdflatex).
+## Paper 2 reminder
 
-Do this on the keyed machine, in one focused pass:
-1. **Run the evidence** (needs `[bench,llm]` + DeepSeek key):
-   ```bash
-   pip install -e ".[dev,bench,llm]"
-   export LLM_API_KEY=... LLM_MODEL=<deepseek-v4-pro-id>
-   # refreshed corpus LLM eval (overwrites the snapshot):
-   python -m tracewall.eval.harness --split test --llm
-   # AgentDojo, base vs defended, per suite:
-   for s in banking slack travel workspace; do
-     python -m tracewall.eval.adapters.agentdojo --suite "$s" --attack important_instructions --arm both
-   done
-   ```
-   Smoke-test at one suite / few tasks first before the full sweep (LESSON: don't
-   burn budget on a silently-failing rig — assert non-trivial output).
-2. **Rebrand + refresh** the canonical source: retitle to tracewall, cut Paper-1
-   overlap, align §4 design to the shipped 5-tier pipeline, replace all 17-case /
-   0.011ms numbers with the current corpus + latency, add a new §6 AgentDojo
-   subsection (ASR base vs defended, utility delta).
-3. **Render + VERIFY** with tectonic: confirm page count, every float present, zero
-   blank trailing pages — never trust exit 0 (LESSON from the agentwatch float-drop).
-4. Build SHARE assets like agentwatch (post copy, hero figure) once numbers final.
+- Brand: **tracewall**, enforcement-only.
+- Evidence: held-out corpus + mcp_brink limits + AgentDojo when run.
+- Never cite WatchTower draft numbers without checking EVIDENCE.
 
 ## Conventions
 
-- Commits: no AI attribution, no Co-Authored-By. Author `beejak
-  <beejak@users.noreply.github.com>`.
-- Workflow: branch → PR → CI → merge; one owner of `master`.
-- Update `agentwatch/LESSONS_LEARNED.md` each session (portable rules).
+- Commits: no AI attribution. Author `beejak <beejak@users.noreply.github.com>`.
+- Workflow: branch → PR → CI → merge when collaborating; one owner of `master`.
+- Append [`LESSONS_LEARNED.md`](LESSONS_LEARNED.md) each session.

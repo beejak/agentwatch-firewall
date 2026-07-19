@@ -104,6 +104,13 @@ Pick-up / roadmap: [`HANDOFF.md`](HANDOFF.md). Process rules: [`LESSONS_LEARNED.
 
 ## Status
 
-v1 transports: in-process Python guard + MCP stdio gateway proxy. Framework
-callback adapters (LangChain/LangGraph/CrewAI) and an HTTP sidecar are
-designed-for and on the roadmap.
+Shipped: Python guard + MCP stdio proxy **with profiles**, expanded default policy
+pack, observe-first GOALS/EVIDENCE/brink. Open: AgentDojo live numbers, paper
+rebrand, Content-Length MCP framing. See [`HANDOFF.md`](HANDOFF.md).
+
+## Doc map
+
+- Architecture: [`docs/FIREWALL.md`](docs/FIREWALL.md)  
+- Goals (success **and** failure): [`docs/GOALS.md`](docs/GOALS.md)  
+- Evidence ledger: [`paper/EVIDENCE.md`](paper/EVIDENCE.md)  
+- All docs: [`docs/README.md`](docs/README.md)

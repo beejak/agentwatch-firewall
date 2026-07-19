@@ -137,3 +137,11 @@ mistake) → *why*. Keep it terse and actionable.
   bug (§1), CI running only a subset (§2), the firewall-vs-watchtower mis-analysis (§5), the
   mock-100%-vs-held-out-82% overfitting demonstration (§4), and the repo-first evidence
   philosophy (§4). Established the branch→PR→CI→merge workflow with one owner of `master`.
+
+### 2026-07-19 — docs refresh after policy pack + MCP profiles
+- **Rule: when product metrics move, banner every outward-facing draft that still cites old numbers**
+  (`PAPER.md`, `SHARE.md`, `.tex`) as STALE and point readers at `EVIDENCE.md` — do not leave
+  WatchTower 17/17 / 0.011ms copy adjacent to a Tracewall README without a warning.
+- **Rule: architecture docs must name network/transport limits** (here: MCP NDJSON vs Content-Length)
+  next to profile diagrams, or brink “expected_limit” rows look like unexplained bugs.
+- **Rule: keep a docs index** (`docs/README.md`) so HANDOFF/README don’t become the only map.

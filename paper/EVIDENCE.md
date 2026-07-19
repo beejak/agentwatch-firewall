@@ -50,10 +50,12 @@ Sources: [`LESSONS_LEARNED.md`](../LESSONS_LEARNED.md), [`HANDOFF.md`](../HANDOF
 | Permissive omits exfil rule pack | VERIFIED (limit) | brink `L-permissive-skips-exfil-pack` |
 | Content-Length MCP framing supported | UNVERIFIED / gap | NDJSON readline only |
 
+## AgentDojo
+
 | Claim | Status | Artifact |
 |-------|--------|----------|
 | Adapter code + pure unit tests | VERIFIED | `eval/adapters/agentdojo.py`, `test_agentdojo_adapter.py` |
-| Live ASR/utility base vs defended | UNVERIFIED | HANDOFF 2026-06-23 — needs `[bench,llm]` + key |
+| Live ASR/utility base vs defended | UNVERIFIED | HANDOFF — needs `[bench,llm]` + key |
 
 ## Policy DSL
 
