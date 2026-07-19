@@ -325,9 +325,9 @@ def main(argv=None):
     live_rows: list[dict] = []
     out = Path(args.out)
     prev_live: list[dict] = []
-    if args.merge_live and out.exists():
+    if out.exists():
         try:
-            prev_live = json.loads(out.read_text(encoding="utf-8")).get("live", [])
+            prev_live = json.loads(out.read_text(encoding="utf-8")).get("live", []) or []
         except Exception:
             prev_live = []
 
@@ -343,6 +343,9 @@ def main(argv=None):
         )
         if args.merge_live:
             live_rows = prev_live + live_rows
+    else:
+        # Firewall-only reruns must not wipe previously measured live probes.
+        live_rows = prev_live
 
     all_rows = fw_rows + live_rows
     success = [r for r in fw_rows if r["kind"] == "success"]
