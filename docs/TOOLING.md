@@ -12,8 +12,10 @@ May need a **new Cursor chat** for skills to appear.
 ## Goals / evidence
 
 - [`docs/GOALS.md`](GOALS.md) — success/failure + named verify commands  
+- [`docs/DETECTION.md`](DETECTION.md) — what algorithm fits the POC  
 - [`paper/EVIDENCE.md`](../paper/EVIDENCE.md) — claim ledger  
 - [`docs/TEST_PLAN.md`](TEST_PLAN.md) — scenarios; harness = metrics only  
+- MCP brink: `python -m tracewall.eval.mcp_brink` → `eval/results/mcp_brink.json`
 
 ## Out of scope here
 
