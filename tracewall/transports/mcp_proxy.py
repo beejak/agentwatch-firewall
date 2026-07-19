@@ -55,6 +55,7 @@ _META_KEY = "tracewall"
 class ProxyConfig:
     default_agent_id: str = "mcp-client"   # coarse stable id when _meta is absent
     fail_closed: bool = True               # malformed/unreachable → BLOCK
+    profile: str = "balanced"              # named preset label (for audit/logs)
 
 
 def _meta_ctx(params: dict) -> dict:
@@ -168,7 +169,12 @@ class McpStdioProxy:
         try:
             message = json.loads(line)
         except Exception:
-            return None   # not JSON we understand — forward verbatim
+            # Unparseable line: fail-closed blocks only if it looks like tools/call.
+            if self._cfg.fail_closed and b"tools/call" in line:
+                fake_id = None
+                resp = _block_response(fake_id, "unparseable tools/call line")
+                return (json.dumps(resp) + "\n").encode()
+            return None   # forward verbatim
         resp = await screen_tool_call(self._fw, message, self._cfg)
         if resp is None:
             return None
@@ -200,13 +206,31 @@ def main(argv: Optional[list[str]] = None) -> int:
     import argparse
 
     from tracewall.audit.sink import LocalAuditSink
-    from tracewall.policy.engine import PolicyEngine
-    from tracewall.semantic.judge import SemanticJudge
-    from tracewall.taint.ledger import Ledger
+    from tracewall.transports.profiles import PROFILE_NAMES, build_firewall_for_profile, get_profile
 
     ap = argparse.ArgumentParser(description="tracewall MCP stdio proxy")
     ap.add_argument("--db", default="tracewall_mcp.db", help="ledger SQLite path")
     ap.add_argument("--agent-id", default="mcp-client", help="default agent_id when _meta absent")
+    ap.add_argument(
+        "--profile",
+        default="balanced",
+        choices=list(PROFILE_NAMES),
+        help="paranoid | balanced | permissive (default: balanced)",
+    )
+    g = ap.add_mutually_exclusive_group()
+    g.add_argument(
+        "--fail-closed",
+        dest="fail_closed",
+        action="store_true",
+        default=None,
+        help="override profile: BLOCK on malformed tools/call",
+    )
+    g.add_argument(
+        "--fail-open",
+        dest="fail_closed",
+        action="store_false",
+        help="override profile: forward malformed tools/call",
+    )
     ap.add_argument("server_cmd", nargs=argparse.REMAINDER,
                     help="-- <command to launch the real MCP server>")
     args = ap.parse_args(argv)
@@ -216,11 +240,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         ap.error("provide the real MCP server command after `--`")
 
     async def _boot() -> int:
-        policy = PolicyEngine()
-        await policy.load_policies()
-        fw = Firewall(ledger=Ledger(args.db), policy=policy, judge=SemanticJudge(),
-                      audit=LocalAuditSink())
-        proxy = McpStdioProxy(fw, cmd, ProxyConfig(default_agent_id=args.agent_id))
+        prof = get_profile(args.profile)
+        fw, prof = await build_firewall_for_profile(prof, db_path=args.db, audit=LocalAuditSink())
+        cfg = prof.proxy_config(default_agent_id=args.agent_id)
+        if args.fail_closed is not None:
+            cfg.fail_closed = args.fail_closed
+        proxy = McpStdioProxy(fw, cmd, cfg)
         return await proxy.run()
 
     return asyncio.run(_boot())

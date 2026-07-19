@@ -73,15 +73,22 @@ except GuardBlocked as b:
     ...  # b.verdict has the reason
 ```
 
-Or drop it in front of an MCP server with **zero agent code change** — the proxy
-spawns the real server and screens every `tools/call` on the wire:
+Or drop it in front of an MCP server — pick a **profile** (strict → loose):
 
 ```bash
-python -m tracewall.transports.mcp_proxy -- npx @modelcontextprotocol/server-filesystem /data
+python -m tracewall.transports.mcp_proxy --profile balanced -- npx @modelcontextprotocol/server-filesystem /data
+python -m tracewall.transports.mcp_proxy --profile paranoid --fail-closed -- ...
+python -m tracewall.transports.mcp_proxy --profile permissive --fail-open -- ...
 ```
-A cooperating client can pass `agent_id` / `caller_chain` via the MCP `_meta`
-field to feed the taint and call-tree tiers; without it the proxy degrades
-gracefully and records reduced `context_completeness`.
+
+| Profile | Meaning |
+|---------|---------|
+| paranoid | Block if no identity; fail-closed; full rules |
+| balanced | Default; fail-closed; full rules |
+| permissive | Fail-open; fewer rules (destructive + MINJA only) |
+
+Brink tests (success **and** known limits): `python -m tracewall.eval.mcp_brink`  
+Detection fit notes: [`docs/DETECTION.md`](docs/DETECTION.md).
 
 Optional extras: `.[llm]` (LLM semantic backend), `.[bench]` (AgentDojo adapter).
 

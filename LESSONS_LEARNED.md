@@ -86,6 +86,7 @@ mistake) → *why*. Keep it terse and actionable.
 - **Rule: normalize CRLF before hashing frozen corpora on Windows.** → Disk hash ≠ git LF blob under `core.autocrlf`.
 - Added `docs/GOALS.md`, `docs/TEST_PLAN.md`, `paper/EVIDENCE.md`, `.cursor/skills/tracewall-paper`, Superpowers skill copies. Tier1 held-out TP 1→2 after secret-pattern fix; refreshed deterministic results JSON.
 - **Rule: tighten jailbreak regexes against FP-bait benign memos before claiming key-free recall.** → *Happened:* `you are now (a|an|the)` blocked INJ-B-006; narrowed to unrestricted/jailbroken/DAN and added safety-tied paraphrase patterns. Policy pack then hit all 13 held-out malicious with 0 tier1 FPs — still not an adaptive-attack result (LESSONS §4).
+- **Rule: ship failure rows next to success rows (Fable).** → MCP brink runner records `expected_limit` (no `_meta`, permissive skips exfil, tools/list unscanned). G3 is not “green tests only” — limits must reproduce or the POC is lying.
 
 ### 2026-06-23 — firewall AgentDojo adapter fixes + LESSONS moved into this repo
 - **Rule: verify a reviewer's "critical" before implementing it — the framework's

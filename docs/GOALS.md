@@ -20,7 +20,9 @@ Library + MCP proxy that ALLOW/BLOCKs tool calls. Not a SaaS gateway, HITL appro
 | G1 | Evidence ledger | [`paper/EVIDENCE.md`](../paper/EVIDENCE.md) rows for load-bearing claims | Abstract claim with no row | Open EVIDENCE |
 | G1b | Live-path correctness | P0 bugs fixed + pytest green | Silent no-op security rules | `pytest -q` + tests below |
 | G2 | Key-free security | Deterministic integrated recall **> 0.462** on held-out; FPR justified | Still weak tier1 + marketing without numbers | `python -m tracewall.eval.harness --split test` → integrated R=1.0 FPR≈0.07 (2026-07-19); not adaptive/AgentDojo |
-| G3 | MCP productization | Profiles + fail_closed CLI + tests | Prose-only profiles | pytest + docs |
+| G3 | MCP profiles | All `kind=success` rows in `mcp_brink.json` pass; profiles load; `--fail-closed`/`--fail-open` CLI work | Success-row fails, or profiles only in docs | `pytest tracewall/tests/test_mcp_profiles.py` + `python -m tracewall.eval.mcp_brink` (exit 0) |
+| G3-fail | MCP honesty | `expected_limit` rows **pass** (limit reproduced: no `_meta`, permissive skips exfil, tools/list unscanned) | We hide misses or claim profiles fix context starvation | Same brink JSON `by_kind.expected_limit` |
+
 | G4 | AgentDojo | ASR base vs defended + utility; non-empty | Unrun adapter as “result” | adapter CLI smoke |
 | G5 | Paper honesty | Tracewall draft matches EVIDENCE | WatchTower 17/17 / 0.011ms | Diff abstract vs EVIDENCE |
 | G6 | Venue | G4+G5 done; PDF floats verified | Submit on stale PDF | tectonic + page inspect |

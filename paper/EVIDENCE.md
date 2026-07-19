@@ -40,7 +40,15 @@ Sources: [`LESSONS_LEARNED.md`](../LESSONS_LEARNED.md), [`HANDOFF.md`](../HANDOF
 | End-to-end MINJA vs GPT-4 agents reproduced | UNVERIFIED | Synthetic taint tests only |
 | Contagion surface in frozen corpus | UNVERIFIED | Deferred in `_build_v0_1.py` |
 
-## AgentDojo
+## MCP profiles
+
+| Claim | Status | Artifact |
+|-------|--------|----------|
+| Profiles paranoid / balanced / permissive exist and differ observably | VERIFIED | `transports/profiles.py`, `tests/test_mcp_profiles.py` |
+| Brink matrix: 9 success + 5 expected_limit rows all pass | VERIFIED | `eval/results/mcp_brink.json` (2026-07-19) |
+| Without `_meta`, secret→email may forward under high trust | VERIFIED (limit) | brink `L-context-starvation-no-meta` |
+| Permissive omits exfil rule pack | VERIFIED (limit) | brink `L-permissive-skips-exfil-pack` |
+| Content-Length MCP framing supported | UNVERIFIED / gap | NDJSON readline only |
 
 | Claim | Status | Artifact |
 |-------|--------|----------|

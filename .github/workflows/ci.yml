@@ -27,3 +27,6 @@ jobs:
 
       - name: Eval harness smoke (deterministic held-out)
         run: python -m tracewall.eval.harness --split test
+
+      - name: MCP profile brink (success + expected limits)
+        run: python -m tracewall.eval.mcp_brink

@@ -1,0 +1,146 @@
+{
+  "generated_at": "2026-07-19T05:39:24Z",
+  "n_rows": 14,
+  "n_pass": 14,
+  "n_fail": 0,
+  "by_kind": {
+    "success": {
+      "n": 9,
+      "pass": 9
+    },
+    "expected_limit": {
+      "n": 5,
+      "pass": 5
+    }
+  },
+  "success_criterion": "all kind=success rows pass; expected_limit rows pass (limit reproduced)",
+  "failure_criterion": "any kind=success row fails \u2192 profiles not done",
+  "rows": [
+    {
+      "id": "S-balanced-block-minja",
+      "profile": "balanced",
+      "kind": "success",
+      "expect": "block",
+      "observed": "block",
+      "pass": true,
+      "note": "full pack blocks instruction-like memory_write"
+    },
+    {
+      "id": "S-balanced-block-minja",
+      "profile": "paranoid",
+      "kind": "success",
+      "expect": "block",
+      "observed": "block",
+      "pass": true,
+      "note": "full pack blocks instruction-like memory_write"
+    },
+    {
+      "id": "S-balanced-block-exfil-meta",
+      "profile": "balanced",
+      "kind": "success",
+      "expect": "block",
+      "observed": "block",
+      "pass": true,
+      "note": "exfil with _meta call tree"
+    },
+    {
+      "id": "S-balanced-fail-closed-malformed",
+      "profile": "balanced",
+      "kind": "success",
+      "expect": "block",
+      "observed": "block",
+      "pass": true,
+      "note": "fail_closed on bad arguments"
+    },
+    {
+      "id": "S-balanced-fail-closed-malformed",
+      "profile": "paranoid",
+      "kind": "success",
+      "expect": "block",
+      "observed": "block",
+      "pass": true,
+      "note": "fail_closed on bad arguments"
+    },
+    {
+      "id": "S-permissive-fail-open-malformed",
+      "profile": "permissive",
+      "kind": "success",
+      "expect": "forward",
+      "observed": "forward",
+      "pass": true,
+      "note": "permissive fail_open forwards malformed"
+    },
+    {
+      "id": "S-paranoid-block-no-identity",
+      "profile": "paranoid",
+      "kind": "success",
+      "expect": "block",
+      "observed": "block",
+      "pass": true,
+      "note": "paranoid requires registered identity"
+    },
+    {
+      "id": "S-paranoid-allow-with-identity",
+      "profile": "paranoid",
+      "kind": "success",
+      "expect": "forward",
+      "observed": "forward",
+      "pass": true,
+      "note": "paranoid allows after identity+caps"
+    },
+    {
+      "id": "S-permissive-still-blocks-rm",
+      "profile": "permissive",
+      "kind": "success",
+      "expect": "block",
+      "observed": "block",
+      "pass": true,
+      "note": "core destructive rule remains in permissive"
+    },
+    {
+      "id": "L-context-starvation-no-meta",
+      "profile": "balanced",
+      "kind": "expected_limit",
+      "expect": "forward",
+      "observed": "forward",
+      "pass": true,
+      "note": "LIMIT: no _meta call tree \u2192 exfil policy may not fire; high trust ALLOWs"
+    },
+    {
+      "id": "L-permissive-skips-exfil-pack",
+      "profile": "permissive",
+      "kind": "expected_limit",
+      "expect": "forward",
+      "observed": "forward",
+      "pass": true,
+      "note": "LIMIT: permissive omits exfil_* rules by design (high trust avoids semantic)"
+    },
+    {
+      "id": "L-tools-list-never-screened",
+      "profile": "paranoid",
+      "kind": "expected_limit",
+      "expect": "forward",
+      "observed": "forward",
+      "pass": true,
+      "note": "LIMIT: only tools/call is screened; list/init always forward"
+    },
+    {
+      "id": "L-tools-list-never-screened",
+      "profile": "balanced",
+      "kind": "expected_limit",
+      "expect": "forward",
+      "observed": "forward",
+      "pass": true,
+      "note": "LIMIT: only tools/call is screened; list/init always forward"
+    },
+    {
+      "id": "L-tools-list-never-screened",
+      "profile": "permissive",
+      "kind": "expected_limit",
+      "expect": "forward",
+      "observed": "forward",
+      "pass": true,
+      "note": "LIMIT: only tools/call is screened; list/init always forward"
+    }
+  ]
+}
