@@ -49,9 +49,10 @@ pytest = edges · harness = offline P/R/F1 · mcp_brink = profile success+limits
 - AgentDojo **workspace** and **travel** suites (live + firewall-only shapes)
 - IBAN Unicode / ZWSP **normalization** (close current expected_limit)
 - Case-insensitive tool matching / alias table
-- Org allowlists instead of attacker-IBAN probes
+- Signed identity / SPIFFE-style verifier (beyond ledger register)
+- LangGraph / HTTP sidecar PEP
 - Adaptive paraphrase corpus (don’t claim until measured)
-- Working `rate_exceeds` (or remove from DSL docs)
+- Distributed rate limits (current `rate_exceeds` is single-process)
 
 ## Edge checklist
 

@@ -104,9 +104,14 @@ Pure, DB-free fixed-point solver — the ledger drives it.
 iterations. Quarantine recovers — no permanent DoS.
 
 ### `policy/engine.py` — `PolicyEngine` (tier-1)
-Loads `policy/rules/*.yaml`. `${ORG_DOMAIN}` expands from `TRACEWALL_ORG_DOMAINS`
+Loads `policy/rules/*.yaml`. Profiles **zta** / **paranoid** also load
+`policy/rules/zta/` (default-deny allowlists + rate budgets).
+`${ORG_DOMAIN}` expands from `TRACEWALL_ORG_DOMAINS`
 (comma-separated; default `org.com,trusted.com,customer.com`).
-`rate_exceeds` is **unsupported** (rules using it are skipped / never silently work).
+
+Operators include `not_in_domain`, `in_domain`, `host_not_in` / `host_in` (URL/email),
+`matches_secret_pattern`, `regex`, `glob`, and match-level `rate_exceeds`
+(`window_s` / `max` / `key`) via an in-process `RateBudget`.
 Unknown operators log a warning and non-match.
 
 Context keys:
@@ -123,6 +128,7 @@ lower-precision; never sole BLOCK authority.
 
 ### `audit/sink.py` — append-only audit
 `AuditSink` ABC + `LocalAuditSink` (JSONL) + `NullAuditSink`.
+Verdicts include `rule_id`, `args_hash`, and `context_completeness` for SIEM-friendly trails.
 
 ### `transports/` — how it plugs in
 
@@ -130,11 +136,11 @@ lower-precision; never sole BLOCK authority.
 Agent / MCP client
         │
         ▼
-┌───────────────────┐     ┌────────────────────┐
-│ python_guard      │     │ mcp_proxy + profile │
-│ guard / @guarded  │     │ paranoid|balanced|  │
-└─────────┬─────────┘     │ permissive          │
-          │               └──────────┬─────────┘
+┌───────────────────┐     ┌──────────────────────────┐
+│ python_guard      │     │ mcp_proxy + profile       │
+│ guard / @guarded  │     │ zta|paranoid|balanced|    │
+└─────────┬─────────┘     │ permissive               │
+          │               └──────────┬───────────────┘
           └────────────┬─────────────┘
                        ▼
               Firewall.check(event)
@@ -144,12 +150,16 @@ Agent / MCP client
 ```
 
 - `python_guard.py` — in-process `guard` / `@guarded`. `agent_id` required; fail-closed default.
-- `mcp_proxy.py` + `profiles.py` — MCP stdio proxy; screens only `tools/call`.
-  - **paranoid** — `require_identity=True`, fail-closed, full rules
-  - **balanced** — fail-closed, full rules (default)
-  - **permissive** — fail-open, destructive + MINJA rules only
+- `mcp_proxy.py` + `profiles.py` + `session_chain.py` — MCP stdio proxy; screens only `tools/call`.
+  - **zta** — prod posture: `require_identity` + `require_caps`, ZTA pack, **proxy-owned call tree**
+  - **paranoid** — identity required, ZTA pack, proxy-owned call tree, caps optional
+  - **balanced** — lab default; fail-closed; full rules; client `_meta` call tree (honor-system)
+  - **permissive** — fail-open; destructive + MINJA rules only
   - CLI: `--profile`, `--fail-closed` / `--fail-open`
-  - Optional `_meta.tracewall` (`agent_id`, `caller_chain`, `session_id`); without it, call-tree policies may miss (documented limit)
+  - Optional `_meta.tracewall` (`agent_id`, `session_id`; `caller_chain` ignored when `own_call_tree`)
+
+**ZTA honesty:** client-asserted `caller_chain` is not authentication. Use `--profile zta`
+(or paranoid) so the PEP owns the chain. Identity is still ledger-registered (not SPIFFE yet).
 
 **Network note:** MCP proxy auto-detects **Content-Length** framing and legacy
 **NDJSON** readline (see `mcp_framing.py`).

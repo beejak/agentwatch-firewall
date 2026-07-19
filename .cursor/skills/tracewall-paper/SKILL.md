@@ -13,7 +13,7 @@ description: >-
 Open, in order:
 
 1. [`paper/EVIDENCE.md`](../../paper/EVIDENCE.md) — claim status table  
-2. [`LESSONS_LEARNED.md`](../../LESSONS_LEARNED.md) §4 (research integrity)  
+2. [`LESSONS_LEARNED.md`](../../LESSONS_LEARNED.md) §4 (research integrity) + dated appendices  
 3. Relevant `tracewall/eval/results/*.json`  
 4. [`HANDOFF.md`](../../HANDOFF.md) Paper 2 section  
 
@@ -29,6 +29,11 @@ If a sentence would assert something not **VERIFIED** in EVIDENCE, either:
 - KB / unit suite = regression gate, not “100% detection” headline  
 - AgentDojo numbers only after a live run is logged in EVIDENCE  
 - Latency: only quote measured `Firewall.check` / policy numbers with method  
+- **ZTA wording:** Tracewall is a tool-call PDP/PEP. Do **not** claim full NIST ZTA,
+  SPIFFE, or continuous IdP auth unless VERIFIED. Prefer: “ZTA-adjacent”,
+  “default-deny allowlists”, “proxy-owned call tree”, “require_caps”.  
+- **Profiles:** `balanced` = lab; `zta`/`paranoid` = allowlist pack + own call-tree.
+  Do not imply every profile ships production default-deny.
 
 ## Fraud table (reject these)
 
@@ -36,9 +41,11 @@ If a sentence would assert something not **VERIFIED** in EVIDENCE, either:
 |-------|---------|
 | Stale 17/17 / 0.011ms | Abstract ignores held-out JSON |
 | Fantasy stack as shipped | Hermes, ruflo BFT, ClickHouse, graphify AST, SPIFFE as “implemented” |
-| Key-free = secure | Omits deterministic recall ~0.46 / tier1 ~0.08 |
+| Key-free = secure | Omits deterministic recall caveats / overfitting warning |
 | Unrun AgentDojo | “We evaluate on AgentDojo” without ASR table |
 | Apples-to-oranges latency | Rule lookup vs competitor e2e |
+| Client `_meta` = identity | Treats forged caller_chain as authenticated history |
+| Denylist = ZTA | Claims zero-trust from attacker-IBAN probes alone |
 
 ## After edits
 

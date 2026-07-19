@@ -76,6 +76,7 @@ except GuardBlocked as b:
 Or drop it in front of an MCP server — pick a **profile** (strict → loose):
 
 ```bash
+python -m tracewall.transports.mcp_proxy --profile zta -- npx @modelcontextprotocol/server-filesystem /data
 python -m tracewall.transports.mcp_proxy --profile balanced -- npx @modelcontextprotocol/server-filesystem /data
 python -m tracewall.transports.mcp_proxy --profile paranoid --fail-closed -- ...
 python -m tracewall.transports.mcp_proxy --profile permissive --fail-open -- ...
@@ -83,9 +84,12 @@ python -m tracewall.transports.mcp_proxy --profile permissive --fail-open -- ...
 
 | Profile | Meaning |
 |---------|---------|
-| paranoid | Block if no identity; fail-closed; full rules |
-| balanced | Default; fail-closed; full rules |
+| **zta** | Prod: identity + caps, org allowlist default-deny, proxy-owned call tree |
+| paranoid | Identity required; ZTA pack; proxy-owned call tree |
+| balanced | Lab default; fail-closed; full rules; client `_meta` chain |
 | permissive | Fail-open; fewer rules (destructive + MINJA only) |
+
+Set allowlists: `TRACEWALL_ORG_DOMAINS=acme.com,corp.com`
 
 Brink tests (success **and** known limits): `python -m tracewall.eval.mcp_brink`  
 Detection fit notes: [`docs/DETECTION.md`](docs/DETECTION.md).
@@ -104,9 +108,10 @@ Pick-up / roadmap: [`HANDOFF.md`](HANDOFF.md). Process rules: [`LESSONS_LEARNED.
 
 ## Status
 
-Shipped: Python guard + MCP stdio proxy **with profiles**, expanded default policy
-pack, observe-first GOALS/EVIDENCE/brink. Open: AgentDojo live numbers, paper
-rebrand, Content-Length MCP framing. See [`HANDOFF.md`](HANDOFF.md).
+Shipped: Python guard + MCP stdio proxy with **zta/paranoid/balanced/permissive**
+profiles, ZTA allowlist pack, proxy-owned call trees, working `rate_exceeds`,
+observe-first GOALS/EVIDENCE/brink. Open: signed workload identity, LangGraph sidecar,
+closing Unicode/alias bypasses. See [`HANDOFF.md`](HANDOFF.md).
 
 ## Doc map
 

@@ -89,6 +89,8 @@ class FirewallVerdict(BaseModel):
     reason:      str
     latency_ms:  float = 0.0
     context_completeness: dict[str, bool] = Field(default_factory=dict)
+    rule_id:     str = ""       # matched policy rule id when source=deterministic
+    args_hash:   str = ""       # sha256 prefix of args (SIEM-friendly; full args in event dump)
     ts:          float = Field(default_factory=time.time)
 
 

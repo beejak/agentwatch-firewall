@@ -1,0 +1,13 @@
+# ZTA blast-radius: cap send_money attempts per agent per minute.
+rule: zta_rate_send_money
+surface: capability_abuse
+on: pre_tool_call
+match:
+  tool: send_money
+  rate_exceeds:
+    window_s: 60
+    max: 5
+    key: agent_tool
+verdict: BLOCK
+reason: "rate limit: send_money exceeds TRACEWALL session budget"
+severity: 0.7

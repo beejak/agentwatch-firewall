@@ -181,12 +181,14 @@ Context completeness records which signals were present on the event.
 
 \subsection{Policy DSL}
 Rules match tool name, argument operators, and call-tree constraints.
-Argument operators include \texttt{regex}, \texttt{not\_in\_domain}, and
-\texttt{matches\_secret\_pattern}.
+Argument operators include \texttt{regex}, \texttt{not\_in\_domain},
+\texttt{host\_not\_in}, and \texttt{matches\_secret\_pattern}.
 Call-tree predicates include \texttt{call\_tree\_contains}.
 The token \texttt{\$\{ORG\_DOMAIN\}} expands from the environment variable
 \texttt{TRACEWALL\_ORG\_DOMAINS}.
-The \texttt{rate\_exceeds} operator is unsupported (never silent).
+Match-level \texttt{rate\_exceeds} is an in-process sliding window
+(not a distributed limiter). Profiles \textbf{zta}/\textbf{paranoid} load an
+extra default-deny allowlist pack and may own the call tree in the MCP proxy.
 
 \subsection{Taint / MTP}
 A local SQLite ledger stores trust, taint, identity, and edges. Multi-hop taint
@@ -209,8 +211,8 @@ LangGraph / HTTP & Roadmap \\
 \bottomrule
 \end{tabular}
 \end{table}
-Profiles: \textbf{paranoid} (require identity, fail-closed, full rules),
-\textbf{balanced} (default), \textbf{permissive} (fail-open, subset rules).
+Profiles: \textbf{zta} (identity$+$caps, allowlists, proxy-owned call tree),
+\textbf{paranoid}, \textbf{balanced} (lab default), \textbf{permissive}.
 
 \section{Evaluation}
 

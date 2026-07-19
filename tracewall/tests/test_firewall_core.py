@@ -16,7 +16,9 @@ async def test_allow_high_trust_benign(firewall, ledger):
     await ledger._set_trust("agent-x", 0.9)   # > 0.7 → trust gate ALLOW (no escalation)
     v = await firewall.check(_ev("read_file", {"path": "/tmp/ok"}))
     assert v.action == Verdict.ALLOW and v.source == "trust_gate"
-    assert v.context_completeness == {"identity": False, "call_tree": False, "ledger": True}
+    assert v.context_completeness == {
+        "identity": False, "call_tree": False, "ledger": True, "session_chain": False,
+    }
 
 
 async def test_block_policy_injection(firewall):

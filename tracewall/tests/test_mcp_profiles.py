@@ -137,4 +137,4 @@ async def test_context_starvation_exfil_without_meta_is_limit(tmp_path):
 
 def test_profile_names_exported():
     from tracewall.transports.profiles import PROFILE_NAMES
-    assert PROFILE_NAMES == ("paranoid", "balanced", "permissive")
+    assert PROFILE_NAMES == ("paranoid", "zta", "balanced", "permissive")

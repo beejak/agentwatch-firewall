@@ -7,7 +7,9 @@ runs on the enforcement hot path.
 
 Placeholders: `${ORG_DOMAIN}` in YAML is expanded from TRACEWALL_ORG_DOMAINS
 (comma-separated; default org.com,trusted.com,customer.com).
-`rate_exceeds` is unsupported (never silently “works”).
+
+``rate_exceeds`` is implemented via an in-process sliding-window RateBudget
+(not distributed — fine for a single PEP process).
 """
 from __future__ import annotations
 
@@ -16,16 +18,19 @@ import os
 import re
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 import yaml
 from pydantic import BaseModel
 
 from tracewall.core.signal import EnrichedEvent
+from tracewall.policy.rate import RateBudget
 
 logger = logging.getLogger(__name__)
 
 # Packaged default rules directory (tracewall/policy/rules/).
 DEFAULT_RULES_DIR = str(Path(__file__).parent / "rules")
+ZTA_RULES_DIR = str(Path(__file__).parent / "rules" / "zta")
 
 _DEFAULT_ORG_DOMAINS = ["org.com", "trusted.com", "customer.com"]
 _warned_ops: set[str] = set()
@@ -61,6 +66,36 @@ def _expand_placeholders(obj: Any) -> Any:
     return obj
 
 
+def _extract_host(val: Any) -> str:
+    """Hostname from URL, email, or bare host string."""
+    s = str(val).strip()
+    if not s:
+        return ""
+    if "@" in s and "://" not in s and not s.startswith("//"):
+        # email-shaped
+        return s.split("@")[-1].lower().rstrip(".")
+    parsed = urlparse(s if "://" in s else f"//{s}", scheme="")
+    host = (parsed.hostname or parsed.netloc or s).lower()
+    if "@" in host:
+        host = host.split("@")[-1]
+    host = host.split("/")[0].split("?")[0].rstrip(".")
+    # bare "evil.com/path" without //
+    if "/" in host:
+        host = host.split("/")[0]
+    return host
+
+
+def _host_in_allowlist(host: str, allowed: list[str]) -> bool:
+    host = host.lower().rstrip(".")
+    for a in allowed:
+        a = str(a).lower().rstrip(".")
+        if not a:
+            continue
+        if host == a or host.endswith("." + a):
+            return True
+    return False
+
+
 class RuleMatch(BaseModel):
     rule_id: str
     verdict: str       # "BLOCK"
@@ -86,52 +121,62 @@ class PolicyEngine:
     Evaluation is pure-deterministic — no LLM calls.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, rates: RateBudget | None = None) -> None:
         self._rules:    list[CompiledRule] = []
         self._by_tool:  dict[str, list[CompiledRule]] = {}   # tool → rules
+        self._rates = rates if rates is not None else RateBudget()
 
-    async def load_policies(self, directory: str = DEFAULT_RULES_DIR) -> None:
-        path = Path(directory)
-        if not path.exists():
-            logger.warning("policy: rules dir not found: %s", directory)
-            return
-        rules = []
-        for f in path.glob("*.yaml"):
-            try:
-                data = yaml.safe_load(f.read_text())
-                data = _expand_placeholders(data) if isinstance(data, dict) else data
-                match = data.get("match", {}) if isinstance(data, dict) else {}
-                if _match_uses_op(match, "rate_exceeds"):
-                    logger.error(
-                        "policy: skipping %s — operator 'rate_exceeds' is unsupported",
-                        f.name,
+    async def load_policies(
+        self,
+        directory: str = DEFAULT_RULES_DIR,
+        *,
+        extra_dirs: list[str] | None = None,
+    ) -> None:
+        paths = [Path(directory)]
+        for d in extra_dirs or []:
+            paths.append(Path(d))
+        rules: list[CompiledRule] = []
+        for path in paths:
+            if not path.exists():
+                logger.warning("policy: rules dir not found: %s", path)
+                continue
+            for f in sorted(path.glob("*.yaml")):
+                try:
+                    data = yaml.safe_load(f.read_text(encoding="utf-8"))
+                    data = _expand_placeholders(data) if isinstance(data, dict) else data
+                    if not isinstance(data, dict):
+                        continue
+                    match = data.get("match", {})
+                    rule = CompiledRule(
+                        rule_id=data.get("rule", f.stem),
+                        surface=data.get("surface", "unknown"),
+                        on=data.get("on", "pre_tool_call"),
+                        tool=match.get("tool"),
+                        match=match,
+                        verdict=data.get("verdict", "BLOCK"),
+                        reason=data.get("reason", ""),
+                        severity=float(data.get("severity", 0.5)),
                     )
-                    continue
-                rule = CompiledRule(
-                    rule_id=data.get("rule", f.stem),
-                    surface=data.get("surface", "unknown"),
-                    on=data.get("on", "pre_tool_call"),
-                    tool=match.get("tool"),
-                    match=match,
-                    verdict=data.get("verdict", "BLOCK"),
-                    reason=data.get("reason", ""),
-                    severity=float(data.get("severity", 0.5)),
-                )
-                rules.append(rule)
-            except Exception as e:
-                logger.error("policy: failed to load %s: %s", f, e)
+                    rules.append(rule)
+                except Exception as e:
+                    logger.error("policy: failed to load %s: %s", f, e)
 
         if not rules and self._rules:
             logger.warning("policy: keeping last-good ruleset (%d rules)", len(self._rules))
             return
         if not rules:
-            logger.error("policy: loaded 0 rules from %s — tier-1 is allow-all", directory)
+            logger.error("policy: loaded 0 rules — tier-1 is allow-all")
 
         self._rules = rules
         self._by_tool = {}
         for r in rules:
             self._by_tool.setdefault(r.tool or "_any", []).append(r)
-        logger.info("policy: loaded %d rules (org domains=%s)", len(rules), _org_domains())
+        logger.info(
+            "policy: loaded %d rules from %s (org domains=%s)",
+            len(rules),
+            [str(p) for p in paths],
+            _org_domains(),
+        )
 
     async def evaluate(self, event: EnrichedEvent) -> Optional[RuleMatch]:
         """
@@ -182,7 +227,40 @@ class PolicyEngine:
             if not self._eval_clause(clause, args):
                 return False
 
+        # match-level rate budget (counts this attempt)
+        rate_spec = m.get("rate_exceeds")
+        if rate_spec is not None:
+            if not self._rate_exceeded(rate_spec, event):
+                return False
+
+        # If the rule has no any/all/context/rate constraints beyond tool name,
+        # matching the tool alone is enough (tool-only rules).
+        has_constraints = bool(
+            any_clauses or all_clauses or m.get("context") or rate_spec is not None
+        )
+        if not has_constraints and m.get("tool"):
+            return True
+        if not has_constraints:
+            return True
         return True
+
+    def _rate_exceeded(self, spec: Any, event: EnrichedEvent) -> bool:
+        if not isinstance(spec, dict):
+            logger.error("policy: rate_exceeds must be a mapping — treating as non-match")
+            return False
+        window_s = float(spec.get("window_s", 60))
+        max_n = int(spec.get("max", 10))
+        key_mode = str(spec.get("key", "agent_tool"))
+        aid = event.event.agent_id
+        tool = event.event.tool
+        if key_mode == "agent":
+            key = f"agent:{aid}"
+        elif key_mode == "tool":
+            key = f"tool:{tool}"
+        else:
+            key = f"agent_tool:{aid}:{tool}"
+        rule_key = f"{key}|{spec.get('bucket', 'default')}"
+        return self._rates.exceeds(rule_key, window_s, max_n)
 
     def _eval_clause(self, clause: dict, args: dict) -> bool:
         for key, constraint in clause.items():
@@ -209,6 +287,17 @@ class PolicyEngine:
         if op == "not_in_domain":
             domain = str(val).split("@")[-1] if "@" in str(val) else str(val)
             return domain not in (operand if isinstance(operand, list) else [operand])
+        if op == "in_domain":
+            domain = str(val).split("@")[-1] if "@" in str(val) else str(val)
+            return domain in (operand if isinstance(operand, list) else [operand])
+        if op == "host_not_in":
+            host = _extract_host(val)
+            allowed = operand if isinstance(operand, list) else [operand]
+            return not _host_in_allowlist(host, [str(x) for x in allowed])
+        if op == "host_in":
+            host = _extract_host(val)
+            allowed = operand if isinstance(operand, list) else [operand]
+            return _host_in_allowlist(host, [str(x) for x in allowed])
         if op == "in":
             return val in (operand if isinstance(operand, list) else [operand])
         if op == "not_in":
@@ -221,8 +310,11 @@ class PolicyEngine:
             from fnmatch import fnmatch
             return fnmatch(str(val), operand)
         if op == "rate_exceeds":
+            # Prefer match-level rate_exceeds; arg-level form is unsupported shape.
             if op not in _warned_ops:
-                logger.error("policy: operator 'rate_exceeds' is unsupported — treating as non-match")
+                logger.error(
+                    "policy: arg-level 'rate_exceeds' is unsupported — use match.rate_exceeds"
+                )
                 _warned_ops.add(op)
             return False
         if op == "delegation_depth_gt":

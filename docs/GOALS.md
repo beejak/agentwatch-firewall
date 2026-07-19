@@ -22,6 +22,7 @@ Library + MCP proxy that ALLOW/BLOCKs tool calls. Not a SaaS gateway, HITL appro
 | G2 | Key-free security | Deterministic integrated recall **> 0.462** on held-out; FPR justified | Still weak tier1 + marketing without numbers | `python -m tracewall.eval.harness --split test` → integrated R=1.0 FPR≈0.07 (2026-07-19); not adaptive/AgentDojo |
 | G3 | MCP profiles | All `kind=success` rows in `mcp_brink.json` pass; profiles load; `--fail-closed`/`--fail-open` CLI work | Success-row fails, or profiles only in docs | `pytest tracewall/tests/test_mcp_profiles.py` + `python -m tracewall.eval.mcp_brink` (exit 0) |
 | G3-fail | MCP honesty | `expected_limit` rows **pass** (limit reproduced: no `_meta`, permissive skips exfil, tools/list unscanned) | We hide misses or claim profiles fix context starvation | Same brink JSON `by_kind.expected_limit` |
+| G3z | ZTA practicality | zta profile: allowlists, own call-tree, require_caps, rate_exceeds tests green | Lab denylist-only story | `pytest …test_zta_practical.py` + brink zta rows |
 | G4 | AgentDojo | ASR base vs defended + utility; non-empty | Unrun adapter as “result” | adapter CLI smoke |
 | G4b | Firewall stress (no LLM) | `adojo_stress` success rows pass; limits reproduced | Claim AgentDojo blocked without send_money rules | `python -m tracewall.eval.adojo_stress` / `pytest …test_adojo_stress` |
 | G4c | DeepSeek follow-through | Live probes with `--system benchmark` + bill-preserving raise ASR above vanilla 0/0 when model complies | Treat refusal-as-defense as Tracewall win | `python -m tracewall.eval.adojo_stress --live` |
@@ -29,7 +30,8 @@ Library + MCP proxy that ALLOW/BLOCKs tool calls. Not a SaaS gateway, HITL appro
 | G5 | Paper honesty | Tracewall draft matches EVIDENCE | WatchTower 17/17 / 0.011ms | Diff abstract vs EVIDENCE |
 | G6 | Venue | G4+G5 done; PDF floats verified | Submit on stale PDF | tectonic + page inspect |
 
-**Status snapshot (2026-07-19):** G0–G3 (+G3-fail) met; G4b + G4c slice met (`direct` ASR drop); G4d robustness 14/14; G5 PAPER/tex with ELI5+TL;DR. Venue polish + closing expected limits still open.
+**Status snapshot (2026-07-20):** G0–G3 (+G3-fail, G3z) met; G4b/G4c/G4d met; G5 paper has ELI5+TL;DR. Remaining: signed identity, LangGraph PEP, close Unicode/alias limits, venue polish.
+
 
 ## P0 correctness (G1b) — named checks
 
@@ -37,8 +39,9 @@ Library + MCP proxy that ALLOW/BLOCKs tool calls. Not a SaaS gateway, HITL appro
 2. Exfil policy matches any secret-reader alias in call tree.
 3. `require_identity=True` → missing identity BLOCKs (default False for transport degrade).
 4. ALLOW → `on_clean_call`; BLOCK (policy/semantic) → `on_taint_event`.
-5. `rate_exceeds` unsupported (warns; never silently “works”).
+5. `rate_exceeds` — match-level sliding window (`window_s`/`max`/`key`); in-process only.
 6. Verdict `score` is **0 bad … 1 clean** (semantic malicious score inverted at facade).
+7. ZTA profile: `require_identity` + `require_caps` + `own_call_tree` + `rules/zta/` allowlists.
 
 ## Lanes
 

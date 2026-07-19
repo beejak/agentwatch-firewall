@@ -1,14 +1,12 @@
 """
 MCP deployment profiles — named presets for the stdio proxy bouncer.
 
-Three presets (strict → loose). Same Firewall core; different knobs.
-
-  paranoid   — block when unsure (identity required, fail-closed, full rules)
-  balanced   — product default (fail-closed, full rules, identity optional)
-  permissive — prefer availability (fail-open, core rules only, identity optional)
+  paranoid   — identity required, fail-closed, full rules + ZTA pack, own call-tree
+  zta        — production posture: identity+caps, ZTA allowlists, own call-tree
+  balanced   — product default / lab (fail-closed, full rules, identity optional)
+  permissive — prefer availability (fail-open, core rules only)
 
 Success is observed behavior under tests — not marketing names.
-Failures (context starvation, framing gaps) are first-class results we record.
 """
 from __future__ import annotations
 
@@ -16,12 +14,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
 
-from tracewall.policy.engine import DEFAULT_RULES_DIR, CompiledRule, PolicyEngine, _expand_placeholders, _match_uses_op
+from tracewall.policy.engine import (
+    DEFAULT_RULES_DIR,
+    ZTA_RULES_DIR,
+    CompiledRule,
+    PolicyEngine,
+    _expand_placeholders,
+)
 from tracewall.transports.mcp_proxy import ProxyConfig
 
-PROFILE_NAMES = ("paranoid", "balanced", "permissive")
+PROFILE_NAMES = ("paranoid", "zta", "balanced", "permissive")
 
-# Permissive loads only these rule file stems (basename without .yaml).
 _PERMISSIVE_STEMS = frozenset({"destructive_ops", "minja_memory"})
 
 
@@ -30,6 +33,9 @@ class Profile:
     name: str
     fail_closed: bool
     require_identity: bool
+    require_caps: bool
+    own_call_tree: bool
+    load_zta_pack: bool
     rule_stems: Optional[frozenset[str]]
     description: str
 
@@ -38,6 +44,7 @@ class Profile:
             default_agent_id=default_agent_id,
             fail_closed=self.fail_closed,
             profile=self.name,
+            own_call_tree=self.own_call_tree,
         )
 
 
@@ -46,20 +53,39 @@ PROFILES: dict[str, Profile] = {
         name="paranoid",
         fail_closed=True,
         require_identity=True,
+        require_caps=False,
+        own_call_tree=True,
+        load_zta_pack=True,
         rule_stems=None,
-        description="Fail closed; require registered identity; full policy pack.",
+        description="Fail closed; require identity; full pack + ZTA allowlists; proxy-owned call tree.",
+    ),
+    "zta": Profile(
+        name="zta",
+        fail_closed=True,
+        require_identity=True,
+        require_caps=True,
+        own_call_tree=True,
+        load_zta_pack=True,
+        rule_stems=None,
+        description="Prod ZTA: identity+caps; default-deny allowlists; proxy-owned call tree.",
     ),
     "balanced": Profile(
         name="balanced",
         fail_closed=True,
         require_identity=False,
+        require_caps=False,
+        own_call_tree=False,
+        load_zta_pack=False,
         rule_stems=None,
-        description="Fail closed; identity optional; full policy pack. Default.",
+        description="Fail closed; identity optional; lab full pack (no ZTA default-deny).",
     ),
     "permissive": Profile(
         name="permissive",
         fail_closed=False,
         require_identity=False,
+        require_caps=False,
+        own_call_tree=False,
+        load_zta_pack=False,
         rule_stems=_PERMISSIVE_STEMS,
         description="Fail open; identity optional; destructive+MINJA rules only.",
     ),
@@ -77,7 +103,7 @@ async def load_policy_for_profile(
     profile: Profile,
     rules_dir: str = DEFAULT_RULES_DIR,
 ) -> PolicyEngine:
-    """Load YAML rules according to the profile (full pack or permissive subset)."""
+    """Load YAML rules according to the profile (full pack ± ZTA ± permissive subset)."""
     import yaml
 
     engine = PolicyEngine()
@@ -90,13 +116,11 @@ async def load_policy_for_profile(
         if stems is not None and f.stem not in stems:
             continue
         try:
-            data = yaml.safe_load(f.read_text())
+            data = yaml.safe_load(f.read_text(encoding="utf-8"))
             if not isinstance(data, dict):
                 continue
             data = _expand_placeholders(data)
             match = data.get("match", {})
-            if _match_uses_op(match, "rate_exceeds"):
-                continue
             rule = CompiledRule(
                 rule_id=data.get("rule", f.stem),
                 surface=data.get("surface", "unknown"),
@@ -111,6 +135,31 @@ async def load_policy_for_profile(
             engine._by_tool.setdefault(rule.tool or "_any", []).append(rule)
         except Exception:
             continue
+
+    if profile.load_zta_pack:
+        zta = Path(ZTA_RULES_DIR)
+        if zta.exists():
+            for f in sorted(zta.glob("*.yaml")):
+                try:
+                    data = yaml.safe_load(f.read_text(encoding="utf-8"))
+                    if not isinstance(data, dict):
+                        continue
+                    data = _expand_placeholders(data)
+                    match = data.get("match", {})
+                    rule = CompiledRule(
+                        rule_id=data.get("rule", f.stem),
+                        surface=data.get("surface", "unknown"),
+                        on=data.get("on", "pre_tool_call"),
+                        tool=match.get("tool"),
+                        match=match,
+                        verdict=data.get("verdict", "BLOCK"),
+                        reason=data.get("reason", ""),
+                        severity=float(data.get("severity", 0.5)),
+                    )
+                    engine._rules.append(rule)
+                    engine._by_tool.setdefault(rule.tool or "_any", []).append(rule)
+                except Exception:
+                    continue
     return engine
 
 
@@ -135,5 +184,6 @@ async def build_firewall_for_profile(
         judge=SemanticJudge(),
         audit=sink,
         require_identity=prof.require_identity,
+        require_caps=prof.require_caps,
     )
     return fw, prof

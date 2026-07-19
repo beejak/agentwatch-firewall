@@ -1,38 +1,40 @@
 # HANDOFF — agentwatch-firewall (tracewall)
 
-Pick-up notes. **Last updated 2026-07-19.**
+Pick-up notes. **Last updated 2026-07-20.**
 
 ## Where things stand
 
 - Tracewall v1 core is shipped: enforcement pipeline, YAML policy pack, multi-hop
   taint ledger (live `check()` trust feedback), optional semantic tier, Python
-  guard + **MCP stdio proxy with profiles** (paranoid / balanced / permissive).
+  guard + **MCP stdio proxy with profiles** (zta / paranoid / balanced / permissive).
+- ZTA practicality: org allowlist default-deny pack, proxy-owned call trees,
+  `require_caps`, match-level `rate_exceeds`, audit `rule_id`/`args_hash`.
 - Observe-first discipline: [`docs/GOALS.md`](docs/GOALS.md),
   [`paper/EVIDENCE.md`](paper/EVIDENCE.md), [`docs/DETECTION.md`](docs/DETECTION.md).
-- Paper draft: [`paper/PAPER.md`](paper/PAPER.md) rewritten as **Tracewall** from EVIDENCE (G5).
-  `watchtower.tex` still stale IEEE port — do not submit as-is.
-- Tests (this machine): **85+ passed**, 1 skipped (`test_llm_judge` needs `LLM_API_KEY`).
-- CI: pytest + deterministic harness smoke + `mcp_brink`.
+- Paper draft: [`paper/PAPER.md`](paper/PAPER.md) / [`paper/tracewall.pdf`](paper/tracewall.pdf).
+  `watchtower.tex` still stale — do not submit as-is.
+- Tests: **105 passed** locally (1 skipped without `LLM_API_KEY` if run with llm).
 - Companion repo `agentwatch` = Paper 1 (observability). This repo = Paper 2 (enforcement).
 
 ## Done recently (do not re-do)
 
 | Item | Evidence |
 |------|----------|
-| P0 live-path fixes (ORG_DOMAIN, secret-reader aliases, ledger feedback, score polarity, `require_identity`) | commits `0321698`+; `test_p0_correctness.py` |
-| Default policy pack (paraphrases + egress + remote-exec) | held-out tier1 R=1.0 FPR=0; `corpus_v0.1_test_deterministic.json` |
-| MCP profiles + brink (success **and** expected limits) | `mcp_brink.json` 14/14; `test_mcp_profiles.py` |
-| AgentDojo firewall stress (`send_money` + `schedule_transaction` + bypass rows) | `adojo_stress.json` 7/7; `test_adojo_stress.py` |
-| Soft-block AgentDojo + latency + MCP Content-Length | EVIDENCE rows; `latency_check.json`; `mcp_framing.py` |
-| Cross-domain robustness (non-banking) | `robustness_stress.json` 14/14; `test_robustness_stress.py` |
-| Paper ELI5/TL;DR + typography + robustness section | `paper/tracewall.tex` / `PAPER.md` |
+| P0 live-path fixes | `test_p0_correctness.py` |
+| Default policy pack | held-out tier1 R=1.0 FPR=0 |
+| MCP profiles + brink | `mcp_brink.json` |
+| AgentDojo stress + soft-block + latency + CL framing | EVIDENCE |
+| Cross-domain robustness | `robustness_stress.json` 14/14 |
+| Paper ELI5/TL;DR | `paper/tracewall.tex` |
+| **ZTA practicality** (allowlists, own call-tree, require_caps, rate_exceeds, zta profile) | `test_zta_practical.py`; brink zta rows; `rules/zta/` |
 
 ## Still open
 
-1. **AgentDojo live expand** — soft-block `direct` 1×4 done. Next: workspace/travel suites.
-2. **Venue polish** — PDF has ELI5/TL;DR + robustness; still short of camera-ready related-work depth.
+1. **Signed workload identity** — ledger register ≠ IdP/SPIFFE continuous auth.
+2. **LangGraph / HTTP sidecar PEP** — make bypass harder than skipping in-process guard.
 3. **Close expected limits** — IBAN ZWSP normalize; case-insensitive tool aliases.
-4. Optional: LangGraph / HTTP sidecar; org allowlists vs attacker-IBAN probes.
+4. **Venue polish** — related work depth; camera-ready floats.
+5. Expand allowlists beyond email/http (upload destinations, channels).
 
 ## LLM setup (env-only)
 

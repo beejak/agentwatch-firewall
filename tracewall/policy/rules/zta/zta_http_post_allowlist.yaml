@@ -1,0 +1,11 @@
+# ZTA default-deny: HTTP POST host must be on the org allowlist (suffix match).
+rule: zta_http_post_host_allowlist
+surface: capability_abuse
+on: pre_tool_call
+match:
+  tool: http_post
+  all:
+    - arg.url: { host_not_in: ["${ORG_DOMAIN}"] }
+verdict: BLOCK
+reason: "default-deny: http_post host not in TRACEWALL_ORG_DOMAINS allowlist"
+severity: 0.85

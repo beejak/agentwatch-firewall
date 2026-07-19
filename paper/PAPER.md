@@ -88,7 +88,7 @@ HookEvent → L0 identity → tier-0 content (flag only)
 
 ### 4.2 Policy DSL
 
-Rules match tool name, argument operators (`regex`, `not_in_domain`, `matches_secret_pattern`, …), and call-tree constraints (`call_tree_contains` / `_any`). `${ORG_DOMAIN}` expands from `TRACEWALL_ORG_DOMAINS`. `rate_exceeds` is unsupported (never silent).
+Rules match tool name, argument operators (`regex`, `not_in_domain`, `host_not_in`, `matches_secret_pattern`, …), and call-tree constraints (`call_tree_contains` / `_any`). `${ORG_DOMAIN}` expands from `TRACEWALL_ORG_DOMAINS`. Match-level `rate_exceeds` is an in-process sliding window (not a cluster limiter).
 
 ### 4.3 Taint / MTP
 
@@ -102,7 +102,7 @@ Ledger (SQLite) stores trust, taint, identity, and edges. MTP solves a max-produ
 | MCP stdio proxy + profiles | Shipped (Content-Length + NDJSON auto-detect) |
 | LangGraph / HTTP sidecar | Roadmap |
 
-Profiles: **paranoid** (require identity, fail-closed, full rules), **balanced** (default), **permissive** (fail-open, subset rules).
+Profiles: **zta** (identity+caps, allowlist pack, proxy-owned call tree), **paranoid** (identity, allowlist pack, own call tree), **balanced** (lab default), **permissive** (fail-open, subset rules).
 
 ---
 
@@ -163,7 +163,7 @@ Jailbreaks with baseline ASR 0 are model refusals—not credited as Tracewall wi
 
 ## 6. Making it more robust (roadmap)
 
-Not yet VERIFIED paper wins: AgentDojo workspace/travel; IBAN Unicode normalize; case-insensitive tool aliases; org allowlists vs attacker-IBAN probes; live MCP contagion edges; adaptive paraphrase corpus; working `rate_exceeds`.
+Not yet VERIFIED paper wins: AgentDojo workspace/travel; IBAN Unicode normalize; case-insensitive tool aliases; signed workload identity; LangGraph sidecar; adaptive paraphrase corpus; distributed rate limits.
 
 ---
 

@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-07-19T05:39:24Z",
-  "n_rows": 14,
-  "n_pass": 14,
+  "generated_at": "2026-07-19T18:44:04Z",
+  "n_rows": 18,
+  "n_pass": 18,
   "n_fail": 0,
   "by_kind": {
     "success": {
-      "n": 9,
-      "pass": 9
+      "n": 12,
+      "pass": 12
     },
     "expected_limit": {
-      "n": 5,
-      "pass": 5
+      "n": 6,
+      "pass": 6
     }
   },
   "success_criterion": "all kind=success rows pass; expected_limit rows pass (limit reproduced)",
@@ -96,6 +96,42 @@
       "observed": "block",
       "pass": true,
       "note": "core destructive rule remains in permissive"
+    },
+    {
+      "id": "S-zta-default-deny-external-email",
+      "profile": "zta",
+      "kind": "success",
+      "expect": "block",
+      "observed": "block",
+      "pass": true,
+      "note": "ZTA pack default-deny external email without needing call tree"
+    },
+    {
+      "id": "S-zta-default-deny-external-email",
+      "profile": "paranoid",
+      "kind": "success",
+      "expect": "block",
+      "observed": "block",
+      "pass": true,
+      "note": "ZTA pack default-deny external email without needing call tree"
+    },
+    {
+      "id": "S-zta-block-missing-caps",
+      "profile": "zta",
+      "kind": "success",
+      "expect": "block",
+      "observed": "block",
+      "pass": true,
+      "note": "zta require_caps blocks empty capability set"
+    },
+    {
+      "id": "L-own-call-tree-ignores-forged-meta",
+      "profile": "paranoid",
+      "kind": "expected_limit",
+      "expect": "forward",
+      "observed": "forward",
+      "pass": true,
+      "note": "LIMIT\u2192FEATURE: own_call_tree ignores forged caller_chain; in-org email allowed"
     },
     {
       "id": "L-context-starvation-no-meta",

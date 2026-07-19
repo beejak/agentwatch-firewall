@@ -1,0 +1,12 @@
+# ZTA default-deny: external email recipients must be on the org allowlist.
+# Loaded by paranoid/zta profiles only (not balanced lab default).
+rule: zta_email_default_deny_external
+surface: capability_abuse
+on: pre_tool_call
+match:
+  tool: send_email
+  all:
+    - arg.to: { not_in_domain: ["${ORG_DOMAIN}"] }
+verdict: BLOCK
+reason: "default-deny: email recipient not in TRACEWALL_ORG_DOMAINS allowlist"
+severity: 0.85

@@ -44,11 +44,17 @@ Sources: [`LESSONS_LEARNED.md`](../LESSONS_LEARNED.md), [`HANDOFF.md`](../HANDOF
 
 | Claim | Status | Artifact |
 |-------|--------|----------|
-| Profiles paranoid / balanced / permissive exist and differ observably | VERIFIED | `transports/profiles.py`, `tests/test_mcp_profiles.py` |
-| Brink matrix: 9 success + 5 expected_limit rows all pass | VERIFIED | `eval/results/mcp_brink.json` (2026-07-19) |
-| Without `_meta`, secret→email may forward under high trust | VERIFIED (limit) | brink `L-context-starvation-no-meta` |
+| Profiles paranoid / zta / balanced / permissive exist and differ observably | VERIFIED | `transports/profiles.py`, `tests/test_mcp_profiles.py`, `tests/test_zta_practical.py` |
+| Brink matrix: success + expected_limit rows all pass | VERIFIED | `eval/results/mcp_brink.json` (2026-07-20; includes zta default-deny rows) |
+| Without `_meta`, secret→email may forward under high trust | VERIFIED (limit) | brink `L-context-starvation-no-meta` (**balanced** only) |
 | Permissive omits exfil rule pack | VERIFIED (limit) | brink `L-permissive-skips-exfil-pack` |
 | Content-Length MCP framing supported | VERIFIED | `mcp_framing.py` + proxy auto-detect NDJSON/CL; unit tests |
+| Proxy-owned call tree ignores forged `_meta.caller_chain` | VERIFIED | `session_chain.py`; brink `L-own-call-tree-ignores-forged-meta`; `test_zta_practical` |
+| ZTA default-deny email/http allowlists (`rules/zta/`) | VERIFIED | loaded by zta/paranoid; brink `S-zta-default-deny-external-email` |
+| `require_caps` empty set BLOCKs (zta) | VERIFIED | brink `S-zta-block-missing-caps`; `test_zta_practical` |
+| Working match-level `rate_exceeds` (in-process window) | VERIFIED | `policy/rate.py`; zta pack `zta_rate_send_money`; unit tests |
+| Working `rate_exceeds` operator (arg-level / distributed) | REFUTED | Arg-level form unsupported; not a cluster rate limiter |
+| Signed SPIFFE / workload identity as shipped | REFUTED | Ledger `IdentityCtx` is register-and-trust, not external IdP |
 
 ## AgentDojo
 
@@ -72,7 +78,7 @@ Sources: [`LESSONS_LEARNED.md`](../LESSONS_LEARNED.md), [`HANDOFF.md`](../HANDOF
 | Claim | Status | Artifact |
 |-------|--------|----------|
 | YAML rules load and BLOCK on match | VERIFIED | `policy/engine.py`, rules/*.yaml |
-| Working `rate_exceeds` operator | REFUTED | Stub / unsupported |
+| Working `rate_exceeds` operator | REFUTED → superseded 2026-07-20 | Stub removed; match-level in-process `RateBudget` is VERIFIED above; arg-level still unsupported |
 | `${ORG_DOMAIN}` org allowlist | CAVEATS | Expanded via `TRACEWALL_ORG_DOMAINS` (G1b) |
 
 ## Paper process rules (LESSONS)

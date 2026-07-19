@@ -8,7 +8,10 @@ framing is auto-detected from the first message on each direction.
 Forwards everything except ``tools/call``, which is screened:
 ALLOW → forward; BLOCK → MCP tool error (``isError: true``), never forward.
 
-    python -m tracewall.transports.mcp_proxy -- npx @modelcontextprotocol/server-filesystem /data
+When ``own_call_tree=True`` (zta/paranoid profiles), the proxy records tools it
+screened and ignores client-supplied ``caller_chain`` (anti-forge).
+
+    python -m tracewall.transports.mcp_proxy --profile zta -- <mcp-server-cmd>
 """
 from __future__ import annotations
 
@@ -16,7 +19,7 @@ import asyncio
 import json
 import logging
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from tracewall.core.firewall import Firewall
@@ -24,9 +27,9 @@ from tracewall.core.signal import HookEvent, Verdict
 from tracewall.transports.mcp_framing import (
     encode_cl_message,
     encode_ndjson_message,
-    read_message,
 )
 from tracewall.transports.python_guard import _ctx_get
+from tracewall.transports.session_chain import SessionCallTree
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +42,7 @@ class ProxyConfig:
     default_agent_id: str = "mcp-client"
     fail_closed: bool = True
     profile: str = "balanced"
+    own_call_tree: bool = False
 
 
 def _meta_ctx(params: dict) -> dict:
@@ -47,15 +51,26 @@ def _meta_ctx(params: dict) -> dict:
     return tw if isinstance(tw, dict) else {}
 
 
-def build_event_from_mcp(params: dict, cfg: ProxyConfig) -> HookEvent:
+def build_event_from_mcp(
+    params: dict,
+    cfg: ProxyConfig,
+    *,
+    call_tree: SessionCallTree | None = None,
+) -> HookEvent:
     ctx = _meta_ctx(params)
-    agent_id = _ctx_get(ctx, "agent_id") or cfg.default_agent_id
+    agent_id = str(_ctx_get(ctx, "agent_id") or cfg.default_agent_id)
+    session_id = str(_ctx_get(ctx, "session_id", "") or "")
+    if cfg.own_call_tree:
+        # Never trust client-supplied caller_chain in ZTA mode.
+        chain = call_tree.chain(session_id, agent_id) if call_tree is not None else []
+    else:
+        chain = list(_ctx_get(ctx, "caller_chain", []) or [])
     return HookEvent(
-        agent_id=str(agent_id),
+        agent_id=agent_id,
         tool=str(params.get("name", "")),
         args=dict(params.get("arguments") or {}),
-        caller_chain=list(_ctx_get(ctx, "caller_chain", []) or []),
-        session_id=str(_ctx_get(ctx, "session_id", "") or ""),
+        caller_chain=chain,
+        session_id=session_id,
     )
 
 
@@ -74,12 +89,13 @@ async def screen_tool_call(
     firewall: Firewall,
     message: dict,
     cfg: ProxyConfig,
+    call_tree: SessionCallTree | None = None,
 ) -> Optional[dict]:
     if message.get("method") != TOOLS_CALL:
         return None
     params = message.get("params") or {}
     try:
-        event = build_event_from_mcp(params, cfg)
+        event = build_event_from_mcp(params, cfg, call_tree=call_tree)
     except Exception as e:
         if cfg.fail_closed:
             return _block_response(message.get("id"), f"malformed tool call: {e}")
@@ -88,6 +104,8 @@ async def screen_tool_call(
     verdict = await firewall.check(event)
     if verdict.action == Verdict.BLOCK:
         return _block_response(message.get("id"), verdict.reason)
+    if cfg.own_call_tree and call_tree is not None:
+        call_tree.record(event.session_id, event.tool, event.agent_id)
     return None
 
 
@@ -98,8 +116,6 @@ def _encode(obj: dict, framing: str) -> bytes:
 
 
 async def _read_with_mode(reader, mode_holder: dict, key: str) -> Optional[tuple[str, bytes]]:
-    """Read one message; set mode_holder[key] from first Content-Length peek."""
-    # Peek first line to detect framing without losing it — use a small buffer protocol.
     first = await reader.readline()
     if not first:
         return None
@@ -113,12 +129,18 @@ async def _read_with_mode(reader, mode_holder: dict, key: str) -> Optional[tuple
 
 
 class McpStdioProxy:
-    def __init__(self, firewall: Firewall, server_cmd: list[str],
-                 cfg: Optional[ProxyConfig] = None) -> None:
+    def __init__(
+        self,
+        firewall: Firewall,
+        server_cmd: list[str],
+        cfg: Optional[ProxyConfig] = None,
+        call_tree: SessionCallTree | None = None,
+    ) -> None:
         self._fw = firewall
         self._cmd = server_cmd
         self._cfg = cfg or ProxyConfig()
         self._modes: dict[str, str] = {"client": "ndjson", "server": "ndjson"}
+        self._call_tree = call_tree if call_tree is not None else SessionCallTree()
 
     async def run(self) -> int:
         proc = await asyncio.create_subprocess_exec(
@@ -145,7 +167,9 @@ class McpStdioProxy:
                     proc.stdin.write(_encode_raw_forward(raw, framing))
                     await proc.stdin.drain()
                     continue
-                blocked = await screen_tool_call(self._fw, message, self._cfg)
+                blocked = await screen_tool_call(
+                    self._fw, message, self._cfg, call_tree=self._call_tree,
+                )
                 if blocked is not None:
                     sys.stdout.buffer.write(_encode(blocked, self._modes["client"]))
                     sys.stdout.buffer.flush()
