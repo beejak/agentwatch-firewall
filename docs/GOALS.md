@@ -19,7 +19,7 @@ Library + MCP proxy that ALLOW/BLOCKs tool calls. Not a SaaS gateway, HITL appro
 | G0 | Tooling | Superpowers + `tracewall-paper` skill; this file exists | Skills missing | Skills load in Cursor |
 | G1 | Evidence ledger | [`paper/EVIDENCE.md`](../paper/EVIDENCE.md) rows for load-bearing claims | Abstract claim with no row | Open EVIDENCE |
 | G1b | Live-path correctness | P0 bugs fixed + pytest green | Silent no-op security rules | `pytest -q` + tests below |
-| G2 | Key-free security | Deterministic integrated recall **> 0.462** on held-out; FPR justified | Still ~1/13 tier1 + “secure by default” marketing | `python -m tracewall.eval.harness --split test` |
+| G2 | Key-free security | Deterministic integrated recall **> 0.462** on held-out; FPR justified | Still weak tier1 + marketing without numbers | `python -m tracewall.eval.harness --split test` → integrated R=1.0 FPR≈0.07 (2026-07-19); not adaptive/AgentDojo |
 | G3 | MCP productization | Profiles + fail_closed CLI + tests | Prose-only profiles | pytest + docs |
 | G4 | AgentDojo | ASR base vs defended + utility; non-empty | Unrun adapter as “result” | adapter CLI smoke |
 | G5 | Paper honesty | Tracewall draft matches EVIDENCE | WatchTower 17/17 / 0.011ms | Diff abstract vs EVIDENCE |

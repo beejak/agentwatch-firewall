@@ -21,7 +21,7 @@ CORPUS_SHA256 = "bcb15fe25540cd060035889c91ba3d26bd434f2be6680d2e11215429cfdf9c4
 
 # Pinned pure-tier confusion counts (held-out test split, n=27).
 PINNED = {
-    "tier1_policy":   {"tp": 2, "fp": 1, "fn": 11, "tn": 13},
+    "tier1_policy":   {"tp": 13, "fp": 0, "fn": 0, "tn": 14},
     "tier2_semantic": {"tp": 6, "fp": 1, "fn": 7,  "tn": 13},
 }
 

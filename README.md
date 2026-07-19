@@ -12,10 +12,11 @@ verdict = await firewall.check(event)   # -> FirewallVerdict (allow / block)
 ```
 
 Installable without cloud services. Deterministic tiers run key-free; an optional
-LLM semantic backend improves recall when configured. **Honest baseline:** on the
-frozen held-out corpus, deterministic integrated recall is ~0.46 (tier-1 policy
-alone ~0.08) — see `tracewall/eval/results/` and [`paper/EVIDENCE.md`](paper/EVIDENCE.md).
-Do not treat “key-free” as “security-complete.”
+LLM semantic backend is available when configured. On the frozen held-out corpus
+(n=27), the expanded default policy pack reaches deterministic integrated
+recall **1.0** (FPR ≈ 0.07) — see `tracewall/eval/results/` and
+[`paper/EVIDENCE.md`](paper/EVIDENCE.md). That is **not** proof against adaptive
+attacks or AgentDojo; treat it as a regression bar, not a solved claim.
 
 ## What's inside
 

@@ -7,6 +7,8 @@ match:
     - arg.command: { regex: "\\brm\\s+-rf\\b" }
     - arg.command: { regex: "\\bshred\\b" }
     - arg.command: { regex: "\\btruncate\\b.*--size\\s+0" }
+    - arg.command: { regex: "(?i)\\b(curl|wget)\\b[^\\n]{0,120}\\|\\s*(ba)?sh\\b" }
+    - arg.command: { regex: "(?i)\\|\\s*(ba)?sh\\s*$" }
 verdict: BLOCK
-reason: "destructive filesystem operation blocked"
+reason: "destructive or remote-exec shell operation blocked"
 severity: 0.95

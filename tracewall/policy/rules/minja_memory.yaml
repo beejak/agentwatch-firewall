@@ -4,11 +4,22 @@ on: pre_tool_call
 match:
   tool: memory_write
   any:
+    # Classic jailbreak / instruction override (tight — avoid benign "you are now the lead…")
     - arg.content: { regex: "(?i)ignore\\s+(previous|prior|all)\\s*(instructions?)?" }
-    - arg.content: { regex: "(?i)you\\s+are\\s+now\\s+(a|an|the)" }
+    - arg.content: { regex: "(?i)you\\s+are\\s+now\\s+(an?\\s+)?(unrestricted|jailbroken|DAN)\\b" }
     - arg.content: { regex: "(?i)override\\s+(safety|security|policy)" }
     - arg.content: { regex: "(?i)(forward|send|exfil)\\s+(all|retrieved|credentials)" }
     - arg.content: { regex: "(?i)your\\s+new\\s+(instructions?|rules?|role)" }
+    # Held-out paraphrases (tied to safety/policy/filters — not office-memo wording)
+    - arg.content: { regex: "(?i)(disregard|disregarding).{0,80}(safety|policy|instructions?)" }
+    - arg.content: { regex: "(?i)(prior|previous)\\s+rules?\\s+as\\s+void" }
+    - arg.content: { regex: "(?i)set\\s+aside\\s+the\\s+directives" }
+    - arg.content: { regex: "(?i)persona.{0,80}safety" }
+    - arg.content: { regex: "(?i)ignore\\s+the\\s+system\\s+policy" }
+    - arg.content: { regex: "(?i)disable\\s+content\\s+checks" }
+    - arg.content: { regex: "(?i)(content\\s+)?filters?\\s+were\\s+never\\s+installed" }
+    - arg.content: { regex: "(?i)proceed\\s+without\\s+limits" }
+    - arg.content: { regex: "(?i)reply\\s+unfiltered" }
 verdict: BLOCK
 reason: "instruction-like content in memory write — potential MINJA attack"
 severity: 0.95

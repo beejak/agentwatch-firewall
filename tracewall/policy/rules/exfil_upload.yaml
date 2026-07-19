@@ -1,0 +1,15 @@
+rule: block_upload_after_secret_read
+surface: capability_abuse
+on: pre_tool_call
+match:
+  tool: upload
+  context:
+    call_tree_contains_any:
+      - read_secret
+      - read_credentials
+      - get_secret
+      - read_env
+      - load_key
+verdict: BLOCK
+reason: "upload after secret-read in call tree"
+severity: 0.9
