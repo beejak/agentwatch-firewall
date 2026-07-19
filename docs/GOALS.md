@@ -23,10 +23,12 @@ Library + MCP proxy that ALLOW/BLOCKs tool calls. Not a SaaS gateway, HITL appro
 | G3 | MCP profiles | All `kind=success` rows in `mcp_brink.json` pass; profiles load; `--fail-closed`/`--fail-open` CLI work | Success-row fails, or profiles only in docs | `pytest tracewall/tests/test_mcp_profiles.py` + `python -m tracewall.eval.mcp_brink` (exit 0) |
 | G3-fail | MCP honesty | `expected_limit` rows **pass** (limit reproduced: no `_meta`, permissive skips exfil, tools/list unscanned) | We hide misses or claim profiles fix context starvation | Same brink JSON `by_kind.expected_limit` |
 | G4 | AgentDojo | ASR base vs defended + utility; non-empty | Unrun adapter as “result” | adapter CLI smoke |
+| G4b | Firewall stress (no LLM) | `adojo_stress` success rows pass; limits reproduced | Claim AgentDojo blocked without send_money rules | `python -m tracewall.eval.adojo_stress` / `pytest …test_adojo_stress` |
+| G4c | DeepSeek follow-through | Live probes with `--system benchmark` + bill-preserving raise ASR above vanilla 0/0 when model complies | Treat refusal-as-defense as Tracewall win | `python -m tracewall.eval.adojo_stress --live` |
 | G5 | Paper honesty | Tracewall draft matches EVIDENCE | WatchTower 17/17 / 0.011ms | Diff abstract vs EVIDENCE |
 | G6 | Venue | G4+G5 done; PDF floats verified | Submit on stale PDF | tectonic + page inspect |
 
-**Status snapshot (2026-07-19):** G0–G3 (+G3-fail) met on this machine. G4–G6 open.
+**Status snapshot (2026-07-19):** G0–G3 (+G3-fail) met; G4b firewall stress shipped. G4/G4c depend on live DeepSeek probes. G5–G6 open.
 
 ## P0 correctness (G1b) — named checks
 

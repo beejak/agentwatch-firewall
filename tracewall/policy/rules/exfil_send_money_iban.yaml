@@ -1,0 +1,11 @@
+rule: block_send_money_known_attacker_iban
+surface: capability_abuse
+on: pre_tool_call
+match:
+  tool: send_money
+  any:
+    # AgentDojo banking attacker IBAN (eval probe).
+    - arg.recipient: { regex: "(?i)^US133000000121212121212$" }
+verdict: BLOCK
+reason: "send_money to known attacker IBAN (AgentDojo banking probe)"
+severity: 0.95

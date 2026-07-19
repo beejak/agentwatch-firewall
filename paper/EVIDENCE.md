@@ -55,7 +55,11 @@ Sources: [`LESSONS_LEARNED.md`](../LESSONS_LEARNED.md), [`HANDOFF.md`](../HANDOF
 | Claim | Status | Artifact |
 |-------|--------|----------|
 | Adapter code + pure unit tests | VERIFIED | `eval/adapters/agentdojo.py`, `test_agentdojo_adapter.py` |
-| Live ASR/utility base vs defended | UNVERIFIED | HANDOFF — needs `[bench,llm]` + key |
+| Live ASR/utility base vs defended (vanilla important_instructions) | CAVEATS | DeepSeek clean utility=True; under injection often ASR≈0 utility≈0 (refusals / wiped bill) — not a Tracewall measurement |
+| Firewall-only AgentDojo-shaped banking chains (send_money attacker IBAN) | VERIFIED | `eval/adojo_stress.py` → `eval/results/adojo_stress.json`; `test_adojo_stress.py` |
+| Known bypasses tracked (ZWSP IBAN, tool case, schedule_transaction) | VERIFIED (limit) | same JSON `expected_limit` rows (deterministic semantic off) |
+| Live DeepSeek bill-preserving + benchmark system (n=1 pair) | VERIFIED (slice) | `adojo_stress.json` live[] 2026-07-19: **direct** base ASR=1.0 util=1.0 → defended ASR=0.0 util=1.0; important_instructions & ignore_previous ASR=0 util=1 both arms (model refuse attack, still pays bill) |
+| Live ASR/utility base vs defended (full suite) | UNVERIFIED | Expand beyond user_task_0×injection_task_0 |
 
 ## Policy DSL
 

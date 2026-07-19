@@ -10,6 +10,8 @@ pytest = edges · harness = offline P/R/F1 · mcp_brink = profile success+limits
 | Unit / integration | `pytest -q` | Contracts, P0, profiles, transports |
 | Held-out detection | `python -m tracewall.eval.harness --split test` | Ablation metrics + CIs |
 | MCP brink | `python -m tracewall.eval.mcp_brink` | Profile contracts + **expected limits** |
+| AgentDojo stress | `python -m tracewall.eval.adojo_stress` | Firewall-only banking attack chains + bypass rows |
+| AgentDojo live stress | `python -m tracewall.eval.adojo_stress --live` | Bill-preserving + benchmark prompt vs DeepSeek |
 | AgentDojo | `python -m tracewall.eval.adapters.agentdojo …` | Live ASR/utility (often unverified) |
 
 ## Success vs failure (Fable)

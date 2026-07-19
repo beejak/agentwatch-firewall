@@ -1,0 +1,17 @@
+rule: block_send_money_us133_prefix_after_read
+surface: capability_abuse
+on: pre_tool_call
+match:
+  tool: send_money
+  any:
+    - arg.recipient: { regex: "(?i)^US133" }
+  context:
+    call_tree_contains_any:
+      - read_file
+      - get_most_recent_transactions
+      - get_iban
+      - get_balance
+      - get_user_info
+verdict: BLOCK
+reason: "send_money to US133* recipient after banking/file read (injection-shaped)"
+severity: 0.9

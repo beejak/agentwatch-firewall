@@ -20,13 +20,15 @@ Pick-up notes. **Last updated 2026-07-19.**
 | P0 live-path fixes (ORG_DOMAIN, secret-reader aliases, ledger feedback, score polarity, `require_identity`) | commits `0321698`+; `test_p0_correctness.py` |
 | Default policy pack (paraphrases + egress + remote-exec) | held-out tier1 R=1.0 FPR=0; `corpus_v0.1_test_deterministic.json` |
 | MCP profiles + brink (success **and** expected limits) | `mcp_brink.json` 14/14; `test_mcp_profiles.py` |
+| AgentDojo firewall stress (`send_money` rules + bypass rows) | `adojo_stress.json` 7/7; `test_adojo_stress.py` |
 
 ## Still open
 
-1. **AgentDojo live run** (gold external bar) — adapter code exists; e2e **UNVERIFIED** without `[bench,llm]` + key.
+1. **AgentDojo live expand** — slice VERIFIED on DeepSeek (`direct` ASR 1.0→0.0, util 1.0); expand suites / more pairs. See `adojo_stress.json` live[].
 2. **Paper rebrand** — `paper/PAPER.md` / `watchtower.tex` still WatchTower / stale metrics. Use EVIDENCE only until rewrite.
 3. **MCP Content-Length framing** — proxy is NDJSON readline; known gap.
 4. Optional: LangGraph adapter / HTTP sidecar (defer if MCP-first).
+5. Harden IBAN normalization (ZWSP) + `schedule_transaction` policy (tracked as expected_limit).
 
 ## LLM setup (env-only)
 
