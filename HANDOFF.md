@@ -9,7 +9,9 @@ Pick-up notes. **Last updated 2026-07-19.**
   guard + **MCP stdio proxy with profiles** (paranoid / balanced / permissive).
 - Observe-first discipline: [`docs/GOALS.md`](docs/GOALS.md),
   [`paper/EVIDENCE.md`](paper/EVIDENCE.md), [`docs/DETECTION.md`](docs/DETECTION.md).
-- Tests (this machine): **83 passed, 1 skipped** (`test_llm_judge` needs `LLM_API_KEY`).
+- Paper draft: [`paper/PAPER.md`](paper/PAPER.md) rewritten as **Tracewall** from EVIDENCE (G5).
+  `watchtower.tex` still stale IEEE port — do not submit as-is.
+- Tests (this machine): **85+ passed**, 1 skipped (`test_llm_judge` needs `LLM_API_KEY`).
 - CI: pytest + deterministic harness smoke + `mcp_brink`.
 - Companion repo `agentwatch` = Paper 1 (observability). This repo = Paper 2 (enforcement).
 
@@ -24,10 +26,10 @@ Pick-up notes. **Last updated 2026-07-19.**
 
 ## Still open
 
-1. **AgentDojo live expand** — slice VERIFIED on DeepSeek (`direct` ASR 1.0→0.0, util 1.0); expand suites / more pairs. See `adojo_stress.json` live[].
-2. **Paper rebrand** — `paper/PAPER.md` / `watchtower.tex` still WatchTower / stale metrics. Use EVIDENCE only until rewrite.
-3. **MCP Content-Length framing** — proxy is NDJSON readline; known gap.
-4. Optional: LangGraph adapter / HTTP sidecar (defer if MCP-first).
+1. **AgentDojo live expand** — banking `direct` 1×4 VERIFIED (ASR 1.0→0.0; util tax 1.0→0.25). More suites / softer abort policy optional.
+2. **Venue PDF** — port [`paper/PAPER.md`](paper/PAPER.md) into IEEE `.tex` when ready; do not submit stale `watchtower.tex`.
+3. **MCP Content-Length framing** — deferred until after paper data + expanded G4 (not blocking draft).
+4. Optional: LangGraph adapter / HTTP sidecar.
 5. Harden IBAN normalization (ZWSP) + `schedule_transaction` policy (tracked as expected_limit).
 
 ## LLM setup (env-only)

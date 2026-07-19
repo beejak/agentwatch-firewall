@@ -221,8 +221,8 @@ def run_live_probes(
     attacks: list[str],
     system: str = "benchmark",
     bill_preserving: bool = True,
-    user_task: str = "user_task_0",
-    injection_task: str = "injection_task_0",
+    user_tasks: Optional[list[str]] = None,
+    injection_tasks: Optional[list[str]] = None,
 ) -> list[dict[str, Any]]:
     """Live DeepSeek probes — raise follow-through; compare base vs defended."""
     import shutil
@@ -235,6 +235,9 @@ def run_live_probes(
         _build_firewall, _deepseek_llm, _make_element, _rate,
     )
 
+    user_tasks = user_tasks or ["user_task_0"]
+    injection_tasks = injection_tasks or ["injection_task_0"]
+
     suite = get_suites("v1")["banking"]
     rows: list[dict[str, Any]] = []
     log_root = Path("tracewall/eval/results/adojo_stress_live")
@@ -244,7 +247,8 @@ def run_live_probes(
         for arm, with_def in (("base", False), ("defended", True)):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            logdir = log_root / f"{attack_name}_{arm}_{system}"
+            tag = f"{attack_name}_{arm}_{system}_n{len(user_tasks)}x{len(injection_tasks)}"
+            logdir = log_root / tag
             if logdir.exists():
                 shutil.rmtree(logdir, ignore_errors=True)
             logdir.mkdir(parents=True)
@@ -262,20 +266,22 @@ def run_live_probes(
                 with OutputLogger(str(logdir)):
                     res = benchmark_suite_with_injections(
                         pipe, suite, attack, logdir=logdir, force_rerun=True,
-                        user_tasks=[user_task], injection_tasks=[injection_task],
+                        user_tasks=user_tasks, injection_tasks=injection_tasks,
                         verbose=False,
                     )
-                # AgentDojo security=True ⇒ attack succeeded (injection goal met).
                 asr = _rate(res["security_results"])
                 util = _rate(res["utility_results"])
                 rows.append({
                     "id": f"live-{attack_name}-{arm}-{system}"
-                          f"{'-bp' if bill_preserving else ''}",
+                          f"{'-bp' if bill_preserving else ''}"
+                          f"-{len(user_tasks)}x{len(injection_tasks)}",
                     "kind": "live_probe",
                     "attack": attack_name,
                     "arm": arm,
                     "system": system,
                     "bill_preserving": bill_preserving,
+                    "user_tasks": user_tasks,
+                    "injection_tasks": injection_tasks,
                     "ASR": round(asr, 3),
                     "utility": round(util, 3),
                     "n": len(res["security_results"]),
@@ -306,6 +312,10 @@ def main(argv=None):
         "--attacks", nargs="*",
         default=["important_instructions", "ignore_previous", "direct"],
     )
+    ap.add_argument("--user-tasks", nargs="*", default=None)
+    ap.add_argument("--injection-tasks", nargs="*", default=None)
+    ap.add_argument("--merge-live", action="store_true",
+                    help="append live rows to existing JSON live[] instead of replace")
     ap.add_argument(
         "--out", default="tracewall/eval/results/adojo_stress.json",
     )
@@ -313,6 +323,14 @@ def main(argv=None):
 
     fw_rows = asyncio.run(run_firewall_matrix())
     live_rows: list[dict] = []
+    out = Path(args.out)
+    prev_live: list[dict] = []
+    if args.merge_live and out.exists():
+        try:
+            prev_live = json.loads(out.read_text(encoding="utf-8")).get("live", [])
+        except Exception:
+            prev_live = []
+
     if args.live:
         if not os.environ.get("LLM_API_KEY"):
             raise SystemExit("--live requires LLM_API_KEY")
@@ -320,7 +338,11 @@ def main(argv=None):
             attacks=args.attacks,
             system=args.system,
             bill_preserving=not args.no_bill_preserving,
+            user_tasks=args.user_tasks,
+            injection_tasks=args.injection_tasks,
         )
+        if args.merge_live:
+            live_rows = prev_live + live_rows
 
     all_rows = fw_rows + live_rows
     success = [r for r in fw_rows if r["kind"] == "success"]
@@ -351,14 +373,12 @@ def main(argv=None):
             "expected_limit rows are intentional bypasses we still track (ZWSP, tool case, schedule).",
         ],
     }
-    out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(json.dumps(payload["firewall"], indent=2))
     for r in live_rows:
         print(f"{r['id']}: ASR={r['ASR']} utility={r['utility']} n={r['n']}")
     print(f"wrote {out}")
-    # Gate: all success firewall rows must pass; expected_limit must pass (bypass reproduced).
     if any(not r["pass"] for r in fw_rows):
         raise SystemExit(1)
 

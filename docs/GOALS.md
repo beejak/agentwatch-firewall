@@ -28,7 +28,7 @@ Library + MCP proxy that ALLOW/BLOCKs tool calls. Not a SaaS gateway, HITL appro
 | G5 | Paper honesty | Tracewall draft matches EVIDENCE | WatchTower 17/17 / 0.011ms | Diff abstract vs EVIDENCE |
 | G6 | Venue | G4+G5 done; PDF floats verified | Submit on stale PDF | tectonic + page inspect |
 
-**Status snapshot (2026-07-19):** G0–G3 (+G3-fail) met; G4b firewall stress shipped. G4/G4c depend on live DeepSeek probes. G5–G6 open.
+**Status snapshot (2026-07-19):** G0–G3 (+G3-fail) met; G4b + G4c slice met (`direct` ASR drop); G5 PAPER.md rewrite from EVIDENCE landed. Expand AgentDojo pairs + venue PDF still open. MCP Content-Length deferred.
 
 ## P0 correctness (G1b) — named checks
 

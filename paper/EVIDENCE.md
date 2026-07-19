@@ -59,7 +59,8 @@ Sources: [`LESSONS_LEARNED.md`](../LESSONS_LEARNED.md), [`HANDOFF.md`](../HANDOF
 | Firewall-only AgentDojo-shaped banking chains (send_money attacker IBAN) | VERIFIED | `eval/adojo_stress.py` → `eval/results/adojo_stress.json`; `test_adojo_stress.py` |
 | Known bypasses tracked (ZWSP IBAN, tool case, schedule_transaction) | VERIFIED (limit) | same JSON `expected_limit` rows (deterministic semantic off) |
 | Live DeepSeek bill-preserving + benchmark system (n=1 pair) | VERIFIED (slice) | `adojo_stress.json` live[] 2026-07-19: **direct** base ASR=1.0 util=1.0 → defended ASR=0.0 util=1.0; important_instructions & ignore_previous ASR=0 util=1 both arms (model refuse attack, still pays bill) |
-| Live ASR/utility base vs defended (full suite) | UNVERIFIED | Expand beyond user_task_0×injection_task_0 |
+| Live DeepSeek `direct` expand (user_task_0 × inj 0–3, n=4) | VERIFIED (slice) | base ASR=**1.0** util=**1.0** → defended ASR=**0.0** util=**0.25** (utility tax: only inj_1 kept user bill under defense; AbortAgentError may stop mid-task) |
+| Live ASR/utility base vs defended (full suite) | UNVERIFIED | Expand beyond banking user_task_0 / more suites |
 
 ## Policy DSL
 
