@@ -12,6 +12,8 @@ pytest = edges · harness = offline P/R/F1 · mcp_brink = profile success+limits
 | MCP brink | `python -m tracewall.eval.mcp_brink` | Profile contracts + **expected limits** |
 | AgentDojo stress | `python -m tracewall.eval.adojo_stress` | Firewall-only banking attack chains + bypass rows |
 | AgentDojo live stress | `python -m tracewall.eval.adojo_stress --live` | Bill-preserving + benchmark prompt vs DeepSeek |
+| Cross-domain robustness | `python -m tracewall.eval.robustness_stress` | Non-banking workspace/HTTP/contagion/host/identity + limits |
+| Latency | `python -m tracewall.eval.latency` | Full `Firewall.check` microbenchmark |
 | AgentDojo | `python -m tracewall.eval.adapters.agentdojo …` | Live ASR/utility (often unverified) |
 
 ## Success vs failure (Fable)
@@ -35,6 +37,21 @@ pytest = edges · harness = offline P/R/F1 · mcp_brink = profile success+limits
 10. Benign utility (FP tax)  
 11. Paraphrase / adaptive (future; don’t overclaim)  
 12. Audit + fail-safe on crash  
+13. **Workspace / Slack-shaped egress** (`send_message` after secret)  
+14. **HTTP / upload exfil** (`http_post`, `upload`)  
+15. **Host write paths** (destructive / path abuse)  
+16. **Tool-name alias gaps** (PascalCase, unknown tools — expected_limit)  
+17. **Schedule / delayed money** (`schedule_transaction`)  
+18. Soft-block vs abort (AgentDojo utility tax)  
+
+## Roadmap stress (not yet VERIFIED)
+
+- AgentDojo **workspace** and **travel** suites (live + firewall-only shapes)
+- IBAN Unicode / ZWSP **normalization** (close current expected_limit)
+- Case-insensitive tool matching / alias table
+- Org allowlists instead of attacker-IBAN probes
+- Adaptive paraphrase corpus (don’t claim until measured)
+- Working `rate_exceeds` (or remove from DSL docs)
 
 ## Edge checklist
 

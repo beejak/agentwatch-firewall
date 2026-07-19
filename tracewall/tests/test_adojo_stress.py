@@ -17,9 +17,9 @@ async def test_firewall_stress_matrix_all_pass():
     assert by_id["S-block-attacker-iban-no-chain"]["pass"]
     assert by_id["S-block-exfil-email-after-secret"]["pass"]
     # Limits must reproduce (bypass still open).
+    assert by_id["S-block-schedule-attacker"]["pass"]
     assert by_id["L-zwsp-in-recipient"]["pass"]
     assert by_id["L-wrong-tool-name-case"]["pass"]
-    assert by_id["L-attacker-via-schedule"]["pass"]
     assert all(r["pass"] for r in rows), rows
 
 

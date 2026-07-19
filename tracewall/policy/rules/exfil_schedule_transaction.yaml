@@ -1,0 +1,10 @@
+rule: block_schedule_known_attacker_iban
+surface: capability_abuse
+on: pre_tool_call
+match:
+  tool: schedule_transaction
+  any:
+    - arg.recipient: { regex: "(?i)^US133000000121212121212$" }
+verdict: BLOCK
+reason: "schedule_transaction to known attacker IBAN (AgentDojo banking probe)"
+severity: 0.95

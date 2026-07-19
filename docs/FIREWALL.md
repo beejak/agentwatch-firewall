@@ -188,7 +188,10 @@ Shipped packs: MINJA memory, destructive/remote-exec bash, exfil email/http/mess
 |------|---------|----------------|
 | Held-out ablation | `python -m tracewall.eval.harness --split test` | Detection P/R/F1 on frozen corpus |
 | MCP brink | `python -m tracewall.eval.mcp_brink` | Profile success **and** expected limits |
-| AgentDojo | `python -m tracewall.eval.adapters.agentdojo …` | Live ASR/utility (needs key; often UNVERIFIED) |
+| AgentDojo stress | `python -m tracewall.eval.adojo_stress` | Firewall-only banking chains + limits |
+| Cross-domain robustness | `python -m tracewall.eval.robustness_stress` | Workspace/HTTP/contagion/host/identity |
+| Latency | `python -m tracewall.eval.latency` | Full `Firewall.check` microbenchmark |
+| AgentDojo live | `python -m tracewall.eval.adapters.agentdojo …` | Live ASR/utility (needs key; often UNVERIFIED) |
 | Unit gate | `pytest -q` | Contracts / regressions |
 
 Held-out deterministic snapshot (post policy pack): tier1 recall **1.0** / FPR **0**;

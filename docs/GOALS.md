@@ -9,7 +9,7 @@ Library + MCP proxy that ALLOW/BLOCKs tool calls. Not a SaaS gateway, HITL appro
 | Use site | Status |
 |----------|--------|
 | Python `Firewall.check` / `guard` | Shipped |
-| MCP stdio proxy | Shipped (NDJSON; framing gaps known) |
+| MCP stdio proxy | Shipped (Content-Length + NDJSON auto-detect) |
 | LangGraph / HTTP sidecar | Roadmap |
 
 ## Goals + success / failure
@@ -25,10 +25,11 @@ Library + MCP proxy that ALLOW/BLOCKs tool calls. Not a SaaS gateway, HITL appro
 | G4 | AgentDojo | ASR base vs defended + utility; non-empty | Unrun adapter as “result” | adapter CLI smoke |
 | G4b | Firewall stress (no LLM) | `adojo_stress` success rows pass; limits reproduced | Claim AgentDojo blocked without send_money rules | `python -m tracewall.eval.adojo_stress` / `pytest …test_adojo_stress` |
 | G4c | DeepSeek follow-through | Live probes with `--system benchmark` + bill-preserving raise ASR above vanilla 0/0 when model complies | Treat refusal-as-defense as Tracewall win | `python -m tracewall.eval.adojo_stress --live` |
+| G4d | Cross-domain robustness | `robustness_stress` success rows pass; limits reproduced | Banking-only story | `python -m tracewall.eval.robustness_stress` / pytest |
 | G5 | Paper honesty | Tracewall draft matches EVIDENCE | WatchTower 17/17 / 0.011ms | Diff abstract vs EVIDENCE |
 | G6 | Venue | G4+G5 done; PDF floats verified | Submit on stale PDF | tectonic + page inspect |
 
-**Status snapshot (2026-07-19):** G0–G3 (+G3-fail) met; G4b + G4c slice met (`direct` ASR drop); G5 PAPER.md rewrite from EVIDENCE landed. Expand AgentDojo pairs + venue PDF still open. MCP Content-Length deferred.
+**Status snapshot (2026-07-19):** G0–G3 (+G3-fail) met; G4b + G4c slice met (`direct` ASR drop); G4d robustness 14/14; G5 PAPER/tex with ELI5+TL;DR. Venue polish + closing expected limits still open.
 
 ## P0 correctness (G1b) — named checks
 

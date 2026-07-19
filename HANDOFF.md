@@ -22,14 +22,17 @@ Pick-up notes. **Last updated 2026-07-19.**
 | P0 live-path fixes (ORG_DOMAIN, secret-reader aliases, ledger feedback, score polarity, `require_identity`) | commits `0321698`+; `test_p0_correctness.py` |
 | Default policy pack (paraphrases + egress + remote-exec) | held-out tier1 R=1.0 FPR=0; `corpus_v0.1_test_deterministic.json` |
 | MCP profiles + brink (success **and** expected limits) | `mcp_brink.json` 14/14; `test_mcp_profiles.py` |
-| AgentDojo firewall stress (`send_money` rules + bypass rows) | `adojo_stress.json` 7/7; `test_adojo_stress.py` |
+| AgentDojo firewall stress (`send_money` + `schedule_transaction` + bypass rows) | `adojo_stress.json` 7/7; `test_adojo_stress.py` |
+| Soft-block AgentDojo + latency + MCP Content-Length | EVIDENCE rows; `latency_check.json`; `mcp_framing.py` |
+| Cross-domain robustness (non-banking) | `robustness_stress.json` 14/14; `test_robustness_stress.py` |
+| Paper ELI5/TL;DR + typography + robustness section | `paper/tracewall.tex` / `PAPER.md` |
 
 ## Still open
 
-1. **AgentDojo live expand** — soft-block `direct` 1×4: ASR 1.0→0.0, util 1.0. More suites optional.
-2. **Venue polish** — [`paper/tracewall.pdf`](paper/tracewall.pdf) thickened (arch figure, latency, soft-block). Still short of full venue polish (related work depth, camera-ready).
-3. **MCP Content-Length** — shipped (auto-detect + tests). Further hardening optional.
-4. Optional: LangGraph / HTTP sidecar; IBAN normalization / `schedule_transaction` rule.
+1. **AgentDojo live expand** — soft-block `direct` 1×4 done. Next: workspace/travel suites.
+2. **Venue polish** — PDF has ELI5/TL;DR + robustness; still short of camera-ready related-work depth.
+3. **Close expected limits** — IBAN ZWSP normalize; case-insensitive tool aliases.
+4. Optional: LangGraph / HTTP sidecar; org allowlists vs attacker-IBAN probes.
 
 ## LLM setup (env-only)
 
@@ -49,6 +52,8 @@ pip install -e ".[dev]"
 pytest -q
 python -m tracewall.eval.harness --split test
 python -m tracewall.eval.mcp_brink
+python -m tracewall.eval.robustness_stress
+python -m tracewall.eval.latency
 python examples/guard_demo.py
 python -m tracewall.transports.mcp_proxy --profile balanced -- <real-mcp-server-cmd>
 ```
@@ -57,16 +62,23 @@ AgentDojo (keyed machine):
 
 ```bash
 pip install -e ".[dev,bench,llm]"
+python -m tracewall.eval.adojo_stress --live
 python -m tracewall.eval.adapters.agentdojo --suite banking --arm both
 ```
 
+## Paper
+
+- Evidence → [`paper/EVIDENCE.md`](paper/EVIDENCE.md) only; never invent metrics in LaTeX first.
+- Build: `%TEMP%\tectonic-bin\tectonic.exe paper/tracewall.tex` (or `tectonic`).
+- Inspect PDF for rivers / overlapping floats — do not trust exit code alone.
+
 ## Roadmap (priority)
 
-1. AgentDojo ASR/utility (smoke one suite, then all) — append EVIDENCE.
-2. Paper rewrite from EVIDENCE (Tracewall brand; drop 17-case / 0.011ms).
-3. MCP framing / process hardening if adoption needs it.
+1. Close expected limits (IBAN ZWSP normalize; tool-name aliases).
+2. AgentDojo workspace/travel live slices — append EVIDENCE.
+3. Venue polish (related work depth; camera-ready floats).
 4. Keep taint as research moat; don’t delete it to “simplify.”
-5. Venue: IEEE S&P / USENIX when G4+G5 VERIFIED.
+5. Org allowlists for production (vs attacker-IBAN probes).
 
 ## Paper 2 reminder
 
