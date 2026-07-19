@@ -151,8 +151,8 @@ Agent / MCP client
   - CLI: `--profile`, `--fail-closed` / `--fail-open`
   - Optional `_meta.tracewall` (`agent_id`, `caller_chain`, `session_id`); without it, call-tree policies may miss (documented limit)
 
-**Network note:** current proxy is **NDJSON / readline** stdio. Full MCP
-`Content-Length` framing is a known gap (see brink / EVIDENCE).
+**Network note:** MCP proxy auto-detects **Content-Length** framing and legacy
+**NDJSON** readline (see `mcp_framing.py`).
 
 ---
 

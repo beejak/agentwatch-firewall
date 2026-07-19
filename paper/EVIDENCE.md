@@ -48,7 +48,7 @@ Sources: [`LESSONS_LEARNED.md`](../LESSONS_LEARNED.md), [`HANDOFF.md`](../HANDOF
 | Brink matrix: 9 success + 5 expected_limit rows all pass | VERIFIED | `eval/results/mcp_brink.json` (2026-07-19) |
 | Without `_meta`, secret→email may forward under high trust | VERIFIED (limit) | brink `L-context-starvation-no-meta` |
 | Permissive omits exfil rule pack | VERIFIED (limit) | brink `L-permissive-skips-exfil-pack` |
-| Content-Length MCP framing supported | UNVERIFIED / gap | NDJSON readline only |
+| Content-Length MCP framing supported | VERIFIED | `mcp_framing.py` + proxy auto-detect NDJSON/CL; unit tests |
 
 ## AgentDojo
 
@@ -59,7 +59,10 @@ Sources: [`LESSONS_LEARNED.md`](../LESSONS_LEARNED.md), [`HANDOFF.md`](../HANDOF
 | Firewall-only AgentDojo-shaped banking chains (send_money attacker IBAN) | VERIFIED | `eval/adojo_stress.py` → `eval/results/adojo_stress.json`; `test_adojo_stress.py` |
 | Known bypasses tracked (ZWSP IBAN, tool case, schedule_transaction) | VERIFIED (limit) | same JSON `expected_limit` rows (deterministic semantic off) |
 | Live DeepSeek bill-preserving + benchmark system (n=1 pair) | VERIFIED (slice) | `adojo_stress.json` live[] 2026-07-19: **direct** base ASR=1.0 util=1.0 → defended ASR=0.0 util=1.0; important_instructions & ignore_previous ASR=0 util=1 both arms (model refuse attack, still pays bill) |
-| Live DeepSeek `direct` expand (user_task_0 × inj 0–3, n=4) | VERIFIED (slice) | base ASR=**1.0** util=**1.0** → defended ASR=**0.0** util=**0.25** (utility tax: only inj_1 kept user bill under defense; AbortAgentError may stop mid-task) |
+| Live DeepSeek `direct` expand (user_task_0 × inj 0–3, n=4) | VERIFIED (slice) | abort-era: base ASR=**1.0** util=**1.0** → defended ASR=**0.0** util=**0.25**; **soft-block**: defended ASR=**0.0** util=**1.0** (2026-07-19) |
+| Soft-block defense (rewrite blocked tool → non-executing error) | VERIFIED | `adapters/agentdojo.py` `on_block=soft`; `test_agentdojo_soft_block.py` |
+| Full `Firewall.check` latency (deterministic, n=400) | VERIFIED | `eval/results/latency_check.json` — mean≈6.41ms, p99≈9.82ms (not vs GPU sentinel) |
+| MCP Content-Length framing | VERIFIED | `transports/mcp_framing.py` + proxy auto-detect; `test_mcp_framing.py` |
 | Live ASR/utility base vs defended (full suite) | UNVERIFIED | Expand beyond banking user_task_0 / more suites |
 
 ## Policy DSL

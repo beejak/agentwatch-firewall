@@ -26,11 +26,10 @@ Pick-up notes. **Last updated 2026-07-19.**
 
 ## Still open
 
-1. **AgentDojo live expand** — banking `direct` 1×4 VERIFIED (ASR 1.0→0.0; util tax 1.0→0.25). More suites / softer abort policy optional.
-2. **Venue PDF** — [`paper/tracewall.pdf`](paper/tracewall.pdf) from `tracewall.tex` (2 pp draft). Expand related work / figures before submit; do not use stale `watchtower.tex`.
-3. **MCP Content-Length framing** — deferred until after paper data + expanded G4 (not blocking draft).
-4. Optional: LangGraph adapter / HTTP sidecar.
-5. Harden IBAN normalization (ZWSP) + `schedule_transaction` policy (tracked as expected_limit).
+1. **AgentDojo live expand** — soft-block `direct` 1×4: ASR 1.0→0.0, util 1.0. More suites optional.
+2. **Venue polish** — [`paper/tracewall.pdf`](paper/tracewall.pdf) thickened (arch figure, latency, soft-block). Still short of full venue polish (related work depth, camera-ready).
+3. **MCP Content-Length** — shipped (auto-detect + tests). Further hardening optional.
+4. Optional: LangGraph / HTTP sidecar; IBAN normalization / `schedule_transaction` rule.
 
 ## LLM setup (env-only)
 

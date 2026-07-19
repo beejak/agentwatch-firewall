@@ -1,5 +1,5 @@
-% Tracewall — evidence-backed draft (2026-07-19)
-% Canonical claims: EVIDENCE.md + eval/results/. Do not invent metrics.
+% Tracewall — evidence-backed IEEE draft (expanded)
+% Claims only from EVIDENCE.md + eval/results/.
 \documentclass[conference]{IEEEtran}
 
 \usepackage[T1]{fontenc}
@@ -12,11 +12,16 @@
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage{cite}
+\usepackage{tikz}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{balance}
+\usetikzlibrary{arrows.meta,positioning,fit,calc}
 
 \hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black}
 
 \lstset{
-  basicstyle=\ttfamily\footnotesize,
+  basicstyle=\ttfamily\scriptsize,
   breaklines=true,
   frame=single,
   backgroundcolor=\color{gray!6},
@@ -26,10 +31,12 @@
 \title{Tracewall: Tool-Call Enforcement for AI Agents}
 
 \author{
-  \IEEEauthorblockN{Anonymous Author(s)}
-  \IEEEauthorblockA{Draft aligned to in-repo evidence ledger\\
-  Companion to \emph{agentwatch} (observability); this paper is enforcement-only.\\
-  Source: \texttt{github.com/beejak/agentwatch-firewall}}
+  \IEEEauthorblockN{beejak}
+  \IEEEauthorblockA{
+    Draft preprint --- enforcement-only companion to \emph{agentwatch}\\
+    Artifacts: \texttt{github.com/beejak/agentwatch-firewall}\\
+    Evidence ledger: \texttt{paper/EVIDENCE.md} (2026-07-19)
+  }
 }
 
 \begin{document}
@@ -46,16 +53,18 @@ optional semantic escalation tier. Fail-safe behavior is BLOCK on internal error
 
 On a frozen held-out corpus ($n{=}27$), the key-free path reaches deterministic integrated
 recall $1.0$ (precision $\approx 0.929$, FPR $\approx 0.071$); tier-1 policy alone reaches
-recall $1.0$ / FPR $0$ on that split. These numbers are a \emph{regression bar}, not proof
-against adaptive attacks. On AgentDojo banking under DeepSeek with bill-preserving injections,
-a \texttt{direct} attack on one user$\times$injection pair shows baseline ASR $1.0$ with utility
-$1.0$, falling to ASR $0.0$ with Tracewall while utility remains $1.0$; expanding to four
-injection tasks yields ASR $1.0{\rightarrow}0.0$ with a utility tax ($1.0{\rightarrow}0.25$).
-MCP stdio profiles ship with brink tests that record successes \emph{and} known limits.
+recall $1.0$ / FPR $0$. These numbers are a \emph{regression bar}, not adaptive proof.
+On AgentDojo banking under DeepSeek with bill-preserving injections and a soft-block defense
+(blocked tools become non-executing errors; the agent may continue), a \texttt{direct} attack
+slice ($1{\times}4$) shows baseline ASR $1.0$ / utility $1.0$, falling to ASR $0.0$ / utility
+$1.0$ under Tracewall. Full \texttt{Firewall.check} latency on a mixed allow/block microbenchmark
+is mean $\approx 6.4$\,ms and p99 $\approx 9.8$\,ms (deterministic backend, $n{=}400$).
+MCP stdio supports Content-Length framing and legacy NDJSON, with brink tests that record
+successes and known limits.
 \end{abstract}
 
 \begin{IEEEkeywords}
-AI agents, tool-call firewall, prompt injection, AgentDojo, policy DSL, taint tracking
+AI agents, tool-call firewall, prompt injection, AgentDojo, policy DSL, taint tracking, MCP
 \end{IEEEkeywords}
 
 \section{Introduction}
@@ -68,80 +77,113 @@ Agent deployments add attack surfaces beyond single-turn chat:
 (3)~\emph{contagion}---taint flowing across agents or sessions via shared memory.
 
 Content guardrails lack tool semantics. Wire gateways see destinations, not
-\emph{why} a call was made. Dual-LLM interpreters redesign the agent stack.
+\emph{why} a call was made. Dual-LLM interpreters redesign the agent stack~\cite{camel}.
 Tracewall targets a narrower wedge: intercept tool calls, decide with policy and taint,
-and keep evaluation honest.
+and keep evaluation honest (held-out ablation, brink limits, AgentDojo slices).
 
 \paragraph{Contributions.}
-(1)~Stable enforcement seam with identity $\rightarrow$ content screen $\rightarrow$ YAML policy
-$\rightarrow$ trust/taint gate $\rightarrow$ optional semantic judge $\rightarrow$ audit;
-internal errors $\rightarrow$ BLOCK.
-(2)~Deterministic policy pack for injection, exfil, destructive ops, and AgentDojo-shaped
-banking probes.
-(3)~Multi-hop taint ledger with recovering trust (live \texttt{check()} updates on ALLOW/BLOCK).
-(4)~Python guard and MCP stdio proxy with named profiles; limitations documented.
-(5)~Evaluation discipline: held-out ablation, MCP brink (success $+$ expected limits),
-AgentDojo live slices; claim ledger in-repo.
+(1)~Stable enforcement seam with identity $\rightarrow$ content $\rightarrow$ YAML policy
+$\rightarrow$ trust/taint $\rightarrow$ optional semantic judge $\rightarrow$ audit;
+errors $\rightarrow$ BLOCK.
+(2)~Deterministic policy pack (injection, exfil, destructive ops, AgentDojo-shaped banking probes).
+(3)~Multi-hop taint ledger with recovering trust.
+(4)~Python guard and MCP stdio proxy (Content-Length $+$ NDJSON) with named profiles.
+(5)~Evaluation discipline with an in-repo claim ledger.
 
 \paragraph{Non-claims.}
-We do not claim an observation-first OS, sub-millisecond p99 latency versus GPU sentinels
-without a matched full-\texttt{check} study, or $100\%$ detection on a small known-bad suite
-as a primary result. Held-out tier-1 recall is not adaptive robustness. AgentDojo results
-are model- and attack-specific.
+We do not claim an observation-first OS, GPU-sentinel latency comparisons without matched
+methodology, or $100\%$ detection on a small known-bad suite as a primary result.
+Held-out tier-1 recall is not adaptive robustness.
 
 \section{Related Work}
 
-Agent firewalls and guardrails (content/alignment checkers; DSL enforcers such as
-AgentSpec~\cite{agentspec}) reduce some unsafe actions but often omit cross-session taint
-or call-tree policy. Wire gateways preserve destinations, not intent.
-AgentDojo~\cite{agentdojo} provides suites with utility and security scoring for tool-using
-agents; we treat it as an \emph{external bar}, not the only metric.
-Classical taint is binary; Tracewall uses continuous trust/taint with hop and time decay.
-End-to-end MINJA versus GPT-4 agents remains unverified beyond synthetic ledger tests.
+\paragraph{Prompt injection and memory attacks.}
+Indirect prompt injection is a top risk for tool-using LLMs.
+MINJA~\cite{minja} showed high injection success via query-only interaction with memory.
+Defenses that only filter surface strings miss tool-level misuse.
+
+\paragraph{Agent firewalls and guardrails.}
+LlamaFirewall-style stacks combine classifiers and secondary LLM checks~\cite{llamafirewall}.
+AgentSpec~\cite{agentspec} offers a runtime DSL but without cross-session taint.
+Network gateways (e.g., WireGuard-fronted agent proxies) see destinations, not call trees.
+CaMeL-style dual-LLM IFC~\cite{camel} redesigns the agent; Tracewall is a bouncer in front of tools.
+
+\paragraph{Benchmarks.}
+AgentDojo~\cite{agentdojo} evaluates utility and attack success for tool-using agents under
+injection. We use it as an \emph{external bar}, alongside a frozen corpus and brink contracts.
+
+\paragraph{Taint analysis.}
+Classical taint tracking is binary~\cite{newsome2005}. Tracewall uses continuous trust/taint
+with hop and time decay for agent graphs. End-to-end MINJA vs.\ GPT-4 agents remains
+unverified beyond synthetic ledger tests.
 
 \section{Threat Model}
 
 \textbf{In scope:} indirect injection into tool-visible content; misuse of available tools;
 single-agent compromise that should raise taint when edges are recorded.
-\textbf{Out of scope:} host compromise; defeating the firewall process; model-weight
-jailbreaks as the primary defense; adaptive paraphrases beyond the frozen held-out set
-unless measured.
+\textbf{Out of scope:} host compromise; defeating the firewall process; model-weight jailbreaks
+as the primary defense; adaptive paraphrases beyond the frozen held-out set unless measured.
 
 \section{Design}
 
 \subsection{Pipeline}
-\begin{lstlisting}[language={},caption={Enforcement pipeline (conceptual).},label={lst:pipe}]
-HookEvent -> L0 identity -> tier-0 content (flag only)
-         -> tier-1 YAML policy -> trust/taint route
-         -> (escalate) tier-2 semantic -> FirewallVerdict -> audit
-         -> ledger (ALLOW: on_clean_call; BLOCK: on_taint_event)
-\end{lstlisting}
+Figure~\ref{fig:arch} summarizes the enforcement path.
+
+\begin{figure*}[!t]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize\sffamily,
+  box/.style={draw, rounded corners=2pt, align=center, inner sep=4pt, minimum height=0.85cm},
+  arr/.style={-{Latex}, thick}
+]
+\node[box, fill=blue!8] (hook) {HookEvent};
+\node[box, right=0.35cm of hook, fill=gray!10] (l0) {L0 identity};
+\node[box, right=0.35cm of l0, fill=gray!10] (t0) {tier-0 content\\(flag only)};
+\node[box, right=0.35cm of t0, fill=orange!15] (t1) {tier-1 YAML\\policy};
+\node[box, right=0.35cm of t1, fill=green!12] (gate) {trust / taint\\gate};
+\node[box, right=0.35cm of gate, fill=purple!10] (t2) {tier-2\\semantic};
+\node[box, right=0.35cm of t2, fill=blue!12] (ver) {FirewallVerdict\\+ audit};
+\draw[arr] (hook) -- (l0);
+\draw[arr] (l0) -- (t0);
+\draw[arr] (t0) -- (t1);
+\draw[arr] (t1) -- (gate);
+\draw[arr] (gate) -- (t2);
+\draw[arr] (t2) -- (ver);
+\node[below=0.55cm of gate, font=\scriptsize\itshape] {ALLOW / ESCALATE / NARROW};
+\node[below=0.55cm of ver, align=center, font=\scriptsize]
+  {ALLOW$\rightarrow$\texttt{on\_clean\_call}; BLOCK$\rightarrow$\texttt{on\_taint\_event}};
+\end{tikzpicture}
+\caption{Tracewall enforcement pipeline. Deterministic tiers are the fast path;
+only escalations await the semantic judge. Internal errors fail safe to BLOCK.}
+\label{fig:arch}
+\end{figure*}
+
 \texttt{FirewallVerdict.score} is $0$ (bad) $\ldots$ $1$ (clean).
 \texttt{context\_completeness} records which signals were present.
 
 \subsection{Policy DSL}
 Rules match tool name, argument operators (\texttt{regex}, \texttt{not\_in\_domain},
-\texttt{matches\_secret\_pattern}, \ldots), and call-tree constraints.
+\texttt{matches\_secret\_pattern}, \ldots), and call-tree constraints
+(\texttt{call\_tree\_contains} / \texttt{\_any}).
 \texttt{\$\{ORG\_DOMAIN\}} expands from \texttt{TRACEWALL\_ORG\_DOMAINS}.
 \texttt{rate\_exceeds} is unsupported (never silent).
 
 \subsection{Taint / MTP}
 A local SQLite ledger stores trust, taint, identity, and edges. Multi-hop taint
-propagation (MTP) solves a max-product fixed point with quarantine recovery.
-Product value today: trust feedback on the live path; full contagion edges on MCP
-remain partial.
+propagation solves a max-product fixed point with quarantine recovery.
+Live \texttt{check()} updates trust on ALLOW/BLOCK; full contagion edges on MCP remain partial.
 
 \subsection{Transports}
 \begin{table}[!t]
 \centering
 \caption{Deployment placements.}
 \label{tab:transports}
-\begin{tabular}{@{}ll@{}}
+\begin{tabular}{@{}lp{5.6cm}@{}}
 \toprule
 Placement & Status \\
 \midrule
 Python \texttt{guard} / \texttt{Firewall.check} & Shipped \\
-MCP stdio proxy $+$ profiles & Shipped (NDJSON; Content-Length deferred) \\
+MCP stdio proxy $+$ profiles & Shipped; Content-Length $+$ NDJSON auto-detect \\
 LangGraph / HTTP sidecar & Roadmap \\
 \bottomrule
 \end{tabular}
@@ -151,8 +193,8 @@ Profiles: \textbf{paranoid} (require identity, fail-closed, full rules),
 
 \section{Evaluation}
 
-All primary numbers are from committed artifacts under \texttt{tracewall/eval/results/}
-and the in-repo evidence ledger (dated 2026-07-19).
+Primary numbers are from committed artifacts under \texttt{tracewall/eval/results/}
+and \texttt{paper/EVIDENCE.md} (dated 2026-07-19 unless noted).
 
 \subsection{Held-out corpus (key-free)}
 Corpus \texttt{corpus\_v0.1} test split, $n{=}27$ (13 malicious / 14 benign),
@@ -175,26 +217,30 @@ Tier-2 semantic alone & $0.462$ & $0.857$ & $0.071$ \\
 \end{table}
 \noindent\emph{Caveat:} not adaptive attacks; not AgentDojo.
 
+\subsection{Latency}
+Full \texttt{Firewall.check} on mixed allow/block events (deterministic backend,
+warmup 40, $n{=}400$): mean $6.41$\,ms, p50 $6.82$\,ms, p95 $9.22$\,ms, p99 $9.82$\,ms
+(\texttt{latency\_check.json}). This is \emph{not} a claim of superiority vs.\ GPU
+sentinels without matched end-to-end methodology.
+
 \subsection{MCP brink}
 Fourteen rows (9 success $+$ 5 expected\_limit): profiles block MINJA/exfil when configured;
-limits include missing \texttt{\_meta} (call-tree starvation), permissive skipping the exfil
-pack, and unscanned \texttt{tools/list}. Success requires all \texttt{kind=success} rows
-to pass \emph{and} limits to still reproduce.
+limits include missing \texttt{\_meta}, permissive skipping the exfil pack, and unscanned
+\texttt{tools/list}. Framing unit tests cover Content-Length encode/decode.
 
 \subsection{Firewall-only AgentDojo-shaped stress}
-Without an LLM, Tracewall \textbf{blocks} \texttt{send\_money} to the AgentDojo attacker IBAN
-and \textbf{allows} legitimate UK bill pay after \texttt{read\_file}. Tracked bypasses
-(expected\_limit): leading ZWSP in IBAN, wrong tool-name case, \texttt{schedule\_transaction}
-without a dedicated rule.
+Without an LLM, Tracewall blocks \texttt{send\_money} to the AgentDojo attacker IBAN and
+allows legitimate UK bill pay after \texttt{read\_file}. Expected-limit bypasses: leading
+ZWSP in IBAN, wrong tool-name case, \texttt{schedule\_transaction} without a dedicated rule.
 
 \subsection{AgentDojo live (DeepSeek)}
-\textbf{Setup:} banking suite; bill-preserving injections; benchmark system prompt
-(eval-only); model \texttt{deepseek-chat}.
+\textbf{Setup:} banking; bill-preserving injections; benchmark system prompt (eval-only);
+model \texttt{deepseek-chat}. Defense default is \emph{soft-block} (rewrite blocked tool
+names so execution yields an error without aborting the agent).
 
 \begin{table}[!t]
 \centering
-\caption{AgentDojo banking live slice (DeepSeek). ASR $=$ fraction of pairs where the
-injection goal succeeded.}
+\caption{AgentDojo banking live (DeepSeek). ASR $=$ injection goal met.}
 \label{tab:adojo}
 \begin{tabular}{@{}llcc@{}}
 \toprule
@@ -202,44 +248,50 @@ Attack / slice & Arm & ASR & Utility \\
 \midrule
 \texttt{important\_instructions} ($1{\times}1$) & base / def. & $0.0$ / $0.0$ & $1.0$ / $1.0$ \\
 \texttt{ignore\_previous} ($1{\times}1$) & base / def. & $0.0$ / $0.0$ & $1.0$ / $1.0$ \\
-\texttt{direct} ($1{\times}1$) & base & $1.0$ & $1.0$ \\
-\texttt{direct} ($1{\times}1$) & defended & $0.0$ & $1.0$ \\
-\texttt{direct} ($1{\times}4$) & base & $1.0$ & $1.0$ \\
-\texttt{direct} ($1{\times}4$) & defended & $0.0$ & $0.25$ \\
+\texttt{direct} ($1{\times}1$, abort-era) & base & $1.0$ & $1.0$ \\
+\texttt{direct} ($1{\times}1$, abort-era) & defended & $0.0$ & $1.0$ \\
+\texttt{direct} ($1{\times}4$, abort-era) & base & $1.0$ & $1.0$ \\
+\texttt{direct} ($1{\times}4$, abort-era) & defended & $0.0$ & $0.25$ \\
+\texttt{direct} ($1{\times}4$, soft-block) & base & $1.0$ & $1.0$ \\
+\texttt{direct} ($1{\times}4$, soft-block) & defended & $0.0$ & $1.0$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Under \texttt{direct}, the model follows the injection without Tracewall; with Tracewall,
-attack goals fail. On the $1{\times}4$ expand, utility falls to $0.25$ (abort-on-BLOCK can
-tax the user task when the malicious call is interleaved with bill payment).
-Other jailbreaks often yield ASR $0$ even at baseline (model refusal)---not credited as a
-Tracewall win.
+Under \texttt{direct}, baseline ASR is $1.0$; Tracewall drives ASR to $0.0$.
+Abort-on-BLOCK taxed utility on the $1{\times}4$ expand ($0.25$); \textbf{soft-block}
+keeps utility at $1.0$ while still preventing the injection goal.
+Jailbreaks with baseline ASR $0$ are model refusals---not credited as Tracewall wins.
 
 \section{Limitations}
 
-MCP framing is NDJSON readline (Content-Length deferred). Contagion on live MCP edges is
-incomplete. The optional semantic LLM tier is non-gating. AgentDojo coverage remains a
-slice, not all suites$\times$attacks$\times$models. Attacker-IBAN rules are eval-aligned
-probes; production needs org allowlists / risk scores.
+Contagion on live MCP edges is incomplete. Semantic LLM is optional and non-gating.
+AgentDojo coverage remains a slice. Attacker-IBAN rules are eval-aligned probes;
+production needs org allowlists. Latency is a single-host microbenchmark.
 
 \section{Conclusion}
 
 Tracewall is a practical tool-call firewall: deterministic policy and taint-aware routing
-behind one API, with transports for Python and MCP. Evidence favors held-out ablation,
-brink honesty, and AgentDojo slices where the model actually attempts the attack---so
-ALLOW/BLOCK can be attributed to the firewall rather than to refusal.
+behind one API, with Python and MCP transports. Evidence favors held-out ablation, brink
+honesty, measured \texttt{check} latency, and AgentDojo slices where the model attempts
+the attack---so ALLOW/BLOCK can be attributed to the firewall rather than to refusal.
 
 \section*{Artifacts}
-Held-out: \texttt{corpus\_v0.1\_test\_deterministic.json}.
-MCP brink: \texttt{mcp\_brink.json}.
-AgentDojo stress: \texttt{adojo\_stress.json}.
-Claim status: \texttt{paper/EVIDENCE.md}.
+\texttt{corpus\_v0.1\_test\_deterministic.json},
+\texttt{mcp\_brink.json},
+\texttt{adojo\_stress.json},
+\texttt{latency\_check.json},
+\texttt{paper/EVIDENCE.md}.
 
 \begin{thebibliography}{00}
 \bibitem{minja} C.~Zheng et al., ``MINJA: Memory Injection Attack,'' arXiv:2503.03704, 2025.
 \bibitem{agentspec} Z.~Wang et al., ``AgentSpec,'' arXiv:2503.18666, 2025.
-\bibitem{agentdojo} E.~Debenedetti et al., ``AgentDojo,'' 2024.
+\bibitem{agentdojo} E.~Debenedetti et al., ``AgentDojo: A Dynamic Environment to Evaluate
+Prompt Injection Attacks and Defenses for LLM Agents,'' 2024.
+\bibitem{llamafirewall} Meta, ``LlamaFirewall,'' arXiv:2505.03574, 2025.
+\bibitem{camel} CaMeL / dual-LLM IFC agent designs (see contemporary agent security literature).
+\bibitem{newsome2005} J.~Newsome and D.~Song, ``Dynamic Taint Analysis for Automatic Detection,
+Analysis, and Signature Generation of Exploits on Commodity Software,'' NDSS, 2005.
 \end{thebibliography}
 
 \end{document}

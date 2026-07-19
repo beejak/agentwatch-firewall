@@ -41,18 +41,27 @@ def _build_firewall(loop: asyncio.AbstractEventLoop):
     return Firewall(ledger=ledger, policy=policy, judge=SemanticJudge(), audit=NullAuditSink())
 
 
-def _make_element(firewall, loop):
+def _make_element(firewall, loop, on_block: str = "soft"):
+    """Build the AgentDojo pipeline defense element.
+
+    on_block:
+      soft  — replace BLOCKed tool names so ToolsExecutor returns an error
+              without mutating the env (agent may continue and finish utility).
+      abort — raise AbortAgentError (classic AgentDojo defense; utility tax).
+    """
     from agentdojo.agent_pipeline import BasePipelineElement
     from agentdojo.agent_pipeline.errors import AbortAgentError
+    from agentdojo.functions_runtime import FunctionCall
     from tracewall.core.signal import HookEvent, Verdict
 
     class TracewallPipelineElement(BasePipelineElement):
-        """Screens assistant tool calls; aborts on a BLOCK verdict."""
+        """Screens assistant tool calls; soft-block or abort on BLOCK."""
 
-        def __init__(self, fw, loop, agent_id="agentdojo-agent"):
+        def __init__(self, fw, loop, agent_id="agentdojo-agent", on_block="soft"):
             self._fw = fw
             self._loop = loop
             self._agent_id = agent_id
+            self._on_block = on_block
 
         def query(self, query, runtime, env=None, messages=(), extra_args=None):
             extra_args = dict(extra_args or {})
@@ -61,17 +70,31 @@ def _make_element(firewall, loop):
                 tool_calls = messages[-1].get("tool_calls") or []
                 prior = [m.get("tool_calls") for m in messages if m.get("role") == "assistant"]
                 chain = [c.function for tcs in prior if tcs for c in tcs]
+                rewritten = []
                 for fc in tool_calls:
                     ev = HookEvent(agent_id=self._agent_id, tool=fc.function,
                                    args=dict(fc.args or {}), caller_chain=chain)
                     verdict = self._loop.run_until_complete(self._fw.check(ev))
                     if verdict.action == Verdict.BLOCK:
-                        raise AbortAgentError(
-                            f"tracewall blocked tool '{fc.function}': {verdict.reason}",
-                            messages, env)
+                        if self._on_block == "abort":
+                            raise AbortAgentError(
+                                f"tracewall blocked tool '{fc.function}': {verdict.reason}",
+                                messages, env)
+                        # Soft: invalid tool name → ToolsExecutor emits error, no side effect.
+                        rewritten.append(FunctionCall(
+                            function="__tracewall_blocked__",
+                            args={"original": fc.function, "reason": verdict.reason or "blocked"},
+                            id=fc.id,
+                        ))
+                    else:
+                        rewritten.append(fc)
+                if rewritten != list(tool_calls):
+                    last = dict(messages[-1])
+                    last["tool_calls"] = rewritten
+                    messages[-1] = last
             return query, runtime, env, messages, extra_args
 
-    return TracewallPipelineElement(firewall, loop)
+    return TracewallPipelineElement(firewall, loop, on_block=on_block)
 
 
 _DEFAULT_SYSTEM = (

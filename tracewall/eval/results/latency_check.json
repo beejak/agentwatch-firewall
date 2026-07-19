@@ -1,0 +1,15 @@
+{
+  "generated_at": "2026-07-19T17:52:49Z",
+  "n": 400,
+  "warmup": 40,
+  "semantic_backend": "deterministic",
+  "unit": "ms",
+  "mean": 6.4129,
+  "stdev": 1.9191,
+  "p50": 6.8193,
+  "p95": 9.2232,
+  "p99": 9.8232,
+  "min": 3.451,
+  "max": 14.8608,
+  "note": "Full Firewall.check on mixed allow/block HookEvents; not comparable to GPU sentinel e2e without matched methodology."
+}
