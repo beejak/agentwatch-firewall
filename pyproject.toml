@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tracewall"
-version = "0.1.0"
-description = "Standalone pluggable agent firewall — interception, identity, deterministic policy DSL, cross-session multi-hop taint propagation, and a semantic tier. Key-free and infra-free by default."
+version = "0.2.0"
+description = "Standalone pluggable agent firewall — interception, identity, deterministic policy DSL, cross-session multi-hop taint, semantic tier. Key-free by default."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
@@ -18,7 +18,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/beejak/agentwatch-firewall"
-Documentation = "https://github.com/beejak/agentwatch-firewall/blob/master/docs/FIREWALL.md"
+Documentation = "https://github.com/beejak/agentwatch-firewall/blob/master/docs/GETTING_STARTED.md"
 
 [project.optional-dependencies]
 llm = [

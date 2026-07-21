@@ -45,6 +45,8 @@ from tracewall.core.signal import (
     IdentityCtx,
     Verdict,
 )
+from tracewall.ops.metrics import Metrics
+from tracewall.policy.normalize import canonical_tool_name
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +70,7 @@ class Firewall:
         audit: Optional[AuditSink] = None,
         require_identity: bool = False,
         require_caps: bool = False,
+        metrics: Metrics | None = None,
     ) -> None:
         self._ledger = ledger
         self._policy = policy
@@ -76,6 +79,7 @@ class Firewall:
         self._audit = audit if audit is not None else LocalAuditSink()
         self._require_identity = require_identity
         self._require_caps = require_caps
+        self.metrics = metrics
 
     async def check(self, event: HookEvent) -> FirewallVerdict:
         t0 = time.perf_counter()
@@ -94,6 +98,15 @@ class Firewall:
                 f"internal error: {e}", completeness,
             )
         verdict.latency_ms = (time.perf_counter() - t0) * 1000
+        if self.metrics is not None:
+            try:
+                self.metrics.record(
+                    action=verdict.action.value,
+                    latency_ms=verdict.latency_ms,
+                    call_tree_empty=not bool(event.caller_chain),
+                )
+            except Exception as e:
+                logger.warning("tracewall: metrics record failed: %s", e)
         try:
             await self._audit.write(verdict, event)
         except Exception as e:
@@ -225,8 +238,10 @@ def _check_identity(
         )
     if require_caps and not identity.caps:
         return "capabilities required but identity.caps is empty"
-    if identity.caps and event.tool not in identity.caps:
-        return f"tool '{event.tool}' not in agent capabilities"
+    if identity.caps:
+        allowed = {canonical_tool_name(c) for c in identity.caps}
+        if canonical_tool_name(event.tool) not in allowed:
+            return f"tool '{event.tool}' not in agent capabilities"
     return None
 
 

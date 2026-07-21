@@ -21,6 +21,7 @@ from tracewall.policy.engine import (
     PolicyEngine,
     _expand_placeholders,
 )
+from tracewall.policy.normalize import canonical_tool_name
 from tracewall.transports.mcp_proxy import ProxyConfig
 
 PROFILE_NAMES = ("paranoid", "zta", "balanced", "permissive")
@@ -125,7 +126,7 @@ async def load_policy_for_profile(
                 rule_id=data.get("rule", f.stem),
                 surface=data.get("surface", "unknown"),
                 on=data.get("on", "pre_tool_call"),
-                tool=match.get("tool"),
+                tool=canonical_tool_name(match["tool"]) if match.get("tool") else None,
                 match=match,
                 verdict=data.get("verdict", "BLOCK"),
                 reason=data.get("reason", ""),
@@ -150,7 +151,7 @@ async def load_policy_for_profile(
                         rule_id=data.get("rule", f.stem),
                         surface=data.get("surface", "unknown"),
                         on=data.get("on", "pre_tool_call"),
-                        tool=match.get("tool"),
+                        tool=canonical_tool_name(match["tool"]) if match.get("tool") else None,
                         match=match,
                         verdict=data.get("verdict", "BLOCK"),
                         reason=data.get("reason", ""),

@@ -51,11 +51,15 @@ internal error → fail-safe **BLOCK**.
 
 ## Install & use
 
+**Operators:** start at [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)  
+(results: [`docs/RESULTS.md`](docs/RESULTS.md) · day-2: [`docs/RUNBOOK.md`](docs/RUNBOOK.md) · checklist: [`docs/ENTERPRISE.md`](docs/ENTERPRISE.md)).
+
 ```bash
 pip install -e ".[dev]"        # base + test deps (Python >=3.12)
 pytest -q                      # pure, infra-free, deterministic
-python -m tracewall.eval.harness --split test   # held-out eval
+python examples/zta_demo.py    # identity + default-deny + soft-block
 python examples/guard_demo.py
+python -m tracewall.ops.explain --profile zta --tool send_email --args '{"to":"x@evil.com","body":"hi"}'
 ```
 
 Org allowlist for email rules: `TRACEWALL_ORG_DOMAINS=acme.com,corp.com` (default
@@ -115,7 +119,11 @@ closing Unicode/alias bypasses. See [`HANDOFF.md`](HANDOFF.md).
 
 ## Doc map
 
+- **Start here:** [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)  
+- Results / ASR: [`docs/RESULTS.md`](docs/RESULTS.md)  
+- Runbook: [`docs/RUNBOOK.md`](docs/RUNBOOK.md)  
+- Enterprise checklist: [`docs/ENTERPRISE.md`](docs/ENTERPRISE.md)  
 - Architecture: [`docs/FIREWALL.md`](docs/FIREWALL.md)  
-- Goals (success **and** failure): [`docs/GOALS.md`](docs/GOALS.md)  
+- Security: [`SECURITY.md`](SECURITY.md) · Changelog: [`CHANGELOG.md`](CHANGELOG.md)  
 - Evidence ledger: [`paper/EVIDENCE.md`](paper/EVIDENCE.md)  
 - All docs: [`docs/README.md`](docs/README.md)

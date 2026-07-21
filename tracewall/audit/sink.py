@@ -50,6 +50,35 @@ class LocalAuditSink(AuditSink):
             logger.error("audit: write failed: %s", e)
 
 
+class StdoutAuditSink(AuditSink):
+    """Write one JSON object per line to stdout (SIEM / container friendly)."""
+
+    async def write(self, verdict: FirewallVerdict, event: Optional[HookEvent] = None) -> None:
+        record = verdict.model_dump(mode="json")
+        if event is not None:
+            record["event"] = {
+                "agent_id": event.agent_id,
+                "tool": event.tool,
+                "session_id": event.session_id,
+                "args_hash": verdict.args_hash,
+            }
+        print(json.dumps(record, sort_keys=True), flush=True)
+
+
+class TeeAuditSink(AuditSink):
+    """Fan-out to multiple sinks."""
+
+    def __init__(self, *sinks: AuditSink) -> None:
+        self._sinks = sinks
+
+    async def write(self, verdict: FirewallVerdict, event: Optional[HookEvent] = None) -> None:
+        for s in self._sinks:
+            try:
+                await s.write(verdict, event)
+            except Exception as e:
+                logger.error("audit: tee sink failed: %s", e)
+
+
 class NullAuditSink(AuditSink):
     """Discards everything — for tests / benchmarks that don't care about the trail."""
 

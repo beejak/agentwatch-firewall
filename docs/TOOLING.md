@@ -5,9 +5,17 @@
 Under [`.cursor/skills/`](../.cursor/skills/):
 
 - **tracewall-paper** — required before paper/metric edits (evidence → paper)
+- **tracewall-zta** — allowlists, own call-tree, caps, profiles
 - **Superpowers** copies: brainstorming, TDD, systematic-debugging, verification-before-completion, writing-plans, executing-plans, using-superpowers, dispatching-parallel-agents
 
 May need a **new Cursor chat** for skills to appear.
+
+## Operator entry points
+
+- [`docs/GETTING_STARTED.md`](GETTING_STARTED.md)
+- [`docs/RESULTS.md`](RESULTS.md)
+- [`docs/RUNBOOK.md`](RUNBOOK.md)
+- [`docs/ENTERPRISE.md`](ENTERPRISE.md)
 
 ## Goals / evidence
 

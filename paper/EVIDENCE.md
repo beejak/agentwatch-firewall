@@ -63,7 +63,12 @@ Sources: [`LESSONS_LEARNED.md`](../LESSONS_LEARNED.md), [`HANDOFF.md`](../HANDOF
 | Adapter code + pure unit tests | VERIFIED | `eval/adapters/agentdojo.py`, `test_agentdojo_adapter.py` |
 | Live ASR/utility base vs defended (vanilla important_instructions) | CAVEATS | DeepSeek clean utility=True; under injection often ASR≈0 utility≈0 (refusals / wiped bill) — not a Tracewall measurement |
 | Firewall-only AgentDojo-shaped banking chains (send_money + schedule_transaction attacker IBAN) | VERIFIED | `eval/adojo_stress.py` → `eval/results/adojo_stress.json`; `test_adojo_stress.py`; rule `exfil_schedule_transaction.yaml` |
-| Known bypasses tracked (ZWSP IBAN, tool case) | VERIFIED (limit) | same JSON `expected_limit` rows (deterministic semantic off); schedule_transaction promoted to success 2026-07-19 |
+| Known bypasses tracked (ZWSP IBAN, tool case) | REFUTED → closed 2026-07-21 | Normalize + canonical tool names; was expected_limit, now success in `adojo_stress` |
+| ZWSP/NFKC arg normalize + canonical tool names | VERIFIED | `policy/normalize.py`; `test_enterprise_ops.py`; adojo stress |
+| Soft-block product contract (`on_block=soft`) | VERIFIED | `python_guard.SoftBlockResult`; RUNBOOK |
+| Ops explain / health / reload | VERIFIED | `python -m tracewall.ops.explain|health|reload` |
+| In-process metrics snapshot | VERIFIED | `ops/metrics.py`; partial vs HTTP endpoint |
+| Operator docs (GETTING_STARTED/RESULTS/RUNBOOK) | VERIFIED | `docs/` |
 | Cross-domain robustness matrix (workspace/HTTP/contagion/host/identity; 14/14) | VERIFIED | `eval/robustness_stress.py` → `eval/results/robustness_stress.json`; `test_robustness_stress.py` |
 | Robustness expected limits (unknown tool, PascalCase alias) | VERIFIED (limit) | same JSON `L-unknown-tool-name`, `L-alias-tool-SendMessage` |
 | Live DeepSeek bill-preserving + benchmark system (n=1 pair) | VERIFIED (slice) | `adojo_stress.json` live[] 2026-07-19: **direct** base ASR=1.0 util=1.0 → defended ASR=0.0 util=1.0; important_instructions & ignore_previous ASR=0 util=1 both arms (model refuse attack, still pays bill) |

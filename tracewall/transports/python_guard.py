@@ -27,7 +27,8 @@ from __future__ import annotations
 import functools
 import inspect
 import logging
-from typing import Any, Awaitable, Callable, Optional, Union
+from dataclasses import dataclass
+from typing import Any, Awaitable, Callable, Literal, Optional, Union
 
 from tracewall.core.firewall import Firewall
 from tracewall.core.signal import FirewallVerdict, HookEvent, Verdict
@@ -47,6 +48,25 @@ class GuardBlocked(Exception):
     def __init__(self, verdict: FirewallVerdict) -> None:
         self.verdict = verdict
         super().__init__(f"tracewall BLOCK [{verdict.source}]: {verdict.reason}")
+
+
+@dataclass
+class SoftBlockResult:
+    """Product soft-block: do not execute the tool; return this to the agent loop.
+
+    ``message`` is the stable error string to surface as a tool error.
+    """
+
+    verdict: FirewallVerdict
+
+    @property
+    def message(self) -> str:
+        rid = f" rule_id={self.verdict.rule_id}" if self.verdict.rule_id else ""
+        return f"tracewall BLOCK [{self.verdict.source}]: {self.verdict.reason}{rid}"
+
+    @property
+    def blocked(self) -> bool:
+        return True
 
 
 def _ctx_get(ctx: Ctx, key: str, default=None):
@@ -86,19 +106,14 @@ async def guard(
     ctx: Ctx = None,
     *,
     fail_closed: bool = True,
-) -> FirewallVerdict:
-    """Check a single tool call. Returns the verdict on ALLOW; raises
-    :class:`GuardBlocked` on BLOCK.
+    on_block: Literal["raise", "soft"] = "raise",
+) -> FirewallVerdict | SoftBlockResult:
+    """Check a single tool call.
 
-    Parameters
-    ----------
-    firewall:    the :class:`~tracewall.core.firewall.Firewall` instance.
-    tool:        tool name being invoked.
-    args:        tool arguments (inspected by the policy / content tiers).
-    ctx:         agent context — dict or object exposing ``agent_id`` (required),
-                 and optionally ``caller_chain`` / ``session_id`` / ``call_site``.
-    fail_closed: when the transport cannot form a valid request, BLOCK (True,
-                 default) or allow (False).
+    On ALLOW: returns :class:`FirewallVerdict`.
+    On BLOCK:
+      - ``on_block="raise"`` (default) → raises :class:`GuardBlocked`
+      - ``on_block="soft"`` → returns :class:`SoftBlockResult` (do not execute tool)
     """
     try:
         event = _build_event(tool, args, ctx)
@@ -106,6 +121,8 @@ async def guard(
         agent_id = str(_ctx_get(ctx, "agent_id", "") or "")
         if fail_closed:
             verdict = _synthetic_block(tool, agent_id, f"transport could not reach firewall: {e}")
+            if on_block == "soft":
+                return SoftBlockResult(verdict)
             raise GuardBlocked(verdict) from e
         logger.warning("guard: fail-open on transport error: %s", e)
         return FirewallVerdict(
@@ -116,6 +133,8 @@ async def guard(
 
     verdict = await firewall.check(event)
     if verdict.action == Verdict.BLOCK:
+        if on_block == "soft":
+            return SoftBlockResult(verdict)
         raise GuardBlocked(verdict)
     return verdict
 

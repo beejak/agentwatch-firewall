@@ -17,12 +17,13 @@ from tracewall.transports.profiles import (
     build_firewall_for_profile,
     get_profile,
 )
-from tracewall.transports.python_guard import GuardBlocked, guard, guarded
+from tracewall.transports.python_guard import GuardBlocked, SoftBlockResult, guard, guarded
 
 __all__ = [
     "guard",
     "guarded",
     "GuardBlocked",
+    "SoftBlockResult",
     "screen_tool_call",
     "McpStdioProxy",
     "ProxyConfig",

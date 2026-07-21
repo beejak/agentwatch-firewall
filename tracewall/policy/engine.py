@@ -24,6 +24,7 @@ import yaml
 from pydantic import BaseModel
 
 from tracewall.core.signal import EnrichedEvent
+from tracewall.policy.normalize import canonical_tool_name, normalize_args
 from tracewall.policy.rate import RateBudget
 
 logger = logging.getLogger(__name__)
@@ -151,7 +152,7 @@ class PolicyEngine:
                         rule_id=data.get("rule", f.stem),
                         surface=data.get("surface", "unknown"),
                         on=data.get("on", "pre_tool_call"),
-                        tool=match.get("tool"),
+                        tool=canonical_tool_name(match["tool"]) if match.get("tool") else None,
                         match=match,
                         verdict=data.get("verdict", "BLOCK"),
                         reason=data.get("reason", ""),
@@ -183,11 +184,16 @@ class PolicyEngine:
         Evaluate all rules matching the tool. O(1) lookup + linear scan of matching rules.
         Returns first BLOCK match, or None if ALLOW.
         """
-        tool = event.event.tool
+        tool = canonical_tool_name(event.event.tool)
         candidates = self._by_tool.get(tool, []) + self._by_tool.get("_any", [])
 
+        # Work on a copy with normalized string args (ZWSP/NFKC) without mutating the event.
+        norm_event = event.model_copy(deep=True)
+        norm_event.event.args = normalize_args(event.event.args)
+        # Keep original tool on the wire event; matching uses canonical name via candidates.
+
         for rule in candidates:
-            if self._matches(rule, event):
+            if self._matches(rule, norm_event):
                 return RuleMatch(
                     rule_id=rule.rule_id,
                     verdict=rule.verdict,
@@ -252,7 +258,7 @@ class PolicyEngine:
         max_n = int(spec.get("max", 10))
         key_mode = str(spec.get("key", "agent_tool"))
         aid = event.event.agent_id
-        tool = event.event.tool
+        tool = canonical_tool_name(event.event.tool)
         if key_mode == "agent":
             key = f"agent:{aid}"
         elif key_mode == "tool":
