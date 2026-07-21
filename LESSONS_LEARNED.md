@@ -78,6 +78,20 @@ mistake) → *why*. Keep it terse and actionable.
 
 ## Session log (append per session; newest first)
 
+### 2026-07-21 — enterprise readiness cut (metrics HTTP, OTel JSONL, MCP PEP ref)
+- **Rule: ship the PEP proof as a runnable app, not a docstring.** → *Happened:*
+  `examples/reference_mcp.py` was print-only; replaced with `reference_mcp_app/` that
+  exercises `screen_tool_call` + optional real `mcp_proxy` subprocess.
+- **Rule: OTel “support” without OTLP must say so in the same sentence.** JSONL shaped
+  for Collector `filelog` is useful; calling it an “OTel exporter” without the gRPC
+  caveat is a support trap. Documented in RUNBOOK + SUPPORT.
+- **Rule: keep lab `balanced` vs prod `zta` pack split when expanding stress.** New
+  robustness rows (ZWSP, caps-empty) stay on balanced policy load unless testing ZTA.
+- **Rule: circular imports via package `__init__` re-exports.** `ops/__init__` must not
+  import `http_metrics` → transports → firewall while firewall imports `ops.metrics`.
+- Pytest key-free: **133 passed**, 1 skipped (LLM). Brink 18/18; robustness 18/18;
+  adojo firewall matrix green; live ASR unchanged (no `LLM_API_KEY` this session).
+
 ### 2026-07-19 — observe-first tooling + P0 live-path correctness
 - **Rule: expand policy placeholders or delete them — a literal `${ORG_DOMAIN}` is a silent allowlist bypass.** → *Happened:* exfil rule never matched real org domains; fixed via `TRACEWALL_ORG_DOMAINS` expansion at load.
 - **Rule: align vocabularies across policy / judge / corpus or deterministic recall lies.** → *Happened:* policy required only `read_secret` while corpus used `read_credentials`/`get_secret`/`read_env`; added `call_tree_contains_any`.

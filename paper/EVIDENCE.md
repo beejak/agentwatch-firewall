@@ -12,7 +12,7 @@ Sources: [`LESSONS_LEARNED.md`](../LESSONS_LEARNED.md), [`HANDOFF.md`](../HANDOF
 | Stable `await Firewall.check(event) → FirewallVerdict` | VERIFIED | `tracewall/core/firewall.py`, tests |
 | Pipeline: identity → content → policy → trust/taint → semantic → audit | VERIFIED | `docs/FIREWALL.md`, code |
 | Fail-safe: internal error → BLOCK | VERIFIED | `firewall.check` except path; KB tests |
-| Transports: Python guard + MCP stdio proxy | VERIFIED | `tracewall/transports/` |
+| Transports: Python guard + MCP stdio proxy + GuardedToolNode | VERIFIED | `tracewall/transports/` |
 | Hermes / graphify AST / ruflo BFT / ClickHouse / SPIFFE CA shipped | REFUTED | Not in `tracewall/` package |
 | Brand: WatchTower observation-first OS | REFUTED | Product is **tracewall** enforcement-only ([HANDOFF](../HANDOFF.md)) |
 
@@ -67,16 +67,21 @@ Sources: [`LESSONS_LEARNED.md`](../LESSONS_LEARNED.md), [`HANDOFF.md`](../HANDOF
 | ZWSP/NFKC arg normalize + canonical tool names | VERIFIED | `policy/normalize.py`; `test_enterprise_ops.py`; adojo stress |
 | Soft-block product contract (`on_block=soft`) | VERIFIED | `python_guard.SoftBlockResult`; RUNBOOK |
 | Ops explain / health / reload | VERIFIED | `python -m tracewall.ops.explain|health|reload` |
-| In-process metrics snapshot | VERIFIED | `ops/metrics.py`; partial vs HTTP endpoint |
-| Operator docs (GETTING_STARTED/RESULTS/RUNBOOK) | VERIFIED | `docs/` |
-| Cross-domain robustness matrix (workspace/HTTP/contagion/host/identity; 14/14) | VERIFIED | `eval/robustness_stress.py` → `eval/results/robustness_stress.json`; `test_robustness_stress.py` |
-| Robustness expected limits (unknown tool, PascalCase alias) | VERIFIED (limit) | same JSON `L-unknown-tool-name`, `L-alias-tool-SendMessage` |
+| In-process metrics snapshot | VERIFIED | `ops/metrics.py` |
+| HTTP `/metrics` Prometheus scrape (block/starve/p99) | VERIFIED | `ops/http_metrics.py`; `test_enterprise_ready.py` |
+| OTel-shaped audit JSONL (not OTLP/gRPC) | VERIFIED | `audit.sink.OTelJsonlAuditSink`; RUNBOOK limits |
+| Reference MCP PEP app (in-process + subprocess) | VERIFIED | `examples/reference_mcp_app/`; tests |
+| LangGraph-style `GuardedToolNode` (no langgraph dep) | VERIFIED | `transports/tool_node.py`; demo + tests |
+| Operator docs (GETTING_STARTED/RESULTS/RUNBOOK/ENTERPRISE) | VERIFIED | `docs/` |
+| Cross-domain robustness matrix (workspace/HTTP/contagion/host/identity; 18/18) | VERIFIED | `eval/robustness_stress.py` → `eval/results/robustness_stress.json` (2026-07-21); ZWSP + PascalCase = success; unknown tool = expected_limit |
+| Robustness expected limits (unknown tool / tools.list gap) | VERIFIED (limit) | same JSON `L-unknown-tool-name`, `L-tools-list-unscanned` |
+| Robustness expected limits (ZWSP, PascalCase alias) | REFUTED → closed 2026-07-21 | Promoted to success after normalize/canonical |
 | Live DeepSeek bill-preserving + benchmark system (n=1 pair) | VERIFIED (slice) | `adojo_stress.json` live[] 2026-07-19: **direct** base ASR=1.0 util=1.0 → defended ASR=0.0 util=1.0; important_instructions & ignore_previous ASR=0 util=1 both arms (model refuse attack, still pays bill) |
 | Live DeepSeek `direct` expand (user_task_0 × inj 0–3, n=4) | VERIFIED (slice) | abort-era: base ASR=**1.0** util=**1.0** → defended ASR=**0.0** util=**0.25**; **soft-block**: defended ASR=**0.0** util=**1.0** (2026-07-19) |
 | Soft-block defense (rewrite blocked tool → non-executing error) | VERIFIED | `adapters/agentdojo.py` `on_block=soft`; `test_agentdojo_soft_block.py` |
 | Full `Firewall.check` latency (deterministic, n=400) | VERIFIED | `eval/results/latency_check.json` — mean≈6.41ms, p99≈9.82ms (not vs GPU sentinel) |
 | MCP Content-Length framing | VERIFIED | `transports/mcp_framing.py` + proxy auto-detect; `test_mcp_framing.py` |
-| Live ASR/utility base vs defended (full suite) | UNVERIFIED | Expand beyond banking user_task_0 / more suites |
+| Live ASR/utility base vs defended (full suite) | UNVERIFIED | Expand beyond banking user_task_0 / more suites; no new live run without `LLM_API_KEY` |
 
 ## Policy DSL
 

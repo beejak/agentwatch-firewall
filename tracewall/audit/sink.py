@@ -84,3 +84,63 @@ class NullAuditSink(AuditSink):
 
     async def write(self, verdict: FirewallVerdict, event: Optional[HookEvent] = None) -> None:
         return None
+
+
+def _otel_log_record(verdict: FirewallVerdict, event: Optional[HookEvent] = None) -> dict:
+    """OTel-compatible JSON log record (filelog / OTLP JSON shape, not gRPC).
+
+    Honest limits: this is structured JSONL shaped for OpenTelemetry collectors
+    (filelog receiver → transform) or any SIEM. It is **not** a full OTLP/gRPC
+    exporter — no batching, retries, or resource detectors beyond static attrs.
+    """
+    attrs = {
+        "tracewall.action": verdict.action.value,
+        "tracewall.source": verdict.source,
+        "tracewall.reason": verdict.reason,
+        "tracewall.rule_id": verdict.rule_id or "",
+        "tracewall.args_hash": verdict.args_hash or "",
+        "tracewall.score": verdict.score,
+        "tracewall.latency_ms": verdict.latency_ms,
+        "tracewall.agent_id": verdict.agent_id,
+        "tracewall.tool": verdict.tool,
+    }
+    for k, v in (verdict.context_completeness or {}).items():
+        attrs[f"tracewall.context.{k}"] = bool(v)
+    if event is not None:
+        attrs["tracewall.session_id"] = event.session_id or ""
+    return {
+        "body": f"tracewall {verdict.action.value} {verdict.tool}",
+        "severityText": "INFO" if verdict.action.value == "allow" else "WARN",
+        "severityNumber": 9 if verdict.action.value == "allow" else 13,
+        "attributes": attrs,
+        "resource": {
+            "service.name": "tracewall",
+            "service.version": "0.2.0",
+        },
+        "instrumentationScope": {"name": "tracewall.audit", "version": "0.2.0"},
+    }
+
+
+class OTelJsonlAuditSink(AuditSink):
+    """Append OTel-shaped JSON log records (one line each) for collector ingest."""
+
+    def __init__(self, path: str = "tracewall_otel_audit.jsonl") -> None:
+        self._path = Path(path)
+        self._lock = asyncio.Lock()
+
+    async def write(self, verdict: FirewallVerdict, event: Optional[HookEvent] = None) -> None:
+        line = json.dumps(_otel_log_record(verdict, event), sort_keys=True) + "\n"
+        try:
+            async with self._lock:
+                self._path.parent.mkdir(parents=True, exist_ok=True)
+                with self._path.open("a", encoding="utf-8") as fh:
+                    fh.write(line)
+        except Exception as e:
+            logger.error("audit: otel jsonl write failed: %s", e)
+
+
+class OTelStdoutAuditSink(AuditSink):
+    """Print OTel-shaped JSON log records to stdout (container / pipe friendly)."""
+
+    async def write(self, verdict: FirewallVerdict, event: Optional[HookEvent] = None) -> None:
+        print(json.dumps(_otel_log_record(verdict, event), sort_keys=True), flush=True)

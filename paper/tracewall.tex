@@ -59,7 +59,7 @@ On AgentDojo banking under DeepSeek with bill-preserving injections and a soft-b
 (blocked tools become non-executing errors; the agent may continue), a \texttt{direct} attack
 slice ($1{\times}4$) shows baseline ASR $1.0$ / utility $1.0$, falling to ASR $0.0$ / utility
 $1.0$ under Tracewall. A cross-domain robustness matrix (workspace, HTTP, contagion, host,
-identity; $14/14$) passes beyond banking-only probes. Full \texttt{Firewall.check} latency
+identity; $18/18$) passes beyond banking-only probes. Full \texttt{Firewall.check} latency
 on a mixed allow/block microbenchmark is mean $\approx 6.4$\,ms and p99 $\approx 9.8$\,ms
 (deterministic backend, $n{=}400$). MCP stdio supports Content-Length framing and legacy
 NDJSON, with brink tests that record successes and known limits.
@@ -73,7 +73,7 @@ AI agents, tool-call firewall, prompt injection, AgentDojo, policy DSL, taint tr
 One API decides ALLOW/BLOCK before tools run. YAML rules plus call trees catch exfil;
 taint tracks contagion; soft-block keeps agents useful while stopping attacks.
 Held-out recall $1.0$ is a regression bar. Soft-block AgentDojo \texttt{direct} ($1{\times}4$):
-ASR $0$, utility $1$. Cross-domain stress $14/14$. Mean \texttt{check} $\approx 6.4$\,ms.
+ASR $0$, utility $1$. Cross-domain stress $18/18$. Mean \texttt{check} $\approx 6.4$\,ms.
 
 \paragraph{ELI5.}
 Think of Tracewall as a bouncer for AI agents. Before an agent emails, pays a bill,
@@ -259,7 +259,8 @@ Expected-limit bypasses that still reproduce: leading ZWSP in IBAN, wrong tool-n
 \subsection{Cross-domain robustness (non-banking)}
 Beyond banking, a firewall-only matrix covers workspace messaging, HTTP POST, upload,
 memory contagion, host write paths, and identity/caps ($12$ success $+\,2$ expected\_limit;
-$14/14$ pass in \path{robustness_stress.json}).
+$18/18$ pass in \path{robustness_stress.json};
+16 success + 2 expected\_limit for unknown tool names).
 Successes include blocking Slack-shaped \texttt{send\_message}, \texttt{http\_post}, and
 \texttt{upload} after secret reads, plus identity denials when required.
 Tracked limits: unknown tool names and PascalCase aliases that miss exact tool-name rules.

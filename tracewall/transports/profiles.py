@@ -169,16 +169,20 @@ async def build_firewall_for_profile(
     *,
     db_path: str,
     audit=None,
+    metrics=None,
+    attach_metrics: bool = True,
 ):
     """Construct a Firewall wired for the named profile. Returns (firewall, profile)."""
     from tracewall.audit.sink import NullAuditSink
     from tracewall.core.firewall import Firewall
+    from tracewall.ops.metrics import Metrics
     from tracewall.semantic.judge import SemanticJudge
     from tracewall.taint.ledger import Ledger
 
     prof = get_profile(profile) if isinstance(profile, str) else profile
     policy = await load_policy_for_profile(prof)
     sink = audit if audit is not None else NullAuditSink()
+    m = metrics if metrics is not None else (Metrics() if attach_metrics else None)
     fw = Firewall(
         ledger=Ledger(db_path),
         policy=policy,
@@ -186,5 +190,6 @@ async def build_firewall_for_profile(
         audit=sink,
         require_identity=prof.require_identity,
         require_caps=prof.require_caps,
+        metrics=m,
     )
     return fw, prof

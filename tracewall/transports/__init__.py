@@ -1,7 +1,7 @@
 """tracewall transports — ways to plug the firewall into an agent pipeline.
 
-v1 ships the in-process Python guard and an MCP stdio gateway proxy. Framework
-callback adapters and an HTTP sidecar are designed-for but out of scope for v1.
+Ships: in-process Python guard, MCP stdio gateway proxy, and a LangGraph-style
+``GuardedToolNode`` (no LangGraph dependency). HTTP sidecar remains optional.
 """
 from __future__ import annotations
 
@@ -18,12 +18,15 @@ from tracewall.transports.profiles import (
     get_profile,
 )
 from tracewall.transports.python_guard import GuardBlocked, SoftBlockResult, guard, guarded
+from tracewall.transports.tool_node import GuardedToolNode, ToolInvokeResult
 
 __all__ = [
     "guard",
     "guarded",
     "GuardBlocked",
     "SoftBlockResult",
+    "GuardedToolNode",
+    "ToolInvokeResult",
     "screen_tool_call",
     "McpStdioProxy",
     "ProxyConfig",

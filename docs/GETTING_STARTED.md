@@ -7,7 +7,7 @@ Install → register identity → run with `--profile zta` → see one BLOCK.
 ```bash
 # Python >= 3.12
 pip install -e ".[dev]"
-pytest -q   # expect ~105 passed (key-free)
+pytest -q   # key-free suite (see CHANGELOG for count)
 ```
 
 Optional: `pip install -e ".[llm]"` for LLM semantic tier; `.[bench]` for AgentDojo.
@@ -78,9 +78,33 @@ python -m tracewall.ops.explain --profile zta --tool send_email --args-file args
 
 (`args.json` example: `{"to":"x@evil.com","body":"hi"}`. On Windows prefer `--args-file` over shell-escaped `--args`.)
 
-## 7. Next
+## 7. Reference integrations
+
+**MCP PEP (preferred proof path):**
+
+```bash
+py -3.12 examples/reference_mcp_app/run_pep_demo.py
+py -3.12 examples/reference_mcp_app/run_pep_demo.py --subprocess
+```
+
+**LangGraph-style tool node** (no `langgraph` install — drop-in pattern):
+
+```bash
+py -3.12 examples/langgraph_tool_node_demo.py
+```
+
+## 8. Metrics scrape
+
+```bash
+python -m tracewall.ops.http_metrics --port 9100 --profile zta
+# GET http://127.0.0.1:9100/metrics   Prometheus text
+# GET http://127.0.0.1:9100/health
+```
+
+## 9. Next
 
 - How to read eval JSON: [`RESULTS.md`](RESULTS.md)  
 - Day-2 ops: [`RUNBOOK.md`](RUNBOOK.md)  
+- Enterprise checklist: [`ENTERPRISE.md`](ENTERPRISE.md)  
 - Architecture: [`FIREWALL.md`](FIREWALL.md)  
 - Threat model / what we don’t protect: [`../SECURITY.md`](../SECURITY.md)

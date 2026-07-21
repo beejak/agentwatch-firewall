@@ -36,14 +36,18 @@ db_path: /var/lib/tracewall/tw.db
 audit:
   path: /var/log/tracewall/audit.jsonl
   stdout: true
+  # format: otel   # optional — OTel-shaped JSONL (not OTLP/gRPC)
+  # otel_path: /var/log/tracewall/otel_audit.jsonl
 metrics: true
+metrics_http:
+  enabled: false   # or run: python -m tracewall.ops.http_metrics --port 9100
 normalize_args: true
 canonical_tool_names: true
 ```
 
 Load via `tracewall.ops.config.load_config()`. CLI modules honor `TRACEWALL_CONFIG` when set.
 
-## Audit JSONL
+## Audit JSONL / OTel-shaped export
 
 Default sink: append-only JSONL (`LocalAuditSink`). Each line includes:
 
@@ -53,6 +57,11 @@ Default sink: append-only JSONL (`LocalAuditSink`). Each line includes:
 
 Stdout / tee: set `audit.stdout: true` or use `StdoutAuditSink`.
 
+**OTel-oriented path:** `audit.format: otel` → `OTelJsonlAuditSink` writes one OTel-compatible
+log record per line (`resource.service.name=tracewall`, `attributes.tracewall.*`). Honest limits:
+this is filelog/SIEM-friendly JSONL — **not** a full OTLP/gRPC exporter (no batching, retries,
+or auto resource detection). Pair with an OpenTelemetry Collector `filelog` receiver.
+
 **BLOCK storm triage**
 
 1. Sample recent JSONL: `grep '"action": "block"' audit.jsonl | tail`  
@@ -61,7 +70,7 @@ Stdout / tee: set `audit.stdout: true` or use `StdoutAuditSink`.
 4. Dry-run before widening allowlists: `python -m tracewall.ops.explain ...`  
 5. Reload rules after YAML edits: `python -m tracewall.ops.reload --db ...` (or restart proxy).
 
-## Metrics (in-process)
+## Metrics (in-process + HTTP)
 
 With metrics enabled, `Firewall.metrics.snapshot()` exposes:
 
@@ -69,7 +78,16 @@ With metrics enabled, `Firewall.metrics.snapshot()` exposes:
 - `starve_call_tree` (checks with empty call tree)
 - `latency_ms` p50 / p95 / p99
 
-No network metrics server yet — scrape via your process or log snapshots.
+Prometheus scrape:
+
+```bash
+python -m tracewall.ops.http_metrics --host 127.0.0.1 --port 9100 --profile zta
+curl -s http://127.0.0.1:9100/metrics
+# tracewall_block_rate, tracewall_starve_rate, tracewall_check_latency_ms{quantile="0.99"}, …
+```
+
+In-app: `serve_metrics(fw.metrics, port=9100, …)` from `tracewall.ops.http_metrics`.
+Limits: process-local counters; p99 over a sliding sample window (default 2048); no cluster rollup.
 
 ## Health
 
@@ -94,6 +112,13 @@ tracewall BLOCK [<source>]: <reason>
 # SoftBlockResult.verdict.rule_id / .args_hash available for operators
 ```
 
+## Reference integrations
+
+| Path | How |
+|------|-----|
+| MCP PEP demo | `examples/reference_mcp_app/run_pep_demo.py` (+ `--subprocess`) |
+| LangGraph-style | `GuardedToolNode` / `examples/langgraph_tool_node_demo.py` |
+
 ## Support matrix
 
 | Item | Supported |
@@ -102,6 +127,8 @@ tracewall BLOCK [<source>]: <reason>
 | MCP framing | Content-Length + NDJSON (auto-detect) |
 | Screens | `tools/call` only (`tools/list` unscanned — known limit) |
 | Policy packs | `rules/*.yaml` (lab) + `rules/zta/*.yaml` (prod profiles) |
+| Metrics scrape | HTTP `/metrics` Prometheus text |
+| Audit OTel JSONL | Yes (not OTLP/gRPC) |
 
 ## What Tracewall does **not** do
 

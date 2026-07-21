@@ -2,8 +2,7 @@
 from __future__ import annotations
 
 import threading
-import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
@@ -17,6 +16,37 @@ class MetricsSnapshot:
     latency_ms_p50: float
     latency_ms_p95: float
     latency_ms_p99: float
+
+    def to_prometheus(self, *, job: str = "tracewall") -> str:
+        """Prometheus text exposition (scrapeable by Prom / Grafana Agent / OTel)."""
+        labels = f'job="{job}"'
+        lines = [
+            "# HELP tracewall_checks_total Total Firewall.check calls",
+            "# TYPE tracewall_checks_total counter",
+            f"tracewall_checks_total{{{labels}}} {self.n_check}",
+            "# HELP tracewall_allows_total ALLOW verdicts",
+            "# TYPE tracewall_allows_total counter",
+            f"tracewall_allows_total{{{labels}}} {self.n_allow}",
+            "# HELP tracewall_blocks_total BLOCK verdicts",
+            "# TYPE tracewall_blocks_total counter",
+            f"tracewall_blocks_total{{{labels}}} {self.n_block}",
+            "# HELP tracewall_starve_call_tree_total Checks with empty caller_chain",
+            "# TYPE tracewall_starve_call_tree_total counter",
+            f"tracewall_starve_call_tree_total{{{labels}}} {self.starve_call_tree}",
+            "# HELP tracewall_block_rate Fraction of checks that blocked (gauge)",
+            "# TYPE tracewall_block_rate gauge",
+            f"tracewall_block_rate{{{labels}}} {self.block_rate:.6f}",
+            "# HELP tracewall_starve_rate Fraction of checks with empty call tree",
+            "# TYPE tracewall_starve_rate gauge",
+            f"tracewall_starve_rate{{{labels}}} {self.starve_rate:.6f}",
+            "# HELP tracewall_check_latency_ms Check latency percentiles (ms)",
+            "# TYPE tracewall_check_latency_ms gauge",
+            f'tracewall_check_latency_ms{{{labels},quantile="0.5"}} {self.latency_ms_p50:.4f}',
+            f'tracewall_check_latency_ms{{{labels},quantile="0.95"}} {self.latency_ms_p95:.4f}',
+            f'tracewall_check_latency_ms{{{labels},quantile="0.99"}} {self.latency_ms_p99:.4f}',
+            "",
+        ]
+        return "\n".join(lines)
 
 
 class Metrics:
@@ -65,3 +95,6 @@ class Metrics:
                 latency_ms_p95=pct(95),
                 latency_ms_p99=pct(99),
             )
+
+    def prometheus_text(self, *, job: str = "tracewall") -> str:
+        return self.snapshot().to_prometheus(job=job)

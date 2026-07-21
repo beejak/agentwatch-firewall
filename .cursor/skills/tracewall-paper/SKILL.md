@@ -34,6 +34,9 @@ If a sentence would assert something not **VERIFIED** in EVIDENCE, either:
   “default-deny allowlists”, “proxy-owned call tree”, “require_caps”.  
 - **Profiles:** `balanced` = lab; `zta`/`paranoid` = allowlist pack + own call-tree.
   Do not imply every profile ships production default-deny.
+- **Integrations:** MCP proxy + `examples/reference_mcp_app/` are the PEP proof;
+  `GuardedToolNode` is a LangGraph-*style* wrapper without claiming LangGraph CI.
+- **Telemetry:** HTTP `/metrics` + OTel-*shaped* JSONL are VERIFIED; full OTLP/gRPC is not.
 
 ## Fraud table (reject these)
 

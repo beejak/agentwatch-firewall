@@ -1,16 +1,17 @@
 """
-Reference MCP PEP wiring (pattern).
+Reference MCP PEP wiring — see the runnable app:
 
-Run Tracewall as the only path to an MCP server. Clients that talk past the
-proxy are out of scope — place the proxy where that is not possible.
+  py -3.12 examples/reference_mcp_app/run_pep_demo.py
+  py -3.12 examples/reference_mcp_app/run_pep_demo.py --subprocess
+
+Production shape:
 
   python -m tracewall.transports.mcp_proxy --profile zta --agent-id app-1 -- \\
     npx @modelcontextprotocol/server-filesystem /data
 
-Register identity into the same --db before/during boot (see zta_demo.py).
+Register identity into the same --db before boot (see zta_demo.py).
 Client _meta.caller_chain is ignored under zta/paranoid (proxy-owned tree).
-Optional _meta.session_id binds the owned chain.
 
-See docs/GETTING_STARTED.md and docs/RUNBOOK.md.
+LangGraph-style (no langgraph install): examples/langgraph_tool_node_demo.py
 """
 print(__doc__)

@@ -12,13 +12,13 @@
 
 AI agents invoke tools that can move money, send email, and mutate shared state. Prompt injection and capability misuse turn those tools into an attack surface that content filters and network firewalls see poorly: the wire request often looks legitimate. We present **Tracewall**, a transport-agnostic agent firewall with a single seam—`await Firewall.check(event) → FirewallVerdict`—that decides ALLOW or BLOCK before a side effect runs. The pipeline combines optional identity checks, a deterministic YAML policy DSL (including call-tree context), a recovering multi-hop taint ledger, and an optional semantic escalation tier. Fail-safe behavior is BLOCK on internal error.
 
-On a frozen held-out corpus (n=27), the key-free path reaches deterministic integrated recall **1.0** (precision ≈ **0.929**, FPR ≈ **0.071**); tier-1 policy alone reaches recall **1.0** / FPR **0** on that split. These numbers are a **regression bar**, not proof against adaptive attacks. On AgentDojo banking under DeepSeek with bill-preserving injections and **soft-block**, a `direct` slice (1×4) shows baseline ASR **1.0** / utility **1.0**, falling to ASR **0.0** / utility **1.0** under Tracewall. A cross-domain robustness matrix (workspace / HTTP / contagion / host / identity) passes **14/14**. Full `Firewall.check` mean ≈ **6.4 ms** (p99 ≈ **9.8 ms**). MCP stdio supports Content-Length + NDJSON with brink tests that record successes and known limits.
+On a frozen held-out corpus (n=27), the key-free path reaches deterministic integrated recall **1.0** (precision ≈ **0.929**, FPR ≈ **0.071**); tier-1 policy alone reaches recall **1.0** / FPR **0** on that split. These numbers are a **regression bar**, not proof against adaptive attacks. On AgentDojo banking under DeepSeek with bill-preserving injections and **soft-block**, a `direct` slice (1×4) shows baseline ASR **1.0** / utility **1.0**, falling to ASR **0.0** / utility **1.0** under Tracewall. A cross-domain robustness matrix (workspace / HTTP / contagion / host / identity) passes **18/18** (16 success + 2 expected_limit: unknown tool names). Full `Firewall.check` mean ≈ **6.4 ms** (p99 ≈ **9.8 ms**). MCP stdio supports Content-Length + NDJSON with brink tests that record successes and known limits.
 
 We do **not** claim 100% detection on a small known-bad suite as a primary result, nor sub-millisecond p99 latency versus GPU sentinels without a matched measurement of full `Firewall.check`.
 
 ### TL;DR
 
-One API decides ALLOW/BLOCK before tools run. YAML + call trees catch exfil; taint tracks contagion; soft-block keeps agents useful while stopping attacks. Held-out recall 1.0 = regression bar. Soft-block AgentDojo `direct` 1×4: ASR 0, util 1. Cross-domain stress 14/14. Mean `check` ≈ 6.4 ms.
+One API decides ALLOW/BLOCK before tools run. YAML + call trees catch exfil; taint tracks contagion; soft-block keeps agents useful while stopping attacks. Held-out recall 1.0 = regression bar. Soft-block AgentDojo `direct` 1×4: ASR 0, util 1. Cross-domain stress 18/18. Mean `check` ≈ 6.4 ms.
 
 ### ELI5
 
@@ -137,7 +137,7 @@ Without an LLM, Tracewall **BLOCKs** `send_money` and `schedule_transaction` to 
 
 ### 5.5 Cross-domain robustness (non-banking)
 
-Firewall-only matrix (`robustness_stress.json`): workspace messaging, HTTP POST, upload, memory contagion, host writes, identity/caps — **12 success + 2 expected_limit = 14/14**. Tracked limits: unknown tool names, PascalCase aliases. Widens domain surface; still not adaptive proof.
+Firewall-only matrix (`robustness_stress.json`): workspace messaging, HTTP POST, upload, memory contagion, host writes, identity/caps — **16 success + 2 expected_limit = 18/18**. Tracked limits: unknown tool names (MCP `tools/list` unscanned). ZWSP IBAN and PascalCase aliases are success rows after normalize/canonical. Widens domain surface; still not adaptive proof.
 
 ### 5.6 AgentDojo live (DeepSeek)
 
