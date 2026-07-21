@@ -10,7 +10,10 @@ Library + MCP proxy that ALLOW/BLOCKs tool calls. Not a SaaS gateway, HITL appro
 |----------|--------|
 | Python `Firewall.check` / `guard` | Shipped |
 | MCP stdio proxy | Shipped (Content-Length + NDJSON auto-detect) |
-| LangGraph / HTTP sidecar | Roadmap |
+| LangGraph-style `GuardedToolNode` | Shipped (no `langgraph` dep) |
+| HTTP sidecar PEP | Roadmap |
+
+Wiring guide: [`INTEGRATION.md`](INTEGRATION.md).
 
 ## Goals + success / failure
 
@@ -30,7 +33,7 @@ Library + MCP proxy that ALLOW/BLOCKs tool calls. Not a SaaS gateway, HITL appro
 | G5 | Paper honesty | Tracewall draft matches EVIDENCE | WatchTower 17/17 / 0.011ms | Diff abstract vs EVIDENCE |
 | G6 | Venue | G4+G5 done; PDF floats verified | Submit on stale PDF | tectonic + page inspect |
 
-**Status snapshot (2026-07-20):** G0–G3 (+G3-fail, G3z) met; G4b/G4c/G4d met; G5 paper has ELI5+TL;DR. Remaining: signed identity, LangGraph PEP, close Unicode/alias limits, venue polish.
+**Status snapshot (2026-07-21, v0.2.0):** G0–G3 (+G3-fail, G3z) met; G4b/G4c/G4d met (robustness **18/18**); G5 paper draft + PDF aligned with EVIDENCE. ZWSP/NFKC + canonical tool names closed. Remaining: signed identity, HTTP sidecar PEP, SBOM, OTLP/gRPC, venue polish, unknown-tool / `tools/list` limits.
 
 
 ## P0 correctness (G1b) — named checks

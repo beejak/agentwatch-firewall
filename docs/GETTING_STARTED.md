@@ -2,6 +2,10 @@
 
 Install → register identity → run with `--profile zta` → see one BLOCK.
 
+> **Put it on the tool-call path:** Tracewall only protects tools that go through
+> a PEP. Full wiring (Python `guard`, MCP proxy as sole path, `GuardedToolNode`,
+> checklist, anti-patterns) → **[`INTEGRATION.md`](INTEGRATION.md)**.
+
 ## 1. Install
 
 ```bash
@@ -103,8 +107,9 @@ python -m tracewall.ops.http_metrics --port 9100 --profile zta
 
 ## 9. Next
 
+- **Put it on the path:** [`INTEGRATION.md`](INTEGRATION.md)  
 - How to read eval JSON: [`RESULTS.md`](RESULTS.md)  
 - Day-2 ops: [`RUNBOOK.md`](RUNBOOK.md)  
 - Enterprise checklist: [`ENTERPRISE.md`](ENTERPRISE.md)  
-- Architecture: [`FIREWALL.md`](FIREWALL.md)  
+- Architecture: [`FIREWALL.md`](FIREWALL.md) · [`ARCHITECTURE_OVERVIEW.md`](ARCHITECTURE_OVERVIEW.md)  
 - Threat model / what we don’t protect: [`../SECURITY.md`](../SECURITY.md)

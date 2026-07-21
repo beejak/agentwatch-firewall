@@ -17,3 +17,5 @@
 | Signed SPIFFE identity | No | Ledger register only |
 
 OS: Linux / macOS / Windows (dev). Production assumption: Linux containers with proxy as sole MCP path.
+
+**How to wire:** [`INTEGRATION.md`](INTEGRATION.md).

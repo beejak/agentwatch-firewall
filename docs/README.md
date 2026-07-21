@@ -3,6 +3,7 @@
 | Doc | Purpose |
 |-----|---------|
 | **[GETTING_STARTED.md](GETTING_STARTED.md)** | Install → identity → `zta` → first BLOCK |
+| **[INTEGRATION.md](INTEGRATION.md)** | **Put Tracewall on the tool-call path** (guard / MCP proxy / GuardedToolNode) |
 | **[ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)** | Pipeline / modules / network diagrams, ALLOW·BLOCK, tests done, QA gaps |
 | **[RESULTS.md](RESULTS.md)** | How to read eval JSON / ASR vs utility |
 | **[RUNBOOK.md](RUNBOOK.md)** | Profiles, env, audit, BLOCK storms, soft-block |
@@ -25,6 +26,8 @@ One seam: `await firewall.check(event)` → ALLOW or BLOCK. Fast path is
 L0 → content → policy → trust/taint gate; semantic only on escalate / content-flag.
 PEPs: in-process `guard` / `GuardedToolNode`, or MCP stdio `mcp_proxy` (screens
 `tools/call` only). Profiles: `zta` / `paranoid` / `balanced` / `permissive`.
+
+**First integration step:** [`INTEGRATION.md`](INTEGRATION.md).
 
 ```mermaid
 flowchart LR

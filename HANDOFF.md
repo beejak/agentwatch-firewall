@@ -1,11 +1,12 @@
 # HANDOFF — agentwatch-firewall (tracewall)
 
-Pick-up notes. **Last updated 2026-07-21 (v0.2.0 release cut).**
+Pick-up notes. **Last updated 2026-07-21 (v0.2.0 + integration docs).**
 
 ## Where things stand
 
 - Tracewall **0.2.0**: enforcement core + MCP proxy + zta/paranoid/balanced/permissive.
-- Operator docs shipped (`GETTING_STARTED` / `RESULTS` / `RUNBOOK` / `ENTERPRISE` / `SUPPORT`).
+- Operator docs: `GETTING_STARTED` / **`INTEGRATION`** / `RESULTS` / `RUNBOOK` / `ENTERPRISE` / `SUPPORT` / `ARCHITECTURE_OVERVIEW`.
+- **Put Tracewall on the tool-call path:** [`docs/INTEGRATION.md`](docs/INTEGRATION.md) (Python `guard`, MCP `mcp_proxy` as sole path, `GuardedToolNode`).
 - Bypass closes: ZWSP/NFKC args + canonical tool names.
 - Ops: explain dry-run, health, reload, in-process + HTTP `/metrics`, OTel-shaped audit JSONL.
 - Soft-block product contract on `guard(on_block="soft")`.
@@ -18,13 +19,14 @@ Pick-up notes. **Last updated 2026-07-21 (v0.2.0 release cut).**
 2. **SBOM** — not generated in CI yet.
 3. **Full OTLP/gRPC exporter** — JSONL bridge only; document limits.
 4. **Venue polish** — paper camera-ready.
-5. **Unknown tool names** — still expected_limit (pack gap).
+5. **Unknown tool names** — still expected_limit (pack gap); `tools/list` unscanned.
 
 ## Done recently
 
 | Item | Evidence |
 |------|----------|
-| Operator docs pack | `docs/GETTING_STARTED.md` etc. |
+| Operator docs pack + INTEGRATION | `docs/GETTING_STARTED.md`, `docs/INTEGRATION.md` |
+| Architecture overview | `docs/ARCHITECTURE_OVERVIEW.md` |
 | ZTA practicality | `rules/zta/`, own call-tree, `require_caps` |
 | Bypass closes (ZWSP, tool case) | `policy/normalize.py`; adojo/robustness success rows |
 | Soft-block + explain/health/reload | `python_guard.SoftBlockResult`; `tracewall.ops.*` |
@@ -46,4 +48,5 @@ python -m tracewall.ops.explain --profile zta --tool send_email --args '{"to":"x
 python -m tracewall.transports.mcp_proxy --profile zta -- <mcp-server>
 ```
 
-See [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md).
+See [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) and
+[`docs/INTEGRATION.md`](docs/INTEGRATION.md).

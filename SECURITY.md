@@ -30,4 +30,5 @@ call-tree exfil when the PEP owns the session chain.
 - Full NIST ZTA / SPIFFE continuous authentication (not shipped)
 
 Architecture details: [`docs/FIREWALL.md`](docs/FIREWALL.md).  
+Put Tracewall on the path: [`docs/INTEGRATION.md`](docs/INTEGRATION.md).  
 Operator posture: [`docs/RUNBOOK.md`](docs/RUNBOOK.md).

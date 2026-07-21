@@ -9,7 +9,7 @@ Eval artifacts live under `tracewall/eval/results/`. Claims that enter the paper
 | `corpus_v0.1_test_deterministic.json` | Held-out detection (P/R/FPR) | Regression bar, **not** adaptive proof |
 | `mcp_brink.json` | MCP profile contracts | All `kind=success` pass **and** `expected_limit` still reproduce |
 | `adojo_stress.json` | Banking-shaped firewall matrix + optional live ASR | Firewall rows green; live[] is DeepSeek slice |
-| `robustness_stress.json` | Non-banking domains | 14/14-style matrix green |
+| `robustness_stress.json` | Non-banking domains | **18/18** (16 success + 2 expected_limit) |
 | `latency_check.json` | Full `Firewall.check` microbench | Method note required if you quote numbers |
 
 ## Held-out (`corpus_v0.1_test_*.json`)
@@ -31,7 +31,10 @@ Look at per-tier **recall / precision / FPR**. Headline integrated recall **1.0*
 
 ## Robustness (`robustness_stress.json`)
 
-Domains: workspace, HTTP, contagion, host, identity, banking. Same success vs expected_limit discipline as brink.
+Domains: workspace, HTTP, contagion, host, identity, banking. Same success vs
+expected_limit discipline as brink. Current matrix: **18/18** (16 success +
+2 expected_limit: unknown tool names). ZWSP IBAN and PascalCase aliases are
+**success** rows after normalize/canonical (not open limits).
 
 ## AgentDojo (`adojo_stress.json`)
 

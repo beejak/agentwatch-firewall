@@ -43,7 +43,7 @@ Content guardrails lack tool semantics. Wire gateways see destinations, not *why
 1. **Stable enforcement seam** — `Firewall.check` with identity → content screen → YAML policy → trust/taint gate → optional semantic judge → audit; internal errors → BLOCK.
 2. **Deterministic policy pack** — human-writable rules for injection, exfil, destructive ops, and AgentDojo-shaped banking probes (`send_money` to known attacker IBANs).
 3. **Multi-hop taint ledger** — recovering trust dynamics and fixed-point MTP (research moat; live `check()` updates trust on ALLOW/BLOCK).
-4. **Transports** — in-process Python guard and MCP stdio proxy with named profiles; limitations documented (NDJSON vs Content-Length; optional `_meta`).
+4. **Transports** — in-process Python guard, MCP stdio proxy (Content-Length + NDJSON), and LangGraph-style `GuardedToolNode`; limitations documented (`tools/list` unscanned; optional `_meta`).
 5. **Evaluation discipline** — held-out ablation, MCP brink (success + expected limits), AgentDojo live slices; claim ledger in EVIDENCE.
 
 ### 1.3 Non-claims

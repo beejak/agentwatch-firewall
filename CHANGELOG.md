@@ -4,6 +4,8 @@
 
 ### Added
 - Operator docs: `docs/GETTING_STARTED.md`, `RESULTS.md`, `RUNBOOK.md`, `ENTERPRISE.md`, `SUPPORT.md`
+- `docs/INTEGRATION.md` — how to put Tracewall on the tool-call path (guard / MCP proxy / GuardedToolNode)
+- `docs/ARCHITECTURE_OVERVIEW.md` — pipeline diagrams, test inventory, QA gaps
 - `SECURITY.md`, support matrix (`docs/SUPPORT.md`)
 - ZTA practicality (0.1.x follow-on): allowlist pack, proxy-owned call trees, `require_caps`, `rate_exceeds`
 - Arg NFKC/ZWSP normalize + canonical tool names (closes IBAN ZWSP + case aliases)
@@ -18,7 +20,8 @@
 ### Changed
 - Profiles: `zta` added; lab `balanced` keeps non-ZTA pack for regression stability
 - AgentDojo / robustness stress: former ZWSP/case limits promoted to success blocks
-- Robustness matrix expanded (ZWSP, caps-empty, unknown-tool limits)
+- Robustness matrix expanded (ZWSP, caps-empty, unknown-tool limits) — **18/18**
+- Root README refreshed for visitor path (INTEGRATION + v0.2.0 status)
 
 ## 0.1.0
 

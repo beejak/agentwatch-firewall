@@ -1,10 +1,14 @@
 # tracewall
 
-A standalone, pluggable **agent firewall**: it decides ALLOW / BLOCK on every
-tool call an AI agent makes, so a compromised prompt or a poisoned memory can't
+A standalone, pluggable **agent firewall**: it decides **ALLOW / BLOCK** on every
+tool call an AI agent makes, so a compromised prompt or poisoned memory cannot
 turn into a destructive or exfiltrating action.
 
-Transport-agnostic enforcement core behind one stable seam:
+**What it is:** an enforcement library + MCP stdio PEP in front of tools.  
+**What it is not:** a SaaS gateway, HITL approve box, observation-first OS, or
+SPIFFE/IdP product. Brand is **tracewall** (not WatchTower).
+
+One stable seam:
 
 ```python
 from tracewall import Firewall
@@ -13,117 +17,103 @@ verdict = await firewall.check(event)   # -> FirewallVerdict (allow / block)
 
 Installable without cloud services. Deterministic tiers run key-free; an optional
 LLM semantic backend is available when configured. On the frozen held-out corpus
-(n=27), the expanded default policy pack reaches deterministic integrated
-recall **1.0** (FPR ≈ 0.07) — see `tracewall/eval/results/` and
-[`paper/EVIDENCE.md`](paper/EVIDENCE.md). That is **not** proof against adaptive
-attacks or AgentDojo; treat it as a regression bar, not a solved claim.
+(n=27), the default policy pack reaches deterministic integrated recall **1.0**
+(FPR ≈ 0.07) — see `tracewall/eval/results/` and
+[`paper/EVIDENCE.md`](paper/EVIDENCE.md). That is a **regression bar**, not proof
+against adaptive attacks.
+
+## Put it on the tool-call path
+
+Tracewall only protects calls that go through a PEP. If tools bypass it, you are
+unprotected.
+
+→ **[`docs/INTEGRATION.md`](docs/INTEGRATION.md)** — Python `guard`, MCP
+`mcp_proxy` as the sole path, `GuardedToolNode`, checklist, anti-patterns.
+
+| Pattern | When |
+|---------|------|
+| In-process `guard` | You own the Python tool loop |
+| MCP stdio `mcp_proxy` | MCP agents (recommended sole path to the server) |
+| `GuardedToolNode` | LangGraph-style named tool dispatch (no `langgraph` install) |
+
+## Install & quickstart
+
+**Python ≥ 3.12.** Operators: [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md).
+
+```bash
+pip install -e ".[dev]"
+pytest -q
+python examples/zta_demo.py
+python examples/guard_demo.py
+python -m tracewall.ops.explain --profile zta --tool send_email \
+  --args '{"to":"x@evil.com","body":"hi"}'
+python -m tracewall.ops.health --profile zta
+python -m tracewall.ops.http_metrics --port 9100 --profile zta
+```
+
+Org allowlist: `TRACEWALL_ORG_DOMAINS=acme.com,corp.com`
+
+MCP proxy (client must talk **only** to this process):
+
+```bash
+python -m tracewall.transports.mcp_proxy \
+  --profile zta --agent-id my-agent --db tw.db -- \
+  npx @modelcontextprotocol/server-filesystem /data
+```
+
+Optional extras: `.[llm]` (LLM semantic), `.[bench]` (AgentDojo adapter).
+
+## Profiles
+
+| Profile | When |
+|---------|------|
+| **zta** | Production: identity + caps, org allowlist default-deny, proxy-owned call tree |
+| paranoid | Identity required; ZTA pack; caps optional; own call tree |
+| **balanced** | Lab / eval default; fail-closed; no ZTA pack; client `_meta` chain |
+| permissive | Availability-first; fail-open; fewer rules |
 
 ## What's inside
 
-- **Identity / delegation** — token expiry, delegation-depth cap, capability set
-  (`require_identity=True` for fail-closed L0).
-- **Deterministic policy DSL** — human-writable YAML rules (injection, exfil,
-  destructive ops); zero ML, runs on the hot path.
-- **Cross-session multi-hop taint propagation** — fixed-point solver with
-  recovering quarantine dynamics. Live `check()` updates trust via the ledger.
-- **Semantic tier** — intent classifier for escalations. Deterministic scorer by
-  default; optional OpenAI-compatible LLM when `LLM_API_KEY` is set.
-- **Append-only audit** — pluggable sink (local JSONL by default).
-
-## Where it runs
-
-| Placement | Status |
-|-----------|--------|
-| In-process Python (`guard` / `Firewall.check`) | Shipped |
-| MCP stdio proxy in front of a real server | Shipped |
-| LangGraph / HTTP sidecar | Roadmap |
-
-See [`docs/GOALS.md`](docs/GOALS.md) and [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md).
+- **Identity / caps** — ledger register; `require_identity` / `require_caps` on zta  
+- **Deterministic policy DSL** — YAML rules on the hot path (injection, exfil, destructive)  
+- **Cross-session taint** — ledger trust updates on ALLOW/BLOCK  
+- **Semantic tier** — deterministic by default; optional LLM when `LLM_API_KEY` is set  
+- **Audit + metrics** — JSONL / OTel-shaped JSONL; HTTP `/metrics`
 
 ## Pipeline
 
 ```
-HookEvent ─▶ L0 identity ─▶ tier-0 content screen ─▶ tier-1 policy DSL
-          ─▶ trust/taint gate ─(escalate)▶ tier-2 semantic judge ─▶ verdict ─▶ audit
-```
-Deterministic tiers are the fast path; only escalations await the judge. Any
-internal error → fail-safe **BLOCK**.
-
-## Install & use
-
-**Operators:** start at [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)  
-(results: [`docs/RESULTS.md`](docs/RESULTS.md) · day-2: [`docs/RUNBOOK.md`](docs/RUNBOOK.md) · checklist: [`docs/ENTERPRISE.md`](docs/ENTERPRISE.md)).
-
-```bash
-pip install -e ".[dev]"        # base + test deps (Python >=3.12)
-pytest -q                      # pure, infra-free, deterministic
-python examples/zta_demo.py    # identity + default-deny + soft-block
-python examples/guard_demo.py
-python -m tracewall.ops.explain --profile zta --tool send_email --args '{"to":"x@evil.com","body":"hi"}'
+HookEvent ─▶ L0 identity ─▶ tier-0 content ─▶ tier-1 policy
+          ─▶ trust/taint gate ─(escalate)▶ tier-2 semantic ─▶ verdict ─▶ audit
 ```
 
-Org allowlist for email rules: `TRACEWALL_ORG_DOMAINS=acme.com,corp.com` (default
-`org.com,trusted.com,customer.com`).
+Internal error → fail-safe **BLOCK**. Detail:
+[`docs/FIREWALL.md`](docs/FIREWALL.md) ·
+[`docs/ARCHITECTURE_OVERVIEW.md`](docs/ARCHITECTURE_OVERVIEW.md).
 
-Plug it into an agent loop with the in-process guard:
+## Status (v0.2.0)
 
-```python
-from tracewall.transports.python_guard import guard, GuardBlocked
+**Shipped:** Python `guard` + MCP stdio proxy (Content-Length + NDJSON) +
+`GuardedToolNode`; profiles `zta` / `paranoid` / `balanced` / `permissive`;
+ZTA allowlist pack; proxy-owned call trees; match-level `rate_exceeds`; soft-block;
+ops (`explain` / `health` / `reload` / HTTP metrics); arg NFKC/ZWSP normalize +
+canonical tool names.
 
-try:
-    await guard(firewall, "send_email", {"to": addr, "body": body},
-                ctx={"agent_id": agent_id, "caller_chain": chain})
-except GuardBlocked as b:
-    ...  # b.verdict has the reason
-```
+**Open:** signed workload identity (SPIFFE), full OTLP/gRPC exporter, SBOM,
+HTTP sidecar PEP, unknown-tool / `tools/list` limits.
 
-Or drop it in front of an MCP server — pick a **profile** (strict → loose):
-
-```bash
-python -m tracewall.transports.mcp_proxy --profile zta -- npx @modelcontextprotocol/server-filesystem /data
-python -m tracewall.transports.mcp_proxy --profile balanced -- npx @modelcontextprotocol/server-filesystem /data
-python -m tracewall.transports.mcp_proxy --profile paranoid --fail-closed -- ...
-python -m tracewall.transports.mcp_proxy --profile permissive --fail-open -- ...
-```
-
-| Profile | Meaning |
-|---------|---------|
-| **zta** | Prod: identity + caps, org allowlist default-deny, proxy-owned call tree |
-| paranoid | Identity required; ZTA pack; proxy-owned call tree |
-| balanced | Lab default; fail-closed; full rules; client `_meta` chain |
-| permissive | Fail-open; fewer rules (destructive + MINJA only) |
-
-Set allowlists: `TRACEWALL_ORG_DOMAINS=acme.com,corp.com`
-
-Brink tests (success **and** known limits): `python -m tracewall.eval.mcp_brink`  
-Detection fit notes: [`docs/DETECTION.md`](docs/DETECTION.md).
-
-Optional extras: `.[llm]` (LLM semantic backend), `.[bench]` (AgentDojo adapter).
-
-## Evaluation
-
-`tracewall/eval/` carries a **frozen, human-labeled corpus** and a deterministic
-ablation harness (per-tier precision/recall/F1/FPR with bootstrap 95% CIs on a
-held-out split). The deterministic backend is the stable, reproducible baseline;
-an LLM run is a dated snapshot and is never used to gate tests. See
-`tracewall/eval/results/` and [`paper/EVIDENCE.md`](paper/EVIDENCE.md).
-
-Pick-up / roadmap: [`HANDOFF.md`](HANDOFF.md). Process rules: [`LESSONS_LEARNED.md`](LESSONS_LEARNED.md).
-
-## Status
-
-Shipped: Python guard + MCP stdio proxy with **zta/paranoid/balanced/permissive**
-profiles, ZTA allowlist pack, proxy-owned call trees, working `rate_exceeds`,
-observe-first GOALS/EVIDENCE/brink. Open: signed workload identity, LangGraph sidecar,
-closing Unicode/alias bypasses. See [`HANDOFF.md`](HANDOFF.md).
+Pick-up: [`HANDOFF.md`](HANDOFF.md). Evidence: [`paper/EVIDENCE.md`](paper/EVIDENCE.md).
 
 ## Doc map
 
-- **Start here:** [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)  
-- Results / ASR: [`docs/RESULTS.md`](docs/RESULTS.md)  
-- Runbook: [`docs/RUNBOOK.md`](docs/RUNBOOK.md)  
-- Enterprise checklist: [`docs/ENTERPRISE.md`](docs/ENTERPRISE.md)  
-- Architecture: [`docs/FIREWALL.md`](docs/FIREWALL.md)  
-- Security: [`SECURITY.md`](SECURITY.md) · Changelog: [`CHANGELOG.md`](CHANGELOG.md)  
-- Evidence ledger: [`paper/EVIDENCE.md`](paper/EVIDENCE.md)  
-- All docs: [`docs/README.md`](docs/README.md)
+| Doc | Purpose |
+|-----|---------|
+| [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) | Install → identity → first BLOCK |
+| [`docs/INTEGRATION.md`](docs/INTEGRATION.md) | **Put it on the tool-call path** |
+| [`docs/ARCHITECTURE_OVERVIEW.md`](docs/ARCHITECTURE_OVERVIEW.md) | Pipeline diagrams, tests, QA gaps |
+| [`docs/RESULTS.md`](docs/RESULTS.md) | How to read eval JSON / ASR vs utility |
+| [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | Profiles, audit, soft-block, BLOCK storms |
+| [`docs/ENTERPRISE.md`](docs/ENTERPRISE.md) | Enterprise readiness checklist |
+| [`SECURITY.md`](SECURITY.md) | Threat model / what we don’t protect |
+| [`CHANGELOG.md`](CHANGELOG.md) | Versioned notes |
+| [`docs/README.md`](docs/README.md) | Full docs index |

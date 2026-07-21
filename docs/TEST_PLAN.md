@@ -47,12 +47,13 @@ pytest = edges · harness = offline P/R/F1 · mcp_brink = profile success+limits
 ## Roadmap stress (not yet VERIFIED)
 
 - AgentDojo **workspace** and **travel** suites (live + firewall-only shapes)
-- IBAN Unicode / ZWSP **normalization** (close current expected_limit)
-- Case-insensitive tool matching / alias table
 - Signed identity / SPIFFE-style verifier (beyond ledger register)
-- LangGraph / HTTP sidecar PEP
+- HTTP sidecar PEP (`GuardedToolNode` is shipped; full LangGraph package integration optional)
 - Adaptive paraphrase corpus (don’t claim until measured)
-- Distributed rate limits (current `rate_exceeds` is single-process)
+- Distributed rate limits (current match-level `rate_exceeds` is single-process)
+- Unknown tool names / `tools/list` unscanned (still `expected_limit`)
+
+**Closed in v0.2.0 (do not re-list as open):** IBAN ZWSP/NFKC normalize; PascalCase / case aliases via canonical tool names.
 
 ## Edge checklist
 

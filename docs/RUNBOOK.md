@@ -1,5 +1,7 @@
 # Runbook (day-2 ops)
 
+**Integration (PEP on the tool-call path):** [`INTEGRATION.md`](INTEGRATION.md).
+
 ## Profiles
 
 | Profile | Identity | Caps | Own call-tree | ZTA allowlist pack | Fail |
@@ -114,10 +116,13 @@ tracewall BLOCK [<source>]: <reason>
 
 ## Reference integrations
 
+Full how-to: [`INTEGRATION.md`](INTEGRATION.md).
+
 | Path | How |
 |------|-----|
 | MCP PEP demo | `examples/reference_mcp_app/run_pep_demo.py` (+ `--subprocess`) |
 | LangGraph-style | `GuardedToolNode` / `examples/langgraph_tool_node_demo.py` |
+| In-process zta | `examples/zta_demo.py` |
 
 ## Support matrix
 

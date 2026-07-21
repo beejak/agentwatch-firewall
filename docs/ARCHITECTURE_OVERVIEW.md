@@ -5,7 +5,8 @@ in code today, what has been tested, and what Senior QA still owes.
 
 Canonical detail: [`FIREWALL.md`](FIREWALL.md). Evidence discipline:
 [`../paper/EVIDENCE.md`](../paper/EVIDENCE.md). Operator posture:
-[`RUNBOOK.md`](RUNBOOK.md).
+[`RUNBOOK.md`](RUNBOOK.md). **Put Tracewall on the path:**
+[`INTEGRATION.md`](INTEGRATION.md).
 
 **Version snapshot:** 0.2.0 (2026-07-21). No SPIFFE / signed-identity claims.
 
@@ -349,6 +350,7 @@ Risk-ordered gaps between **shipped tests** and **production assurance**. Status
 
 | Doc | Use |
 |-----|-----|
+| [`INTEGRATION.md`](INTEGRATION.md) | Put Tracewall on the tool-call path |
 | [`FIREWALL.md`](FIREWALL.md) | Module-level architecture |
 | [`RUNBOOK.md`](RUNBOOK.md) | Profiles, soft-block, metrics, BLOCK storms |
 | [`TEST_PLAN.md`](TEST_PLAN.md) | Scenario families + roadmap stress |

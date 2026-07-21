@@ -7,10 +7,12 @@ Honest status as of 2026-07-21 (v0.2.0). Update when items move.
 | Item | Status |
 |------|--------|
 | `docs/GETTING_STARTED.md` | **Done** |
+| `docs/INTEGRATION.md` (tool-call path) | **Done** |
 | `docs/RESULTS.md` | **Done** |
 | `docs/RUNBOOK.md` | **Done** |
 | Fix `docs/README.md` | **Done** |
 | `docs/SUPPORT.md` | **Done** |
+| `docs/ARCHITECTURE_OVERVIEW.md` | **Done** |
 
 ## 2. Product packaging
 

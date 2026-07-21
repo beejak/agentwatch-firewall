@@ -13,6 +13,7 @@ May need a **new Cursor chat** for skills to appear.
 ## Operator entry points
 
 - [`docs/GETTING_STARTED.md`](GETTING_STARTED.md)
+- [`docs/INTEGRATION.md`](INTEGRATION.md) — put it on the tool-call path
 - [`docs/RESULTS.md`](RESULTS.md)
 - [`docs/RUNBOOK.md`](RUNBOOK.md)
 - [`docs/ENTERPRISE.md`](ENTERPRISE.md)

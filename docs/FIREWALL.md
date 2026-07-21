@@ -150,6 +150,7 @@ Agent / MCP client
 ```
 
 - `python_guard.py` — in-process `guard` / `@guarded`. `agent_id` required; fail-closed default.
+- `tool_node.py` — `GuardedToolNode` (LangGraph-style named dispatch; no `langgraph` dep).
 - `mcp_proxy.py` + `profiles.py` + `session_chain.py` — MCP stdio proxy; screens only `tools/call`.
   - **zta** — prod posture: `require_identity` + `require_caps`, ZTA pack, **proxy-owned call tree**
   - **paranoid** — identity required, ZTA pack, proxy-owned call tree, caps optional
@@ -158,11 +159,13 @@ Agent / MCP client
   - CLI: `--profile`, `--fail-closed` / `--fail-open`
   - Optional `_meta.tracewall` (`agent_id`, `session_id`; `caller_chain` ignored when `own_call_tree`)
 
+**How to wire PEPs:** [`INTEGRATION.md`](INTEGRATION.md).
+
 **ZTA honesty:** client-asserted `caller_chain` is not authentication. Use `--profile zta`
 (or paranoid) so the PEP owns the chain. Identity is still ledger-registered (not SPIFFE yet).
 
 **Network note:** MCP proxy auto-detects **Content-Length** framing and legacy
-**NDJSON** readline (see `mcp_framing.py`).
+**NDJSON** readline (see `mcp_framing.py`). Both are shipped — not deferred.
 
 ---
 
