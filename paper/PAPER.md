@@ -1,6 +1,7 @@
 # Tracewall: Tool-Call Enforcement for AI Agents
 ## Deterministic Policy, Multi-Hop Taint, and Transport-Agnostic ALLOW/BLOCK
 
+**Author:** beejak (`beejak@users.noreply.github.com`)  
 **Status:** DRAFT — rewritten from [`EVIDENCE.md`](EVIDENCE.md) (2026-07-19)  
 **Brand:** **tracewall** (enforcement-only). Companion to *agentwatch* (observability / Paper 1).  
 **Target:** arXiv preprint → venue TBD (IEEE S&P / USENIX Security / ACM CCS)  
