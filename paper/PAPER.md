@@ -2,9 +2,10 @@
 ## Deterministic Policy, Multi-Hop Taint, and Transport-Agnostic ALLOW/BLOCK
 
 **Author:** beejak (`beejak@users.noreply.github.com`)  
-**Status:** DRAFT — rewritten from [`EVIDENCE.md`](EVIDENCE.md) (2026-07-19)  
+**Status:** Camera-ready / arXiv-ready draft — aligned to [`EVIDENCE.md`](EVIDENCE.md) (through 2026-07-21); features frozen for submit.  
 **Brand:** **tracewall** (enforcement-only). Companion to *agentwatch* (observability / Paper 1).  
 **Target:** arXiv preprint → venue TBD (IEEE S&P / USENIX Security / ACM CCS)  
+**Submit:** [`SUBMIT.md`](SUBMIT.md)  
 **Rule:** Only **VERIFIED** claims from EVIDENCE appear as unqualified assertions below.
 
 ---
@@ -58,13 +59,13 @@ Content guardrails lack tool semantics. Wire gateways see destinations, not *why
 
 ---
 
-## 2. Related Work (sketch)
+## 2. Related Work
 
-**Agent firewalls / guardrails.** Content and alignment checkers (e.g. LlamaFirewall modules) and DSL enforcers (AgentSpec) reduce some classes of unsafe actions but often omit cross-session taint or call-tree policy. Wire gateways preserve destinations, not intent. Dual-LLM data-only paths are a different architecture.
+**Injection & misuse.** Indirect prompt injection remains a leading risk for tool-using LLMs (e.g. MINJA memory poisoning). String filters miss tool-level misuse after a sensitive read.
 
-**Injection & AgentDojo.** AgentDojo provides suites (banking, etc.) with utility and security scoring for tool-using agents. We use it as an **external bar**, not the only metric: frozen corpus + brink contracts remain first-class.
+**Firewalls / guardrails / IFC.** LlamaFirewall-style stacks combine classifiers with secondary LLM checks; AgentSpec offers a runtime DSL without cross-session taint. Wire gateways see destinations, not call trees. Dual-LLM IFC (e.g. CaMeL) redesigns the agent; Tracewall inserts one ALLOW/BLOCK seam before tools.
 
-**Taint.** Classical taint is binary; Tracewall uses continuous trust/taint with hop and time decay for agent graphs. End-to-end MINJA vs GPT-4 agents remains **UNVERIFIED** beyond synthetic ledger tests.
+**Benchmarks & taint.** AgentDojo scores utility/ASR across environments (banking, workspace, travel, …). We treat it as an **external bar** and report only measured banking slices, plus frozen corpus, MCP brink, and a non-banking robustness matrix. Classical taint is binary; Tracewall uses continuous trust/taint with hop/time decay. End-to-end MINJA vs GPT-4 agents remains **UNVERIFIED** beyond synthetic ledger tests.
 
 ---
 
@@ -151,8 +152,8 @@ Firewall-only matrix (`robustness_stress.json`): workspace messaging, HTTP POST,
 |----------------|-----|-----|---------|
 | important_instructions (1×1) | base / def. | 0.0 / 0.0 | 1.0 / 1.0 |
 | ignore_previous (1×1) | base / def. | 0.0 / 0.0 | 1.0 / 1.0 |
-| direct (1×1, abort-era) | base → def. | 1.0 → 0.0 | 1.0 → 1.0 |
-| direct (1×4, abort-era) | base → def. | 1.0 → 0.0 | 1.0 → **0.25** |
+| direct (1×1, abort) | base → def. | 1.0 → 0.0 | 1.0 → 1.0 |
+| direct (1×4, abort) | base → def. | 1.0 → 0.0 | 1.0 → **0.25** |
 | **direct (1×4, soft-block)** | base → def. | **1.0 → 0.0** | **1.0 → 1.0** |
 
 Jailbreaks with baseline ASR 0 are model refusals—not credited as Tracewall wins.
@@ -204,3 +205,4 @@ Tracewall is a practical tool-call firewall: deterministic policy and taint-awar
 
 - **Current PDF:** [`tracewall.pdf`](tracewall.pdf) from [`tracewall.tex`](tracewall.tex) (IEEE 2-col draft, evidence-aligned).
 - `watchtower.tex` remains **stale** (old brand/metrics) — do not submit.
+- How to upload: [`SUBMIT.md`](SUBMIT.md).

@@ -1,30 +1,39 @@
 # HANDOFF — agentwatch-firewall (tracewall)
 
-Pick-up notes. **Last updated 2026-07-21 (v0.2.0 + integration docs).**
+Pick-up notes. **Last updated 2026-07-22 (features frozen → paper submit).**
+
+## Track
+
+- **Product features: FROZEN** for this paper submit (no new AgentDojo suites / live ASR unless explicitly requested).
+- **Paper: submit track in progress / camera-ready** — see [`paper/SUBMIT.md`](paper/SUBMIT.md), [`paper/PAPER.md`](paper/PAPER.md), [`paper/tracewall.tex`](paper/tracewall.tex), [`paper/tracewall.pdf`](paper/tracewall.pdf).
+- Evidence only from [`paper/EVIDENCE.md`](paper/EVIDENCE.md) + `tracewall/eval/results/`. Do **not** upload stale [`paper/watchtower.tex`](paper/watchtower.tex).
 
 ## Where things stand
 
 - Tracewall **0.2.0**: enforcement core + MCP proxy + zta/paranoid/balanced/permissive.
 - Operator docs: `GETTING_STARTED` / **`INTEGRATION`** / `RESULTS` / `RUNBOOK` / `ENTERPRISE` / `SUPPORT` / `ARCHITECTURE_OVERVIEW`.
 - **Put Tracewall on the tool-call path:** [`docs/INTEGRATION.md`](docs/INTEGRATION.md) (Python `guard`, MCP `mcp_proxy` as sole path, `GuardedToolNode`).
-- Bypass closes: ZWSP/NFKC args + canonical tool names.
+- Bypass closes: ZWSP/NFKC args + canonical tool names (success in adojo/robustness stress).
 - Ops: explain dry-run, health, reload, in-process + HTTP `/metrics`, OTel-shaped audit JSONL.
 - Soft-block product contract on `guard(on_block="soft")`.
 - Reference MCP PEP app + LangGraph-style `GuardedToolNode` (no langgraph dep).
 - Enterprise checklist: [`docs/ENTERPRISE.md`](docs/ENTERPRISE.md).
+- Paper claims aligned: held-out regression bar, soft-block AgentDojo banking slice, robustness **18/18**, latency microbench, scope footnote, author **beejak**.
 
-## Still open (priority)
+## Still open (post-submit / non-blocking for arXiv)
 
 1. **Signed identity** — still ledger register (no SPIFFE / IdP verifier).
 2. **SBOM** — not generated in CI yet.
 3. **Full OTLP/gRPC exporter** — JSONL bridge only; document limits.
-4. **Venue polish** — paper camera-ready.
+4. **Optional AgentDojo expand** — other environments (workspace/travel/…) or more attacks/models; **not required** while frozen for submit.
 5. **Unknown tool names** — still expected_limit (pack gap); `tools/list` unscanned.
+6. **Venue submission** after arXiv (S&P / USENIX / CCS) — separate from freeze.
 
 ## Done recently
 
 | Item | Evidence |
 |------|----------|
+| Paper camera-ready + SUBMIT checklist | `paper/tracewall.tex`, `paper/SUBMIT.md`, `paper/HANDOFF` note |
 | Operator docs pack + INTEGRATION | `docs/GETTING_STARTED.md`, `docs/INTEGRATION.md` |
 | Architecture overview | `docs/ARCHITECTURE_OVERVIEW.md` |
 | ZTA practicality | `rules/zta/`, own call-tree, `require_caps` |

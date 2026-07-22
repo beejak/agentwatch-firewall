@@ -1,16 +1,19 @@
-PAPER = watchtower
+# Local PDF helper. Submission source is tracewall.tex — NOT watchtower.tex.
+PAPER = tracewall
 LATEX = pdflatex
 BIBTEX = bibtex
 
-.PHONY: all clean view
+.PHONY: all clean view tectonic
 
 all: $(PAPER).pdf
 
-$(PAPER).pdf: $(PAPER).tex references.bib
-	$(LATEX) $(PAPER)
-	$(BIBTEX) $(PAPER)
+$(PAPER).pdf: $(PAPER).tex
 	$(LATEX) $(PAPER)
 	$(LATEX) $(PAPER)
+
+# Prefer tectonic when available (Windows: %TEMP%\tectonic-bin\tectonic.exe).
+tectonic:
+	tectonic -X compile $(PAPER).tex
 
 clean:
 	rm -f $(PAPER).aux $(PAPER).bbl $(PAPER).blg $(PAPER).log \

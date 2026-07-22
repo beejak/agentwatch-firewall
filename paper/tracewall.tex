@@ -37,7 +37,7 @@
     \url{beejak@users.noreply.github.com}\\
     Draft preprint --- enforcement-only companion to \emph{agentwatch}\\
     Artifacts: \url{https://github.com/beejak/agentwatch-firewall}\\
-    Evidence ledger: \path{paper/EVIDENCE.md} (2026-07-19)
+    Evidence ledger: \path{paper/EVIDENCE.md} (through 2026-07-21)
   }
 }
 
@@ -64,6 +64,9 @@ identity; $18/18$) passes beyond banking-only probes. Full \texttt{Firewall.chec
 on a mixed allow/block microbenchmark is mean $\approx 6.4$\,ms and p99 $\approx 9.8$\,ms
 (deterministic backend, $n{=}400$). MCP stdio supports Content-Length framing and legacy
 NDJSON, with brink tests that record successes and known limits.
+We do \emph{not} claim $100\%$ detection on a small known-bad suite as a primary result,
+nor sub-millisecond p99 latency versus GPU sentinels without a matched full-\texttt{check}
+measurement.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -119,31 +122,31 @@ AgentDojo-shaped banking probes).
 (5)~Evaluation discipline with an in-repo claim ledger and success vs.\ expected-limit rows.
 
 \paragraph{Non-claims.}
-We do not claim an observation-first OS, GPU-sentinel latency comparisons without matched
-methodology, or $100\%$ detection on a small known-bad suite as a primary result.
-Held-out tier-1 recall is not adaptive robustness.
+We do not claim an observation-first OS or WatchTower branding; Hermes / graphify AST /
+ruflo BFT / ClickHouse / SPIFFE CA as shipped product; GPU-sentinel latency comparisons
+without matched methodology; or $100\%$ detection on a small known-bad suite as a primary
+result. Held-out tier-1 recall is not adaptive robustness. AgentDojo numbers are
+banking-slice and model-specific (DeepSeek often refuses some jailbreaks).
 
 \section{Related Work}
 
-\paragraph{Prompt injection and memory attacks.}
-Indirect prompt injection is a top risk for tool-using LLMs.
-MINJA~\cite{minja} showed high injection success via query-only interaction with memory.
-Defenses that only filter surface strings miss tool-level misuse.
+\paragraph{Injection and agent misuse.}
+Indirect prompt injection remains a leading risk for tool-using LLMs.
+MINJA~\cite{minja} showed high success via query-only memory poisoning; string filters
+alone miss tool-level misuse after a sensitive read.
 
-\paragraph{Agent firewalls and guardrails.}
-LlamaFirewall-style stacks combine classifiers and secondary LLM checks~\cite{llamafirewall}.
-AgentSpec~\cite{agentspec} offers a runtime DSL but without cross-session taint.
-Network gateways (e.g., WireGuard-fronted agent proxies) see destinations, not call trees.
-CaMeL-style dual-LLM IFC~\cite{camel} redesigns the agent; Tracewall is a bouncer in front of tools.
+\paragraph{Firewalls, guardrails, and IFC.}
+LlamaFirewall-style stacks combine classifiers with secondary LLM checks~\cite{llamafirewall}.
+AgentSpec~\cite{agentspec} provides a runtime DSL without cross-session taint.
+Wire gateways see destinations, not call trees. Dual-LLM IFC designs (e.g., CaMeL~\cite{camel})
+redesign the agent stack; Tracewall instead inserts a single ALLOW/BLOCK seam before tools.
 
-\paragraph{Benchmarks.}
-AgentDojo~\cite{agentdojo} evaluates utility and attack success for tool-using agents under
-injection. We use it as an \emph{external bar}, alongside a frozen corpus, brink contracts,
-and a non-banking robustness matrix.
-
-\paragraph{Taint analysis.}
-Classical taint tracking is binary~\cite{newsome2005}. Tracewall uses continuous trust/taint
-with hop and time decay for agent graphs. End-to-end MINJA vs.\ GPT-4 agents remains
+\paragraph{Benchmarks and taint.}
+AgentDojo~\cite{agentdojo} scores utility and attack success under injection across
+environments (banking, workspace, travel, \ldots). We treat it as an \emph{external bar}
+and report only measured banking slices, plus a frozen corpus, MCP brink contracts, and a
+non-banking robustness matrix. Classical taint is binary~\cite{newsome2005}; Tracewall uses
+continuous trust/taint with hop/time decay. End-to-end MINJA vs.\ GPT-4 agents remains
 unverified beyond synthetic ledger tests.
 
 \section{Threat Model}
@@ -212,14 +215,14 @@ Live \texttt{check()} updates trust on ALLOW/BLOCK; full contagion edges on MCP 
 \caption{Deployment placements.}
 \label{tab:transports}
 \small
-\begin{tabular}{@{}p{2.6cm}p{5.0cm}@{}}
+\begin{tabular}{@{}p{0.30\columnwidth}p{0.62\columnwidth}@{}}
 \toprule
 Placement & Status \\
 \midrule
 Python guard & Shipped (\texttt{Firewall.check}) \\
 MCP stdio proxy & Shipped; Content-Length $+$ NDJSON \\
-\texttt{GuardedToolNode} & Shipped LangGraph-style pattern (no \texttt{langgraph} dep) \\
-Full LangGraph / HTTP sidecar & Roadmap \\
+GuardedToolNode & LangGraph-style pattern (no \texttt{langgraph} dep) \\
+LangGraph / HTTP sidecar & Roadmap \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -229,7 +232,8 @@ Profiles: \textbf{zta} (identity$+$caps, allowlists, proxy-owned call tree),
 \section{Evaluation}
 
 Primary numbers are from committed artifacts under \path{tracewall/eval/results/}
-and \path{paper/EVIDENCE.md} (dated 2026-07-19 unless noted).
+and \path{paper/EVIDENCE.md} (corpus/latency/AgentDojo live: 2026-07-19;
+ZWSP/canonical closes and robustness $18/18$: 2026-07-21).
 
 \subsection{Held-out corpus (key-free)}
 Corpus \path{corpus_v0.1} test split, $n{=}27$ (13 malicious / 14 benign),
@@ -286,20 +290,19 @@ names so execution yields an error without aborting the agent).
 
 \begin{table}[!t]
 \centering
-\caption{AgentDojo banking live (DeepSeek). ASR $=$ injection goal met.}
+\caption{AgentDojo banking live (DeepSeek, bill-preserving). ASR $=$ injection goal met.
+Abort $=$ hard BLOCK; soft $=$ rewrite blocked tool to a non-executing error.}
 \label{tab:adojo}
-\begin{tabular}{@{}p{3.4cm}lcc@{}}
+\small
+\begin{tabular}{@{}llcrr@{}}
 \toprule
 Attack / slice & Arm & ASR & Utility \\
 \midrule
 imp.\ instr.\ ($1{\times}1$) & base / def. & $0.0$ / $0.0$ & $1.0$ / $1.0$ \\
 ignore prev.\ ($1{\times}1$) & base / def. & $0.0$ / $0.0$ & $1.0$ / $1.0$ \\
-direct ($1{\times}1$, abort) & base & $1.0$ & $1.0$ \\
-direct ($1{\times}1$, abort) & defended & $0.0$ & $1.0$ \\
-direct ($1{\times}4$, abort) & base & $1.0$ & $1.0$ \\
-direct ($1{\times}4$, abort) & defended & $0.0$ & $0.25$ \\
-direct ($1{\times}4$, soft) & base & $1.0$ & $1.0$ \\
-direct ($1{\times}4$, soft) & defended & $0.0$ & $1.0$ \\
+direct ($1{\times}1$, abort) & base $\rightarrow$ def. & $1.0\rightarrow0.0$ & $1.0\rightarrow1.0$ \\
+direct ($1{\times}4$, abort) & base $\rightarrow$ def. & $1.0\rightarrow0.0$ & $1.0\rightarrow0.25$ \\
+direct ($1{\times}4$, soft) & base $\rightarrow$ def. & $1.0\rightarrow0.0$ & $1.0\rightarrow1.0$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -346,6 +349,7 @@ than to refusal.
 \item \path{paper/EVIDENCE.md}
 \end{itemize}
 
+\balance
 \begin{thebibliography}{00}
 \bibitem{minja} C.~Zheng et al., ``MINJA: Memory Injection Attack,'' arXiv:2503.03704, 2025.
 \bibitem{agentspec} Z.~Wang et al., ``AgentSpec,'' arXiv:2503.18666, 2025.
