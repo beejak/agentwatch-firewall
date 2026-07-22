@@ -1,4 +1,10 @@
-"""Soft-block defense: BLOCKed tools become invalid names (no AbortAgentError)."""
+"""Soft-block defense: BLOCKed tools become invalid names (no AbortAgentError).
+
+Requires optional `[bench]` (agentdojo). Without it, skip so infra-free CI can collect.
+"""
+import pytest
+
+pytest.importorskip("agentdojo")
 from agentdojo.functions_runtime import FunctionCall
 
 from tracewall.core.signal import Verdict
