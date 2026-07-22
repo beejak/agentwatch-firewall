@@ -95,7 +95,17 @@ Content guardrails lack tool semantics. Wire gateways see destinations, not
 \emph{why} a call was made. Dual-LLM interpreters redesign the agent stack~\cite{camel}.
 Tracewall targets a narrower wedge: intercept tool calls, decide with policy and taint,
 and keep evaluation honest (held-out ablation, brink limits, AgentDojo slices,
-cross-domain stress).
+cross-domain stress).\footnote{%
+\textbf{Scope.}
+This paper is an evidence-backed description of Tracewall as a tool-call firewall
+(ALLOW/BLOCK before side effects), with measured regression and eval discipline.
+It \emph{proves} (narrowly) only claims marked VERIFIED in \path{paper/EVIDENCE.md}:
+held-out corpus regression bars; MCP brink success$+$limits; firewall-only and
+soft-block AgentDojo banking \emph{slices} where cited; a latency microbenchmark;
+and the cross-domain stress matrix.
+It does \emph{not} prove adaptive robustness; full AgentDojo coverage;
+production ZTA/SPIFFE identity; that Tracewall works if agents bypass the PEP;
+superiority vs.\ GPU sentinels; or ``100\% detection'' marketing claims.}
 
 \paragraph{Contributions.}
 (1)~Stable enforcement seam with identity $\rightarrow$ content $\rightarrow$ YAML policy
@@ -207,7 +217,8 @@ Placement & Status \\
 \midrule
 Python guard & Shipped (\texttt{Firewall.check}) \\
 MCP stdio proxy & Shipped; Content-Length $+$ NDJSON \\
-LangGraph / HTTP & Roadmap \\
+\texttt{GuardedToolNode} & Shipped LangGraph-style pattern (no \texttt{langgraph} dep) \\
+Full LangGraph / HTTP sidecar & Roadmap \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -254,16 +265,17 @@ limits include missing \texttt{\_meta}, permissive skipping the exfil pack, and 
 \subsection{Firewall-only AgentDojo-shaped stress}
 Without an LLM, Tracewall blocks \texttt{send\_money} and \texttt{schedule\_transaction}
 to the AgentDojo attacker IBAN and allows legitimate UK bill pay after \texttt{read\_file}.
-Expected-limit bypasses that still reproduce: leading ZWSP in IBAN, wrong tool-name case.
+Former bypasses (ZWSP-prefixed IBAN, wrong tool-name case) are closed as of 2026-07-21
+via NFKC/ZWSP normalize and canonical tool names---now success rows, not expected\_limit.
 
 \subsection{Cross-domain robustness (non-banking)}
 Beyond banking, a firewall-only matrix covers workspace messaging, HTTP POST, upload,
-memory contagion, host write paths, and identity/caps ($12$ success $+\,2$ expected\_limit;
-$18/18$ pass in \path{robustness_stress.json};
-16 success + 2 expected\_limit for unknown tool names).
+memory contagion, host write paths, and identity/caps
+($16$ success $+\,2$ expected\_limit $=\,18/18$ in \path{robustness_stress.json}).
 Successes include blocking Slack-shaped \texttt{send\_message}, \texttt{http\_post}, and
-\texttt{upload} after secret reads, plus identity denials when required.
-Tracked limits: unknown tool names and PascalCase aliases that miss exact tool-name rules.
+\texttt{upload} after secret reads, identity denials when required, ZWSP IBAN normalize,
+and PascalCase tool aliases after canonicalization.
+Tracked expected limits: unknown tool names and unscanned MCP \texttt{tools/list}.
 This is still not adaptive attack proof---it widens the \emph{domain} surface under test.
 
 \subsection{AgentDojo live (DeepSeek)}
@@ -298,16 +310,19 @@ Jailbreaks with baseline ASR $0$ are model refusals---not credited as Tracewall 
 
 \section{Making it more robust (roadmap)}
 Concrete next bars (not yet VERIFIED as paper wins):
-AgentDojo workspace/travel suites; IBAN Unicode normalization; case-insensitive tool aliases;
+AgentDojo workspace/travel suites; signed workload identity;
+full LangGraph package integration / HTTP sidecar PEP;
 org allowlists instead of attacker-IBAN probes; live contagion edges on MCP;
-adaptive paraphrase corpus; rate limits that actually work.
+adaptive paraphrase corpus; distributed (cluster) rate limits.
+(ZWSP/NFKC IBAN normalize and canonical tool-name aliases are shipped.)
 
 \section{Limitations}
 
 Contagion on live MCP edges is incomplete. Semantic LLM is optional and non-gating.
 AgentDojo coverage remains a slice. Attacker-IBAN rules are eval-aligned probes;
 production needs org allowlists. Latency is a single-host microbenchmark.
-Tool-name exact match and unknown-tool gaps are tracked as expected limits.
+Unknown tool names and unscanned MCP \texttt{tools/list} remain expected limits
+(ZWSP IBAN and PascalCase aliases are closed).
 
 \section{Conclusion}
 

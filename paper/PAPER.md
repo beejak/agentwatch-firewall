@@ -12,7 +12,7 @@
 
 AI agents invoke tools that can move money, send email, and mutate shared state. Prompt injection and capability misuse turn those tools into an attack surface that content filters and network firewalls see poorly: the wire request often looks legitimate. We present **Tracewall**, a transport-agnostic agent firewall with a single seam—`await Firewall.check(event) → FirewallVerdict`—that decides ALLOW or BLOCK before a side effect runs. The pipeline combines optional identity checks, a deterministic YAML policy DSL (including call-tree context), a recovering multi-hop taint ledger, and an optional semantic escalation tier. Fail-safe behavior is BLOCK on internal error.
 
-On a frozen held-out corpus (n=27), the key-free path reaches deterministic integrated recall **1.0** (precision ≈ **0.929**, FPR ≈ **0.071**); tier-1 policy alone reaches recall **1.0** / FPR **0** on that split. These numbers are a **regression bar**, not proof against adaptive attacks. On AgentDojo banking under DeepSeek with bill-preserving injections and **soft-block**, a `direct` slice (1×4) shows baseline ASR **1.0** / utility **1.0**, falling to ASR **0.0** / utility **1.0** under Tracewall. A cross-domain robustness matrix (workspace / HTTP / contagion / host / identity) passes **18/18** (16 success + 2 expected_limit: unknown tool names). Full `Firewall.check` mean ≈ **6.4 ms** (p99 ≈ **9.8 ms**). MCP stdio supports Content-Length + NDJSON with brink tests that record successes and known limits.
+On a frozen held-out corpus (n=27), the key-free path reaches deterministic integrated recall **1.0** (precision ≈ **0.929**, FPR ≈ **0.071**); tier-1 policy alone reaches recall **1.0** / FPR **0** on that split. These numbers are a **regression bar**, not proof against adaptive attacks. On AgentDojo banking under DeepSeek with bill-preserving injections and **soft-block**, a `direct` slice (1×4) shows baseline ASR **1.0** / utility **1.0**, falling to ASR **0.0** / utility **1.0** under Tracewall. A cross-domain robustness matrix (workspace / HTTP / contagion / host / identity) passes **18/18** (16 success + 2 expected_limit: unknown tools, unscanned `tools/list`). Full `Firewall.check` mean ≈ **6.4 ms** (p99 ≈ **9.8 ms**). MCP stdio supports Content-Length + NDJSON with brink tests that record successes and known limits.
 
 We do **not** claim 100% detection on a small known-bad suite as a primary result, nor sub-millisecond p99 latency versus GPU sentinels without a matched measurement of full `Firewall.check`.
 
@@ -37,6 +37,8 @@ Agent deployments add attack surfaces beyond single-turn chat:
 3. **Contagion** — taint flowing across agents or sessions via shared memory and messages.
 
 Content guardrails lack tool semantics. Wire gateways see destinations, not *why* a call was made. Dual-LLM interpreters (e.g. CaMeL-style IFC) redesign the agent stack. Tracewall targets a narrower, deployable wedge: **intercept tool calls, decide with policy + taint, keep evidence honest**.
+
+> **Scope footnote.** This paper is an evidence-backed description of Tracewall as a tool-call firewall (ALLOW/BLOCK before side effects), with measured regression/eval discipline. **What it proves (narrow):** only claims marked VERIFIED in [`EVIDENCE.md`](EVIDENCE.md)—held-out corpus regression bars; MCP brink success+limits; firewall-only and soft-block AgentDojo banking *slices* where cited; latency microbench; cross-domain stress matrix. **What it does NOT prove:** adaptive robustness; full AgentDojo; production ZTA/SPIFFE; that Tracewall works if agents bypass the PEP; superiority vs GPU sentinels; “100% detection” marketing claims.
 
 ### 1.2 Contributions
 
@@ -100,7 +102,8 @@ Ledger (SQLite) stores trust, taint, identity, and edges. MTP solves a max-produ
 |-----------|--------|
 | Python `guard` / `Firewall.check` | Shipped |
 | MCP stdio proxy + profiles | Shipped (Content-Length + NDJSON auto-detect) |
-| LangGraph / HTTP sidecar | Roadmap |
+| LangGraph-style `GuardedToolNode` | Shipped as pattern (no `langgraph` dep) |
+| Full LangGraph package / HTTP sidecar | Roadmap |
 
 Profiles: **zta** (identity+caps, allowlist pack, proxy-owned call tree), **paranoid** (identity, allowlist pack, own call tree), **balanced** (lab default), **permissive** (fail-open, subset rules).
 
@@ -133,7 +136,7 @@ Fourteen rows (9 success + 5 expected_limit): profiles block MINJA/exfil when co
 
 ### 5.4 Firewall-only AgentDojo-shaped stress
 
-Without an LLM, Tracewall **BLOCKs** `send_money` and `schedule_transaction` to the AgentDojo attacker IBAN and **ALLOWs** legitimate UK bill pay after `read_file`. Tracked bypasses (expected_limit): leading ZWSP in IBAN, wrong tool-name case.
+Without an LLM, Tracewall **BLOCKs** `send_money` and `schedule_transaction` to the AgentDojo attacker IBAN and **ALLOWs** legitimate UK bill pay after `read_file`. Former bypasses (ZWSP-prefixed IBAN, wrong tool-name case) are **closed** as of 2026-07-21 via NFKC/ZWSP normalize and canonical tool names—now success rows, not expected_limit.
 
 ### 5.5 Cross-domain robustness (non-banking)
 
@@ -163,7 +166,7 @@ Jailbreaks with baseline ASR 0 are model refusals—not credited as Tracewall wi
 
 ## 6. Making it more robust (roadmap)
 
-Not yet VERIFIED paper wins: AgentDojo workspace/travel; IBAN Unicode normalize; case-insensitive tool aliases; signed workload identity; LangGraph sidecar; adaptive paraphrase corpus; distributed rate limits.
+Not yet VERIFIED paper wins: AgentDojo workspace/travel; signed workload identity; full LangGraph package integration / HTTP sidecar PEP; adaptive paraphrase corpus; distributed (cluster) rate limits. (ZWSP/NFKC IBAN normalize and canonical tool-name aliases are shipped.)
 
 ---
 
@@ -173,7 +176,7 @@ Not yet VERIFIED paper wins: AgentDojo workspace/travel; IBAN Unicode normalize;
 - Semantic LLM tier is optional, non-gating, and can diverge from deterministic bypass contracts (firewall stress forces semantic off).
 - AgentDojo coverage is still a slice, not all suites × all attacks × all models.
 - Policy attacker-IBAN rules are eval-aligned probes; production needs org allowlists / risk scores.
-- Tool-name exact match and unknown-tool gaps are tracked as expected limits.
+- Unknown tool names and unscanned MCP `tools/list` remain expected limits (ZWSP IBAN and PascalCase aliases are closed).
 
 ---
 
