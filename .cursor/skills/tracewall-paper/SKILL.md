@@ -49,6 +49,8 @@ If a sentence would assert something not **VERIFIED** in EVIDENCE, either:
 | Apples-to-oranges latency | Rule lookup vs competitor e2e |
 | Client `_meta` = identity | Treats forged caller_chain as authenticated history |
 | Denylist = ZTA | Claims zero-trust from attacker-IBAN probes alone |
+| Prompt-scanning product | Claims Tracewall scans/blocks chat-LLM jailbreaks; tier-0 is noisy prior on tool args, never sole BLOCK |
+| Sandbox as shipped | Claims gVisor/landlock/seccomp/VM containment; Tracewall is tool-call PEP only |
 
 ## After edits
 

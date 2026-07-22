@@ -42,6 +42,20 @@ python -m tracewall.ops.http_metrics --port 9100 --profile zta
 - Load ZTA default-deny into `balanced` without re-running held-out + EVIDENCE.
 - Treat semantic LLM as a security gate.
 - Wipe `adojo_stress.json` `live[]` on firewall-only reruns.
+- Claim **prompt-injection scanning of the chat LLM** as the product — tier-0 is a
+  noisy prior on tool args and never sole BLOCK; Tracewall gates **tool calls**
+  after compromise/confusion.
+- Claim **OS sandbox / containment** (gVisor, landlock, seccomp, VM) — Tracewall is
+  a tool-call PEP; pair with a real sandbox per `SECURITY.md`.
+
+## Blast-radius model (honest)
+
+**Contains (when sole PEP + zta/paranoid):** default-deny email/http allowlists,
+`require_caps`, proxy-owned call-tree (anti-forge), `rate_exceeds` (in-process),
+deterministic exfil/money/bash/MINJA rules, soft-block (tool never runs).
+
+**Does not contain:** PEP bypass, unknown/unlisted tools, host escape, model still
+emitting attack text, distributed rate limits, chat-stream jailbreaks.
 
 ## Verify
 

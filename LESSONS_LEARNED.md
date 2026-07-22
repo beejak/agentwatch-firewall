@@ -78,6 +78,29 @@ mistake) → *why*. Keep it terse and actionable.
 
 ## Session log (append per session; newest first)
 
+### 2026-07-22 — LLM compromise ≠ Tracewall’s primary scan surface (PEP blast-radius)
+- **Rule: do not sell Tracewall as a chat-LLM prompt-injection scanner.** → Tier-0
+  (`content/filter.py`) is a **noisy prior on tool-call args** (and similar
+  surfaces); it **never sole-BLOCKs**. Enforcement is **pre-tool-call** after the
+  model is already confused/compromised. Primary scan = `Firewall.check` on
+  screened `tools/call` / `guard` events — not the user’s chat stream.
+- **Rule: define “nasty” as tool-side effects the YAML pack actually gates.** Catch
+  (when names/args/call-tree match): exfil after secret-read (`send_email` /
+  `http_post` / `upload` / `send_message`); money movement probes (`send_money` /
+  `schedule_transaction` attacker IBAN / US133*); destructive/remote-exec **bash**
+  patterns; MINJA-shaped `memory_write`; zta allowlists + `rate_exceeds` on
+  `send_money`; `require_caps` / own call-tree under zta|paranoid. Miss: unknown
+  tool names, PEP bypass, host escape / raw sockets / direct `open()`,
+  non-`bash` destructive FS tools, novel IBANs without call-tree, chat-only
+  jailbreaks that never become a screened tool call.
+- **Rule: blast radius = sole PEP + allowlists + caps + rates + soft-block +
+  owned call-tree — not a sandbox.** Soft-block stops the tool but keeps the
+  agent loop alive; the model can still *generate* attack attempts. Pair with an
+  OS sandbox per `SECURITY.md` / `INTEGRATION.md`.
+- **Rule: paper/skills fraud — never claim prompt-scanning or OS sandbox as
+  shipped Tracewall controls.** (See `.cursor/skills/tracewall-zta` /
+  `tracewall-paper` fraud rows.)
+
 ### 2026-07-21 — enterprise readiness cut (metrics HTTP, OTel JSONL, MCP PEP ref)
 - **Rule: ship the PEP proof as a runnable app, not a docstring.** → *Happened:*
   `examples/reference_mcp.py` was print-only; replaced with `reference_mcp_app/` that

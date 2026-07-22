@@ -37,6 +37,28 @@ call-tree exfil when the PEP owns the session chain.
 
 For containment, pair Tracewall with an OS sandbox and make the PEP the sole tool path ([`docs/INTEGRATION.md`](docs/INTEGRATION.md)).
 
+## LLM compromise and blast radius
+
+**Not a chat prompt scanner.** Tracewall does **not** sit on the model’s chat
+stream to detect or neutralize jailbreaks. Tier-0 content filtering is a
+high-recall / low-precision screen of **tool-call argument text** (noisy prior);
+it **never** sole-BLOCKs. After a prompt injection has already confused the
+agent, Tracewall’s job is to decide ALLOW/BLOCK on the resulting **tool calls**.
+
+**“Nasty” (tool-side effects we aim to stop when rules match):** secret exfil via
+`send_email` / `http_post` / `upload` / `send_message` after a secret-reader in
+the call tree; money movement (`send_money` / `schedule_transaction` attacker
+probes); destructive/remote-exec `bash` patterns; instruction-like `memory_write`
+(MINJA); under `zta`/`paranoid` — org allowlists, `require_caps`,
+`rate_exceeds`, and proxy-owned call trees. Soft-block stops execution while
+keeping the agent loop alive (utility), but does not stop the model from
+*proposing* further attacks.
+
+**What blast-radius controls contain vs miss:** sole PEP + allowlists + caps +
+rates + owned call-tree can stop screened side effects. They do **not** stop PEP
+bypass, unknown tools, host escape, or chat-only compromise with no screened
+tool call. See threat model above.
+
 Architecture details: [`docs/FIREWALL.md`](docs/FIREWALL.md).  
 Put Tracewall on the path: [`docs/INTEGRATION.md`](docs/INTEGRATION.md).  
 Operator posture: [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
