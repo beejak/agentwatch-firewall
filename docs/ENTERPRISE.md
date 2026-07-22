@@ -1,6 +1,11 @@
 # Enterprise readiness checklist
 
-Honest status as of 2026-07-21 (v0.2.0). Update when items move.
+Honest status as of 2026-07-22 (v0.2.0). **Features frozen** for paper submit —
+see [`../HANDOFF.md`](../HANDOFF.md). Update when items move.
+
+**Product placement reminder:** Tracewall is a **tool-call PEP**, not a
+chat-stream scanner, OS sandbox, or on-disk file scanner. AgentDojo evidence is a
+**banking slice** only. No SPIFFE / kernel / sandbox-as-shipped claims.
 
 ## 1. Operator UX (docs)
 
@@ -60,4 +65,6 @@ Honest status as of 2026-07-21 (v0.2.0). Update when items move.
 
 ## Do not prioritize yet
 
-More paper ASR tables, deeper MTP math, SPIFFE branding before a real verifier.
+More paper ASR tables (non-banking AgentDojo suites), deeper MTP math, SPIFFE
+branding before a real verifier, OS sandbox productization, or chat-stream
+scanning (out of product scope).

@@ -1,12 +1,27 @@
 # tracewall
 
-A standalone, pluggable **agent firewall**: it decides **ALLOW / BLOCK** on every
-tool call an AI agent makes, so a compromised prompt or poisoned memory cannot
-turn into a destructive or exfiltrating action.
+A standalone, pluggable **tool-call PEP** (policy enforcement point): it decides
+**ALLOW / BLOCK** on every screened tool call an AI agent makes, so a
+compromised-via-prompts agent cannot turn screened tools into destructive or
+exfiltrating side effects.
 
-**What it is:** an enforcement library + MCP stdio PEP in front of tools.  
-**What it is not:** a SaaS gateway, HITL approve box, observation-first OS, or
-SPIFFE/IdP product. Brand is **tracewall** (not WatchTower).
+**Version:** 0.2.0 · **Author:** beejak · **Features frozen** for paper submit
+(see [`HANDOFF.md`](HANDOFF.md), [`paper/EVIDENCE.md`](paper/EVIDENCE.md)).
+
+## What we do / don’t
+
+| We **do** | We **don’t** |
+|-----------|--------------|
+| Gate **tool calls** at a PEP (`guard` / `mcp_proxy` / `GuardedToolNode`) | Sit on the LLM **chat stream** as a prompt-injection scanner |
+| Contain **screened** side effects when rules match: exfil, money probes, destructive `bash` patterns, caps/rates, owned call trees | OS/kernel monitoring, on-disk file scanners, or sandbox-escape prevention |
+| Treat tier-0 content filter as a **noisy prior on tool args** (never sole BLOCK) | Claim tier-0 / regex as the detector of record |
+| Report AgentDojo **banking slice** evidence only | Imply full AgentDojo (banking + workspace + travel + …) |
+| Ship library + MCP stdio PEP + ZTA-adjacent profiles | Ship SPIFFE/IdP, gVisor/landlock/seccomp/VM, or full NIST ZTA |
+
+**Brand:** **tracewall** (enforcement-only) — not WatchTower / observation-first OS.  
+**Threat model:** [`SECURITY.md`](SECURITY.md). Process rules: [`LESSONS_LEARNED.md`](LESSONS_LEARNED.md).  
+Cursor skills: [`.cursor/skills/tracewall-zta`](.cursor/skills/tracewall-zta/SKILL.md),
+[`.cursor/skills/tracewall-paper`](.cursor/skills/tracewall-paper/SKILL.md).
 
 One stable seam:
 
@@ -25,7 +40,8 @@ against adaptive attacks.
 ## Put it on the tool-call path
 
 Tracewall only protects calls that go through a PEP. If tools bypass it, you are
-unprotected.
+unprotected. Pair with an OS sandbox for host containment — Tracewall is the
+tool gate, not the sandbox.
 
 → **[`docs/INTEGRATION.md`](docs/INTEGRATION.md)** — Python `guard`, MCP
 `mcp_proxy` as the sole path, `GuardedToolNode`, checklist, anti-patterns.
@@ -87,8 +103,8 @@ HookEvent ─▶ L0 identity ─▶ tier-0 content ─▶ tier-1 policy
           ─▶ trust/taint gate ─(escalate)▶ tier-2 semantic ─▶ verdict ─▶ audit
 ```
 
-Internal error → fail-safe **BLOCK**. Detail:
-[`docs/FIREWALL.md`](docs/FIREWALL.md) ·
+Tier-0 flags tool-arg text only (noisy prior). Internal error → fail-safe **BLOCK**.
+Detail: [`docs/FIREWALL.md`](docs/FIREWALL.md) ·
 [`docs/ARCHITECTURE_OVERVIEW.md`](docs/ARCHITECTURE_OVERVIEW.md).
 
 ## Status (v0.2.0)
@@ -99,8 +115,11 @@ ZTA allowlist pack; proxy-owned call trees; match-level `rate_exceeds`; soft-blo
 ops (`explain` / `health` / `reload` / HTTP metrics); arg NFKC/ZWSP normalize +
 canonical tool names.
 
-**Open:** signed workload identity (SPIFFE), full OTLP/gRPC exporter, SBOM,
-HTTP sidecar PEP, unknown-tool / `tools/list` limits.
+**Open (not shipped):** signed workload identity (SPIFFE), full OTLP/gRPC exporter,
+SBOM, HTTP sidecar PEP, unknown-tool / `tools/list` limits, OS sandbox / on-disk scan.
+
+**Eval honesty:** AgentDojo has multiple suites; we measured a **banking slice**
+only — see [`docs/RESULTS.md`](docs/RESULTS.md) and EVIDENCE.
 
 Pick-up: [`HANDOFF.md`](HANDOFF.md). Evidence: [`paper/EVIDENCE.md`](paper/EVIDENCE.md).
 

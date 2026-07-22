@@ -10,7 +10,12 @@ Pick-up notes. **Last updated 2026-07-22 (features frozen → paper submit).**
 
 ## Where things stand
 
-- Tracewall **0.2.0**: enforcement core + MCP proxy + zta/paranoid/balanced/permissive.
+- Tracewall **0.2.0**: **tool-call PEP** — enforcement core + MCP proxy + zta/paranoid/balanced/permissive.
+- Honest story (also in README / SECURITY / LESSONS / skills): **not** a chat-stream
+  prompt scanner; tier-0 is a noisy prior on tool args (never sole BLOCK); contains
+  screened tool side effects after LLM compromise — not OS/kernel monitoring, not
+  on-disk FS scan, not sandbox escape; AgentDojo = **banking slice** only; no
+  SPIFFE/sandbox-as-shipped.
 - Operator docs: `GETTING_STARTED` / **`INTEGRATION`** / `RESULTS` / `RUNBOOK` / `ENTERPRISE` / `SUPPORT` / `ARCHITECTURE_OVERVIEW`.
 - **Put Tracewall on the tool-call path:** [`docs/INTEGRATION.md`](docs/INTEGRATION.md) (Python `guard`, MCP `mcp_proxy` as sole path, `GuardedToolNode`).
 - Bypass closes: ZWSP/NFKC args + canonical tool names (success in adojo/robustness stress).

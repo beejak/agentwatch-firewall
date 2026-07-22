@@ -2,6 +2,13 @@
 
 Install → register identity → run with `--profile zta` → see one BLOCK.
 
+> **What this is:** a **tool-call PEP** — ALLOW/BLOCK before screened tools run.
+> Not a chat-stream prompt scanner, not an OS sandbox, not an on-disk file scanner.
+> After prompt injection has already confused the agent, Tracewall contains
+> **screened tool side effects** (exfil, money probes, destructive `bash` patterns,
+> caps/rates). Pair with a real sandbox for host containment.
+> Threat model → [`../SECURITY.md`](../SECURITY.md).
+
 > **Put it on the tool-call path:** Tracewall only protects tools that go through
 > a PEP. Full wiring (Python `guard`, MCP proxy as sole path, `GuardedToolNode`,
 > checklist, anti-patterns) → **[`INTEGRATION.md`](INTEGRATION.md)**.

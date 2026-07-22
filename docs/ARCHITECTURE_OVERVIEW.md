@@ -6,9 +6,18 @@ in code today, what has been tested, and what Senior QA still owes.
 Canonical detail: [`FIREWALL.md`](FIREWALL.md). Evidence discipline:
 [`../paper/EVIDENCE.md`](../paper/EVIDENCE.md). Operator posture:
 [`RUNBOOK.md`](RUNBOOK.md). **Put Tracewall on the path:**
-[`INTEGRATION.md`](INTEGRATION.md).
+[`INTEGRATION.md`](INTEGRATION.md). Threat model: [`../SECURITY.md`](../SECURITY.md).
 
-**Version snapshot:** 0.2.0 (2026-07-21). No SPIFFE / signed-identity claims.
+**Version snapshot:** 0.2.0 (2026-07-22). Features frozen for paper submit.
+**Author:** beejak. No SPIFFE / signed-identity / OS-sandbox-as-shipped claims.
+
+### What we protect / don’t
+
+| Protect (when sole PEP) | Do not claim |
+|-------------------------|--------------|
+| Screened tool side effects: exfil, money probes, destructive `bash` patterns, caps/rates, owned call tree | Chat-stream prompt scanning; tier-0 as sole BLOCK |
+| Soft-block stops tool execution while keeping the agent loop alive | OS/kernel monitoring; on-disk FS scan; sandbox escape |
+| Banking **slice** of AgentDojo where measured | Full AgentDojo (all suites × attacks × models) |
 
 ---
 
@@ -260,7 +269,10 @@ Evidence from the tree / HANDOFF — **not** aspirational:
 - **Eval lanes** — harness, mcp_brink, adojo_stress (+ live), robustness_stress, latency, AgentDojo adapter.
 - **Docs / packaging** — GETTING_STARTED, RUNBOOK, RESULTS, SUPPORT, ENTERPRISE, SECURITY, CHANGELOG.
 
-**Explicitly not claimed:** SPIFFE / IdP-verified identity, full OTLP exporter, SBOM in CI, adaptive paraphrase ASR, travel/workspace live AgentDojo coverage.
+**Explicitly not claimed:** SPIFFE / IdP-verified identity, full OTLP exporter,
+SBOM in CI, adaptive paraphrase ASR, travel/workspace live AgentDojo coverage,
+chat-stream prompt scanning, OS sandbox / on-disk file scanning as shipped
+Tracewall controls.
 
 ---
 
@@ -300,7 +312,7 @@ plus **1 collection error** when `agentdojo` is not installed:
 | Held-out harness | `python -m tracewall.eval.harness --split test` | `eval/results/corpus_v0.1_test_*.json` | 27 cases (13 mal / 14 ben). Deterministic **integrated** recall **1.0**, FPR **≈0.071**. Tier-1 recall 1.0 / FPR 0. Regression bar, not adaptive proof. |
 | MCP brink | `python -m tracewall.eval.mcp_brink` | `mcp_brink.json` | **18/18** — success 12/12, expected_limit 6/6 |
 | AgentDojo stress (firewall-only) | `python -m tracewall.eval.adojo_stress` | `adojo_stress.json` | Firewall matrix **7/7** success |
-| AgentDojo live | `adojo_stress --live` / adapter | `adojo_stress_live/**`, `adojo_diag/**` | **Present:** 28 live banking JSONs under `adojo_stress_live/` + 2 diag. Summary rows in `adojo_stress.json` `live[]` (direct base ASR 1.0 → defended ASR 0.0 on sampled tasks; utility can drop under soft-block — see n1×4 rows). **Narrow banking slice** — not travel/workspace suites. |
+| AgentDojo live | `adojo_stress --live` / adapter | `adojo_stress_live/**`, `adojo_diag/**` | **Present:** live banking JSONs under `adojo_stress_live/` + diag. Summary rows in `adojo_stress.json` `live[]` (direct base ASR 1.0 → defended ASR 0.0 on sampled tasks; soft-block utility 1.0 on n1×4). AgentDojo has **four+ suites**; we measured a **narrow banking slice** only — not travel/workspace/slack. |
 | Robustness | `python -m tracewall.eval.robustness_stress` | `robustness_stress.json` | **18/18** — success 16, expected_limit 2 (domains: workspace, contagion, host, identity, banking) |
 | Latency | `python -m tracewall.eval.latency` | `latency_check.json` | n=400 deterministic; p50≈6.8 ms, p99≈9.8 ms |
 

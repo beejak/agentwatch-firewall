@@ -137,4 +137,12 @@ Full how-to: [`INTEGRATION.md`](INTEGRATION.md).
 
 ## What Tracewall does **not** do
 
-See [`SECURITY.md`](../SECURITY.md). Host compromise, bypassing the PEP, and model-weight jailbreaks are out of scope.
+See [`SECURITY.md`](../SECURITY.md). Short list for operators:
+
+- **Not a chat-stream prompt scanner** — enforcement is pre-tool-call; tier-0 is a
+  noisy prior on tool-arg text and never sole-BLOCKs.
+- **Not OS/kernel monitoring, on-disk file scanning, or sandbox escape prevention** —
+  Tracewall is a tool-call PEP; pair with a real sandbox.
+- **Not SPIFFE / continuous IdP auth** — ledger `register_identity` only.
+- Host compromise, bypassing the PEP, and model-weight jailbreaks as the primary
+  control remain out of scope.

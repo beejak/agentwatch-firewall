@@ -4,7 +4,11 @@ Evidence flows **repo → paper**. A goal without a named verification is a wish
 
 ## Product placement
 
-Library + MCP proxy that ALLOW/BLOCKs tool calls. Not a SaaS gateway, HITL approve box, or CaMeL-style IFC redesign.
+**Tool-call PEP** (library + MCP proxy) that ALLOW/BLOCKs screened tool calls.
+Contains screened side effects after prompt compromise — **not** a chat-stream
+scanner, OS sandbox, on-disk file scanner, SaaS gateway, HITL approve box, or
+CaMeL-style IFC redesign. No SPIFFE-as-shipped. Features **frozen** for paper
+submit (v0.2.0, author beejak). Threat model: [`../SECURITY.md`](../SECURITY.md).
 
 | Use site | Status |
 |----------|--------|
@@ -26,14 +30,14 @@ Wiring guide: [`INTEGRATION.md`](INTEGRATION.md).
 | G3 | MCP profiles | All `kind=success` rows in `mcp_brink.json` pass; profiles load; `--fail-closed`/`--fail-open` CLI work | Success-row fails, or profiles only in docs | `pytest tracewall/tests/test_mcp_profiles.py` + `python -m tracewall.eval.mcp_brink` (exit 0) |
 | G3-fail | MCP honesty | `expected_limit` rows **pass** (limit reproduced: no `_meta`, permissive skips exfil, tools/list unscanned) | We hide misses or claim profiles fix context starvation | Same brink JSON `by_kind.expected_limit` |
 | G3z | ZTA practicality | zta profile: allowlists, own call-tree, require_caps, rate_exceeds tests green | Lab denylist-only story | `pytest …test_zta_practical.py` + brink zta rows |
-| G4 | AgentDojo | ASR base vs defended + utility; non-empty | Unrun adapter as “result” | adapter CLI smoke |
+| G4 | AgentDojo banking slice | ASR base vs defended + utility on **banking**; never imply full AgentDojo | Unrun adapter or “full suite” claim | adapter CLI smoke + EVIDENCE |
 | G4b | Firewall stress (no LLM) | `adojo_stress` success rows pass; limits reproduced | Claim AgentDojo blocked without send_money rules | `python -m tracewall.eval.adojo_stress` / `pytest …test_adojo_stress` |
-| G4c | DeepSeek follow-through | Live probes with `--system benchmark` + bill-preserving raise ASR above vanilla 0/0 when model complies | Treat refusal-as-defense as Tracewall win | `python -m tracewall.eval.adojo_stress --live` |
+| G4c | DeepSeek follow-through | Live **banking** probes with `--system benchmark` + bill-preserving raise ASR above vanilla 0/0 when model complies | Treat refusal-as-defense as Tracewall win; imply workspace/travel measured | `python -m tracewall.eval.adojo_stress --live` |
 | G4d | Cross-domain robustness | `robustness_stress` success rows pass; limits reproduced | Banking-only story | `python -m tracewall.eval.robustness_stress` / pytest |
 | G5 | Paper honesty | Tracewall draft matches EVIDENCE | WatchTower 17/17 / 0.011ms | Diff abstract vs EVIDENCE |
 | G6 | Venue | G4+G5 done; PDF floats verified | Submit on stale PDF | tectonic + page inspect |
 
-**Status snapshot (2026-07-21, v0.2.0):** G0–G3 (+G3-fail, G3z) met; G4b/G4c/G4d met (robustness **18/18**); G5 paper draft + PDF aligned with EVIDENCE. ZWSP/NFKC + canonical tool names closed. Remaining: signed identity, HTTP sidecar PEP, SBOM, OTLP/gRPC, venue polish, unknown-tool / `tools/list` limits.
+**Status snapshot (2026-07-22, v0.2.0, features frozen):** G0–G3 (+G3-fail, G3z) met; G4b/G4c/G4d met (robustness **18/18**; AgentDojo = banking slice); G5 paper draft + PDF aligned with EVIDENCE (PEP ≠ chat scanner). ZWSP/NFKC + canonical tool names closed. Remaining (post-submit): signed identity, HTTP sidecar PEP, SBOM, OTLP/gRPC, venue polish, unknown-tool / `tools/list` limits — not OS sandbox productization.
 
 
 ## P0 correctness (G1b) — named checks

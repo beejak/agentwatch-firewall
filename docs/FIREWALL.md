@@ -1,17 +1,24 @@
 # tracewall — architecture
 
-A standalone, pluggable agent firewall. It decides **ALLOW / BLOCK** on every
-tool call an agent makes, behind one stable async seam:
+A standalone, pluggable **tool-call PEP**. It decides **ALLOW / BLOCK** on every
+screened tool call an agent makes, behind one stable async seam:
 
 ```python
 from tracewall import Firewall
 verdict = await firewall.check(event)   # -> FirewallVerdict
 ```
 
+**Not** a chat-stream prompt-injection scanner, OS sandbox, or on-disk file
+scanner. Tier-0 content filtering is a noisy prior on **tool-arg text** and
+**never** sole-BLOCKs. After prompt injection has confused the agent, Tracewall
+contains screened tool side effects (exfil, money probes, destructive `bash`
+patterns, caps/rates) — see [`../SECURITY.md`](../SECURITY.md).
+
 Installable without cloud services. Deterministic tiers are key-free; an optional
 LLM semantic backend is opt-in. **Fail-safe: any internal error → BLOCK.**
 
 Canonical goals / evidence: [`GOALS.md`](GOALS.md), [`../paper/EVIDENCE.md`](../paper/EVIDENCE.md).
+**Wire the PEP:** [`INTEGRATION.md`](INTEGRATION.md).
 
 ---
 
@@ -201,15 +208,16 @@ Shipped packs: MINJA memory, destructive/remote-exec bash, exfil email/http/mess
 |------|---------|----------------|
 | Held-out ablation | `python -m tracewall.eval.harness --split test` | Detection P/R/F1 on frozen corpus |
 | MCP brink | `python -m tracewall.eval.mcp_brink` | Profile success **and** expected limits |
-| AgentDojo stress | `python -m tracewall.eval.adojo_stress` | Firewall-only banking chains + limits |
+| AgentDojo stress | `python -m tracewall.eval.adojo_stress` | Firewall-only **banking** chains + limits |
 | Cross-domain robustness | `python -m tracewall.eval.robustness_stress` | Workspace/HTTP/contagion/host/identity |
 | Latency | `python -m tracewall.eval.latency` | Full `Firewall.check` microbenchmark |
-| AgentDojo live | `python -m tracewall.eval.adapters.agentdojo …` | Live ASR/utility (needs key; often UNVERIFIED) |
+| AgentDojo live | `python -m tracewall.eval.adapters.agentdojo …` | Live ASR/utility (**banking slice**; needs key) |
 | Unit gate | `pytest -q` | Contracts / regressions |
 
 Held-out deterministic snapshot (post policy pack): tier1 recall **1.0** / FPR **0**;
 integrated recall **1.0** / FPR ≈ **0.07**. That is a **regression bar**, not adaptive
-or AgentDojo proof — see EVIDENCE.
+proof or full-AgentDojo coverage (AgentDojo has multiple suites; we measured banking
+only) — see EVIDENCE.
 
 ---
 

@@ -37,7 +37,7 @@
     \url{beejak@users.noreply.github.com}\\
     Draft preprint --- enforcement-only companion to \emph{agentwatch}\\
     Artifacts: \url{https://github.com/beejak/agentwatch-firewall}\\
-    Evidence ledger: \path{paper/EVIDENCE.md} (through 2026-07-21)
+    Evidence ledger: \path{paper/EVIDENCE.md} (through 2026-07-22)
   }
 }
 
@@ -47,16 +47,22 @@
 \begin{abstract}
 AI agents invoke tools that can move money, send email, and mutate shared state.
 Prompt injection and capability misuse make those calls look legitimate on the wire.
-We present \textbf{Tracewall}, a transport-agnostic agent firewall with a single seam---
+We present \textbf{Tracewall}, a transport-agnostic \emph{tool-call PEP} (policy
+enforcement point) with a single seam---
 \texttt{Firewall.check}$\rightarrow$\texttt{FirewallVerdict}---that decides ALLOW or BLOCK
-before a side effect runs. The pipeline combines optional identity checks, a deterministic
+before a \emph{screened tool} side effect runs.
+Tracewall does \emph{not} sit on the LLM chat stream to detect or neutralize jailbreaks;
+after a prompt has already confused the agent, it gates the resulting tool calls.
+The pipeline combines optional identity checks, a deterministic
 YAML policy DSL (including call-tree context), a recovering multi-hop taint ledger, and an
-optional semantic escalation tier. Fail-safe behavior is BLOCK on internal error.
+optional semantic escalation tier (tier-0 content filtering is a noisy prior on tool-arg
+text and never sole-BLOCKs). Fail-safe behavior is BLOCK on internal error.
 
 On a frozen held-out corpus ($n{=}27$), the key-free path reaches deterministic integrated
 recall $1.0$ (precision $\approx 0.929$, FPR $\approx 0.071$); tier-1 policy alone reaches
 recall $1.0$ / FPR $0$. These numbers are a \emph{regression bar}, not adaptive proof.
-On AgentDojo banking under DeepSeek with bill-preserving injections and a soft-block defense
+AgentDojo defines multiple environment suites; we report a \emph{banking slice} only.
+On that banking suite under DeepSeek with bill-preserving injections and a soft-block defense
 (blocked tools become non-executing errors; the agent may continue), a \texttt{direct} attack
 slice ($1{\times}4$) shows baseline ASR $1.0$ / utility $1.0$, falling to ASR $0.0$ / utility
 $1.0$ under Tracewall. A cross-domain robustness matrix (workspace, HTTP, contagion, host,
@@ -66,7 +72,7 @@ on a mixed allow/block microbenchmark is mean $\approx 6.4$\,ms and p99 $\approx
 NDJSON, with brink tests that record successes and known limits.
 We do \emph{not} claim $100\%$ detection on a small known-bad suite as a primary result,
 nor sub-millisecond p99 latency versus GPU sentinels without a matched full-\texttt{check}
-measurement.
+measurement, nor OS sandbox / on-disk scanning / SPIFFE as shipped Tracewall controls.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -74,17 +80,19 @@ AI agents, tool-call firewall, prompt injection, AgentDojo, policy DSL, taint tr
 \end{IEEEkeywords}
 
 \paragraph{TL;DR.}
-One API decides ALLOW/BLOCK before tools run. YAML rules plus call trees catch exfil;
-taint tracks contagion; soft-block keeps agents useful while stopping attacks.
-Held-out recall $1.0$ is a regression bar. Soft-block AgentDojo \texttt{direct} ($1{\times}4$):
-ASR $0$, utility $1$. Cross-domain stress $18/18$. Mean \texttt{check} $\approx 6.4$\,ms.
+One API decides ALLOW/BLOCK before \emph{tools} run---a tool-call PEP, not a chat
+prompt scanner. YAML rules plus call trees catch exfil;
+taint tracks contagion; soft-block keeps agents useful while stopping screened attacks.
+Held-out recall $1.0$ is a regression bar. Soft-block AgentDojo banking \texttt{direct}
+($1{\times}4$): ASR $0$, utility $1$. Cross-domain stress $18/18$. Mean \texttt{check}
+$\approx 6.4$\,ms.
 
 \paragraph{ELI5.}
-Think of Tracewall as a bouncer for AI agents. Before an agent emails, pays a bill,
+Think of Tracewall as a bouncer for AI agents' \emph{tools}. Before an agent emails, pays a bill,
 posts to chat, or uploads a file, the bouncer looks at \emph{which} tool, \emph{what}
 arguments, and \emph{what it just did}. Stealing a secret and shipping it out? No.
-Paying a normal bill? Yes. It is not a mind reader and not a full security OS---just a
-gate in front of dangerous actions.
+Paying a normal bill? Yes. It is not a mind reader, not a chat-jailbreak scanner, and not an
+OS sandbox---just a gate in front of dangerous tool actions after the model is already confused.
 
 \section{Introduction}
 
@@ -98,17 +106,21 @@ Agent deployments add attack surfaces beyond single-turn chat:
 Content guardrails lack tool semantics. Wire gateways see destinations, not
 \emph{why} a call was made. Dual-LLM interpreters redesign the agent stack~\cite{camel}.
 Tracewall targets a narrower wedge: intercept tool calls, decide with policy and taint,
-and keep evaluation honest (held-out ablation, brink limits, AgentDojo slices,
-cross-domain stress).\footnote{%
+and keep evaluation honest (held-out ablation, brink limits, AgentDojo banking slices,
+cross-domain stress). LLM compromise is assumed; the product is blast-radius control on
+screened tools, not prompt neutralization.\footnote{%
 \textbf{Scope.}
-This paper is an evidence-backed description of Tracewall as a tool-call firewall
-(ALLOW/BLOCK before side effects), with measured regression and eval discipline.
+This paper is an evidence-backed description of Tracewall as a \emph{tool-call PEP}
+(ALLOW/BLOCK before screened side effects)---not a chat-stream prompt scanner, OS sandbox,
+or on-disk file scanner---with measured regression and eval discipline.
 It \emph{proves} (narrowly) only claims marked VERIFIED in \path{paper/EVIDENCE.md}:
 held-out corpus regression bars; MCP brink success$+$limits; firewall-only and
-soft-block AgentDojo banking \emph{slices} where cited; a latency microbenchmark;
+soft-block AgentDojo \emph{banking} slices where cited; a latency microbenchmark;
 and the cross-domain stress matrix.
-It does \emph{not} prove adaptive robustness; full AgentDojo coverage;
-production ZTA/SPIFFE identity; that Tracewall works if agents bypass the PEP;
+It does \emph{not} prove adaptive robustness; full AgentDojo coverage
+(AgentDojo has multiple suites; we measured banking only);
+production ZTA/SPIFFE identity; OS sandbox / kernel containment as shipped;
+that Tracewall works if agents bypass the PEP;
 superiority vs.\ GPU sentinels; or ``100\% detection'' marketing claims.}
 
 \paragraph{Contributions.}
@@ -125,8 +137,11 @@ AgentDojo-shaped banking probes).
 We do not claim an observation-first OS or WatchTower branding; Hermes / graphify AST /
 ruflo BFT / ClickHouse / SPIFFE CA as shipped product; GPU-sentinel latency comparisons
 without matched methodology; or $100\%$ detection on a small known-bad suite as a primary
-result. Held-out tier-1 recall is not adaptive robustness. AgentDojo numbers are
-banking-slice and model-specific (DeepSeek often refuses some jailbreaks).
+result. Tracewall is not a chat-stream prompt scanner (tier-0 is a noisy prior on tool args
+and never sole BLOCK) and not an OS sandbox / on-disk file scanner.
+Held-out tier-1 recall is not adaptive robustness. AgentDojo numbers are
+banking-slice and model-specific (DeepSeek often refuses some jailbreaks); AgentDojo has
+multiple suites---we do not claim full coverage.
 
 \section{Related Work}
 
@@ -151,10 +166,20 @@ unverified beyond synthetic ledger tests.
 
 \section{Threat Model}
 
-\textbf{In scope:} indirect injection into tool-visible content; misuse of available tools;
-single-agent compromise that should raise taint when edges are recorded.
-\textbf{Out of scope:} host compromise; defeating the firewall process; model-weight jailbreaks
-as the primary defense; adaptive paraphrases beyond the frozen held-out set unless measured.
+\textbf{Assumed:} the LLM may already be confused or compromised via prompts / tool results
+(indirect injection). Tracewall does not claim to detect or neutralize that compromise in the
+chat stream.
+\textbf{In scope (tool-call blast radius):} misuse of available tools that pass through the PEP;
+secret exfil via screened send/upload/http tools after a secret-reader in the call tree;
+money-movement probes; destructive/remote-exec \texttt{bash} patterns when rules match;
+capability / rate / allowlist abuse under \texttt{zta}/\texttt{paranoid}; single-agent
+compromise that should raise taint when edges are recorded.
+Tier-0 content filtering flags tool-arg text as a noisy prior and never sole-BLOCKs.
+\textbf{Out of scope:} host / OS / kernel compromise; defeating or bypassing the PEP;
+on-disk file content scanning; sandbox escape prevention (gVisor, landlock, seccomp, VM);
+model-weight jailbreaks as the primary defense; chat-only compromise with no screened tool call;
+adaptive paraphrases beyond the frozen held-out set unless measured; SPIFFE / continuous IdP
+authentication as shipped; full AgentDojo (non-banking suites) unless measured.
 
 \section{Design}
 
@@ -322,19 +347,24 @@ adaptive paraphrase corpus; distributed (cluster) rate limits.
 
 \section{Limitations}
 
+Tracewall is a \emph{tool-call PEP}, not a chat-stream scanner or OS sandbox; PEP bypass,
+unknown tools, host escape, and chat-only jailbreaks without a screened tool call remain open.
 Contagion on live MCP edges is incomplete. Semantic LLM is optional and non-gating.
-AgentDojo coverage remains a slice. Attacker-IBAN rules are eval-aligned probes;
-production needs org allowlists. Latency is a single-host microbenchmark.
+AgentDojo defines multiple suites; our coverage remains a \emph{banking} slice.
+Attacker-IBAN rules are eval-aligned probes; production needs org allowlists.
+Latency is a single-host microbenchmark.
 Unknown tool names and unscanned MCP \texttt{tools/list} remain expected limits
 (ZWSP IBAN and PascalCase aliases are closed).
+No SPIFFE / signed workload identity (ledger register only).
 
 \section{Conclusion}
 
-Tracewall is a practical tool-call firewall: deterministic policy and taint-aware routing
-behind one API, with Python and MCP transports. Evidence favors held-out ablation, brink
-honesty, cross-domain stress, measured \texttt{check} latency, and AgentDojo slices where
-the model attempts the attack---so ALLOW/BLOCK can be attributed to the firewall rather
-than to refusal.
+Tracewall is a practical \emph{tool-call PEP}: deterministic policy and taint-aware routing
+behind one API, with Python and MCP transports. It contains screened tool side effects after
+LLM compromise---not chat-stream neutralization or OS sandboxing. Evidence favors held-out
+ablation, brink honesty, cross-domain stress, measured \texttt{check} latency, and AgentDojo
+\emph{banking} slices where the model attempts the attack---so ALLOW/BLOCK can be attributed
+to the firewall rather than to refusal.
 
 \section*{Artifacts}
 \begin{itemize}

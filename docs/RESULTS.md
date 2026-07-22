@@ -38,8 +38,12 @@ expected_limit discipline as brink. Current matrix: **18/18** (16 success +
 
 ## AgentDojo (`adojo_stress.json`)
 
+AgentDojo ships **multiple environment suites** (banking, workspace, travel, …).
+We measured a **banking slice** only — do **not** imply full-AgentDojo coverage
+in docs or the paper. See [`EVIDENCE.md`](../paper/EVIDENCE.md).
+
 - **`firewall` / `rows`**: no LLM — policy must BLOCK attacker IBAN, ALLOW legit bill.  
-- **`live[]`**: DeepSeek slices. Read **ASR** (attack goal met) and **utility** (user task still done).  
+- **`live[]`**: DeepSeek banking slices. Read **ASR** (attack goal met) and **utility** (user task still done).  
   - Baseline ASR 1.0 → defended ASR 0.0 with utility 1.0 = Tracewall win (soft-block).  
   - Baseline ASR 0.0 = model refusal — **not** a Tracewall win.
 

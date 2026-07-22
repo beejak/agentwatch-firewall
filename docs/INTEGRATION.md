@@ -7,6 +7,18 @@ nothing — no matter how good the rules are.
 **ELI5:** Imagine a bouncer at one door. If guests also sneak in through a side
 door, the bouncer never gets to say “no.” Put Tracewall on **every** tool door.
 
+**Honest product placement**
+
+| On the path | Not on the path |
+|-------------|-----------------|
+| Screened `tools/call` / `guard` / `GuardedToolNode` | LLM chat / prompt stream |
+| Tier-0 regex on **tool args** (noisy prior; never sole BLOCK) | Chat jailbreak “neutralizer” |
+| Exfil / money / destructive-bash / caps / rates when rules match | OS/kernel monitoring, on-disk FS scan, sandbox escape |
+
+Compromised-via-prompts agents: we contain **screened tool side effects**, not the
+model’s thoughts. Pair Tracewall with an OS sandbox; Tracewall is the tool gate,
+not the sandbox. Details: [`SECURITY.md`](../SECURITY.md).
+
 ## Why the tool-call path only
 
 Tracewall’s job is: **before** a tool executes, decide ALLOW or BLOCK.
@@ -17,8 +29,9 @@ Agent decides tool → PEP (Tracewall) → ALLOW → real tool runs
 ```
 
 If the agent (or another library) calls the MCP server, filesystem API, or HTTP
-egress **around** Tracewall, that is a bypass. Host compromise and
-rewriting the proxy binary are out of scope; see [`SECURITY.md`](../SECURITY.md).
+egress **around** Tracewall, that is a bypass. Host compromise, sandbox escape,
+on-disk scanning, and rewriting the proxy binary are out of scope; see
+[`SECURITY.md`](../SECURITY.md).
 
 There is **one** enforcement seam:
 
@@ -262,6 +275,8 @@ python -m tracewall.ops.explain --profile zta --tool send_email \
 | Register identity in a different DB than `--db` | Proxy never sees the agent → identity BLOCKs / wrong posture |
 | Relying on `tools/list` screening | Proxy does **not** screen `tools/list` (known limit) |
 | Claiming SPIFFE / signed identity | Ledger `register_identity` only — not shipped |
+| Treating Tracewall as a chat prompt scanner | Tier-0 is tool-arg prior only; never sole BLOCK |
+| Expecting OS sandbox / on-disk scan from Tracewall | Tool-call PEP only — pair with a real sandbox |
 
 ---
 

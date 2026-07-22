@@ -15,7 +15,10 @@
 | Metrics | In-process + HTTP `/metrics` | Prometheus text; no cluster agg |
 | HTTP sidecar PEP | Roadmap | MCP proxy is the shipped PEP |
 | Signed SPIFFE identity | No | Ledger register only |
+| Chat-stream prompt-injection scanner | No | Tool-call PEP; tier-0 is tool-arg noisy prior, never sole BLOCK |
+| OS sandbox / kernel / on-disk FS scan | No | Pair with a real sandbox; see [`SECURITY.md`](../SECURITY.md) |
+| Full AgentDojo (all suites) | No | Banking slice measured only |
 
 OS: Linux / macOS / Windows (dev). Production assumption: Linux containers with proxy as sole MCP path.
 
-**How to wire:** [`INTEGRATION.md`](INTEGRATION.md).
+**How to wire:** [`INTEGRATION.md`](INTEGRATION.md). Threat model: [`../SECURITY.md`](../SECURITY.md).
