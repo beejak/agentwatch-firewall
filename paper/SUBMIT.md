@@ -2,6 +2,7 @@
 
 **Author:** beejak (`beejak@users.noreply.github.com`)  
 **Source of truth:** [`EVIDENCE.md`](EVIDENCE.md) → [`tracewall.tex`](tracewall.tex) / [`PAPER.md`](PAPER.md) → [`tracewall.pdf`](tracewall.pdf).  
+**Reliable PDF download** (if GitHub’s blob PDF preview fails): [releases/download/v0.2.0/tracewall.pdf](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf).  
 **Product track:** features frozen for this submit; no new AgentDojo suites required.
 
 ## Upload these
