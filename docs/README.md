@@ -50,7 +50,8 @@ Full diagrams, test inventory, and QA gap matrix:
 
 ## Paper
 
-- Draft: [`paper/PAPER.md`](../paper/PAPER.md), PDF: [`paper/tracewall.pdf`](../paper/tracewall.pdf)  
-- Evidence-only claims: [`paper/EVIDENCE.md`](../paper/EVIDENCE.md)  
+- Draft: [`paper/PAPER.md`](../paper/PAPER.md); in-repo PDF: [`paper/tracewall.pdf`](../paper/tracewall.pdf)  
+- **Reliable PDF download:** [releases/download/v0.2.0/tracewall.pdf](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf) (prefer if GitHub blob preview fails)  
+- Evidence-only claims: [`paper/EVIDENCE.md`](../paper/EVIDENCE.md) · folder index: [`paper/README.md`](../paper/README.md)  
 - Author **beejak**; v0.2.0; features frozen for submit.  
 - `paper/watchtower.tex` is **stale brand** — do not submit.

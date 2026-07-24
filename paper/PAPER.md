@@ -210,5 +210,6 @@ Tracewall is a practical **tool-call PEP**: deterministic policy and taint-aware
 ## Appendix B — LaTeX / PDF
 
 - **Current PDF:** [`tracewall.pdf`](tracewall.pdf) from [`tracewall.tex`](tracewall.tex) (IEEE 2-col draft, evidence-aligned).
+- **Reliable download:** [releases/download/v0.2.0/tracewall.pdf](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf) (GitHub blob preview may show “Unable to render code block”).
 - `watchtower.tex` remains **stale** (old brand/metrics) — do not submit.
 - How to upload: [`SUBMIT.md`](SUBMIT.md).

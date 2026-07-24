@@ -8,6 +8,11 @@ exfiltrating side effects.
 **Version:** 0.2.0 · **Author:** beejak · **Features frozen** for paper submit
 (see [`HANDOFF.md`](HANDOFF.md), [`paper/EVIDENCE.md`](paper/EVIDENCE.md)).
 
+**Paper PDF (download):**
+[tracewall.pdf (release v0.2.0)](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf)
+— use this if GitHub’s blob preview shows “Unable to render code block”
+([`paper/`](paper/README.md)).
+
 ## What we do / don’t
 
 | We **do** | We **don’t** |

@@ -1,0 +1,3 @@
+# Keep PDFs as binary (no CRLF / textconv). Overrides Git for Windows
+# system `*.pdf diff=astextplain` for this repo.
+*.pdf binary

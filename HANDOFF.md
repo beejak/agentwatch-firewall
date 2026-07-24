@@ -5,7 +5,7 @@ Pick-up notes. **Last updated 2026-07-22 (features frozen → paper submit).**
 ## Track
 
 - **Product features: FROZEN** for this paper submit (no new AgentDojo suites / live ASR unless explicitly requested).
-- **Paper: submit track in progress / camera-ready** — see [`paper/SUBMIT.md`](paper/SUBMIT.md), [`paper/PAPER.md`](paper/PAPER.md), [`paper/tracewall.tex`](paper/tracewall.tex), [`paper/tracewall.pdf`](paper/tracewall.pdf).
+- **Paper: submit track in progress / camera-ready** — see [`paper/SUBMIT.md`](paper/SUBMIT.md), [`paper/PAPER.md`](paper/PAPER.md), [`paper/tracewall.tex`](paper/tracewall.tex), [`paper/tracewall.pdf`](paper/tracewall.pdf). Prefer the [v0.2.0 release PDF](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf) if GitHub’s blob preview fails ([`paper/README.md`](paper/README.md)).
 - Evidence only from [`paper/EVIDENCE.md`](paper/EVIDENCE.md) + `tracewall/eval/results/`. Do **not** upload stale [`paper/watchtower.tex`](paper/watchtower.tex).
 
 ## Where things stand
