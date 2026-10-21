@@ -14,11 +14,9 @@
 
 ### Docs / planning (2026-10-21)
 
-- **Final Gate B approved** (Karpathy overrides): P1–P5 accepted; P0 = E1+E2;
-  E4 delayed; E5/E6 demoted; success = promoted eval rows (not coverage vanity).
-  Paper claims remain frozen. Recorded in plans, `HANDOFF.md`, `TODOS.md`, `AGENTS.md`.
-- Prior planning sync (paper freeze, release PDF, CI `importorskip`, tooling notes)
-  remains; Karpathy review file stays **separate** from the autoplan.
+- **Final Gate B approved** (Karpathy overrides); E1/E2 documented in SECURITY /
+  INTEGRATION / RUNBOOK / GETTING_STARTED / skills / EVIDENCE (capability rows;
+  paper freeze numbers unchanged). Karpathy review file stays **separate**.
 
 ## 0.2.0 — 2026-07-21
 

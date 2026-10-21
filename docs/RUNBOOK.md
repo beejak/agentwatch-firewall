@@ -1,16 +1,16 @@
 # Runbook (day-2 ops)
 
 **Integration (PEP on the tool-call path):** [`INTEGRATION.md`](INTEGRATION.md).  
-**Status:** v0.2.0 claim freeze; unknown-tool / `tools/list` still limits until post-gate E1/E2 ([`../HANDOFF.md`](../HANDOFF.md)).
+**Status:** v0.2.0 paper claims frozen; Gate B E1/E2 shipped on prod profiles ([`../HANDOFF.md`](../HANDOFF.md)).
 
 ## Profiles
 
-| Profile | Identity | Caps | Own call-tree | ZTA allowlist pack | Fail |
-|---------|----------|------|---------------|--------------------|------|
-| **zta** | required | required (empty = BLOCK) | yes | yes | closed |
-| paranoid | required | optional | yes | yes | closed |
-| balanced | optional | optional | no (client `_meta`) | no | closed |
-| permissive | optional | optional | no | no (subset rules) | open |
+| Profile | Identity | Caps | Own call-tree | Unknown deny | List filter | ZTA pack | Fail |
+|---------|----------|------|---------------|--------------|-------------|----------|------|
+| **zta** | required | required (empty = BLOCK) | yes | yes | yes | yes | closed |
+| paranoid | required | optional | yes | yes | yes | yes | closed |
+| balanced | optional | optional | no (client `_meta`) | no | no | no | closed |
+| permissive | optional | optional | no | no | no | no (subset) | open |
 
 Lab vs prod: **balanced** for eval/regression; **zta** for production posture.
 
@@ -131,7 +131,7 @@ Full how-to: [`INTEGRATION.md`](INTEGRATION.md).
 |------|-----------|
 | Python | ≥ 3.12 |
 | MCP framing | Content-Length + NDJSON (auto-detect) |
-| Screens | `tools/call` only (`tools/list` unscanned — known limit) |
+| Screens | `tools/call`; `tools/list` response filter on zta/paranoid |
 | Policy packs | `rules/*.yaml` (lab) + `rules/zta/*.yaml` (prod profiles) |
 | Metrics scrape | HTTP `/metrics` Prometheus text |
 | Audit OTel JSONL | Yes (not OTLP/gRPC) |

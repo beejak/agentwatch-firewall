@@ -60,9 +60,9 @@ python -m tracewall.transports.mcp_proxy --profile zta --agent-id my-agent -- \
 
 | Profile | When to use |
 |---------|-------------|
-| **zta** | Production posture: identity + caps, allowlists, proxy-owned call tree |
-| paranoid | Identity required; allowlists; caps optional |
-| balanced | Lab / eval (no ZTA default-deny pack) |
+| **zta** | Production: identity + caps, allowlists, unknown-tool deny, list filter |
+| paranoid | Identity required; unknown deny + list filter; caps optional |
+| balanced | Lab / eval (pack-only; no unknown deny / list filter) |
 | permissive | Availability-first; fewer rules |
 
 ## 5. Register identity (required for `zta` / `paranoid`)
@@ -88,6 +88,13 @@ External email / HTTP to a host **not** in `TRACEWALL_ORG_DOMAINS` under `zta` �
 ```bash
 python -m tracewall.ops.explain --profile zta --tool send_email --args-file args.json
 # action=block rule_id=zta_email_default_deny_external …
+```
+
+Unknown tool under `zta` (not in caps / YAML) → **BLOCK** (`source=unknown_tool`).
+
+```bash
+python -m tracewall.ops.explain --profile zta --tool post_slack --args '{"text":"hi"}'
+# action=block source=unknown_tool …
 ```
 
 (`args.json` example: `{"to":"x@evil.com","body":"hi"}`. On Windows prefer `--args-file` over shell-escaped `--args`.)

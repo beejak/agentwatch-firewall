@@ -4,8 +4,8 @@ Eval artifacts live under `tracewall/eval/results/`. Claims that enter the paper
 
 **Honesty (2026-10-21):** Quote soft-block banking, robustness **18/18**, and latency
 only from committed results + EVIDENCE. Do not treat local `adojo_diag/` /
-`adojo_stress_live/` trees as paper evidence. Planned E1/E2 closes for
-`expected_limit` rows are **not** done until Final Gate + code + new JSON.
+`adojo_stress_live/` trees as paper evidence. Gate B E1/E2 closed unknown-tool /
+list-filter holes on zta/paranoid; paper freeze numbers unchanged.
 
 ## Quick map
 

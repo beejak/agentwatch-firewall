@@ -5,12 +5,12 @@ Only VERIFIED rows may appear as unqualified paper assertions. Update after ever
 
 Sources: [`LESSONS_LEARNED.md`](../LESSONS_LEARNED.md), [`HANDOFF.md`](../HANDOFF.md), `tracewall/eval/results/`, tests.
 
-**Status note (2026-10-21):** No new VERIFIED metrics added this sync. Paper claim
-set remains the 2026-07 freeze (held-out, soft-block banking slice, robustness
-**18/18**, latency). Local `adojo_diag/` / `adojo_stress_live/` trees are **not**
-evidence. Planned E1–E6 work must produce new eval JSON before any new claim row.
-Plans: [`../docs/plans/`](../docs/plans/). CI: AgentDojo soft-block test skipped
-without `[bench]` (`320ee56`) — collection hygiene, not a security result.
+**Status note (2026-10-21):** Paper claim set remains the 2026-07 freeze (held-out,
+soft-block banking slice, robustness **18/18**, latency) — **do not inflate paper
+headlines**. Gate B post-freeze capability (E1/E2) has new eval JSON rows below;
+those are capability evidence, not a rewrite of frozen paper numbers. Local
+`adojo_diag/` / `adojo_stress_live/` trees are **not** evidence. CI: AgentDojo
+soft-block skipped without `[bench]` (`320ee56`).
 
 ## Architecture / product
 
@@ -80,8 +80,10 @@ without `[bench]` (`320ee56`) — collection hygiene, not a security result.
 | Reference MCP PEP app (in-process + subprocess) | VERIFIED | `examples/reference_mcp_app/`; tests |
 | LangGraph-style `GuardedToolNode` (no langgraph dep) | VERIFIED | `transports/tool_node.py`; demo + tests |
 | Operator docs (GETTING_STARTED/RESULTS/RUNBOOK/ENTERPRISE) | VERIFIED | `docs/` |
-| Cross-domain robustness matrix (workspace/HTTP/contagion/host/identity; 18/18) | VERIFIED | `eval/robustness_stress.py` → `eval/results/robustness_stress.json` (2026-07-21); ZWSP + PascalCase = success; unknown tool = expected_limit |
-| Robustness expected limits (unknown tool / tools.list gap) | VERIFIED (limit) | same JSON `L-unknown-tool-name`, `L-tools-list-unscanned` |
+| Cross-domain robustness matrix (workspace/HTTP/contagion/host/identity; 18/18) | VERIFIED | `eval/robustness_stress.py` → `eval/results/robustness_stress.json` (2026-07-21 freeze artifact era); paper still cites **18/18** |
+| Robustness expected limits (unknown tool / tools.list gap) | VERIFIED (limit) → partially closed post-freeze | Freeze-era IDs; Gate B: `S-block-unknown-tool-deny` success; balanced pack-miss + firewall-layer list probe remain limits — see current `robustness_stress.json` |
+| E1 `deny_unknown_tools` on zta/paranoid | VERIFIED (post-freeze capability) | `firewall.py` + `test_deny_unknown_tools.py`; robustness `S-block-unknown-tool-deny` |
+| E2 MCP `tools/list` response filter on zta/paranoid | VERIFIED (post-freeze capability) | `mcp_proxy.py` filter helpers; `test_mcp_tools_list_filter.py`; brink `S-tools-list-request-forwards` |
 | Robustness expected limits (ZWSP, PascalCase alias) | REFUTED → closed 2026-07-21 | Promoted to success after normalize/canonical |
 | Live DeepSeek bill-preserving + benchmark system (n=1 pair) | VERIFIED (slice) | `adojo_stress.json` live[] 2026-07-19: **direct** base ASR=1.0 util=1.0 → defended ASR=0.0 util=1.0; important_instructions & ignore_previous ASR=0 util=1 both arms (model refuse attack, still pays bill) |
 | Live DeepSeek `direct` expand (user_task_0 × inj 0–3, n=4) | VERIFIED (slice) | abort-era: base ASR=**1.0** util=**1.0** → defended ASR=**0.0** util=**0.25**; **soft-block**: defended ASR=**0.0** util=**1.0** (2026-07-19) |

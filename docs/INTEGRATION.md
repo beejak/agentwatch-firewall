@@ -4,9 +4,10 @@ Operator / developer guide. Tracewall only protects what it **sees**. If a tool
 runs without going through a PEP (policy enforcement point), Tracewall did
 nothing — no matter how good the rules are.
 
-**Product:** tool-call PEP only (v0.2.0). MCP proxy screens `tools/call`;
-`tools/list` remains unscanned until planned E2 after Final Gate
-([`plans/`](plans/), [`../HANDOFF.md`](../HANDOFF.md)).
+**Product:** tool-call PEP only (v0.2.0 + Gate B E1/E2). MCP proxy screens
+`tools/call`. On **`zta`/`paranoid`**: unknown tools BLOCK; `tools/list`
+**responses** are filtered to the allowlist (request still forwards). Lab
+**`balanced`**: pack-only, list pass-through.
 
 **ELI5:** Imagine a bouncer at one door. If guests also sneak in through a side
 door, the bouncer never gets to say “no.” Put Tracewall on **every** tool door.
@@ -142,9 +143,17 @@ python -m tracewall.transports.mcp_proxy \
   npx @modelcontextprotocol/server-filesystem /data
 ```
 
-What it does: forwards all MCP traffic; **screens only `tools/call`**. ALLOW →
-forward to the real server; BLOCK → MCP result with `isError: true` (tool never
-runs on the server). Framing: Content-Length + NDJSON, auto-detected.
+What it does: forwards MCP traffic; **screens `tools/call`**. ALLOW → forward;
+BLOCK → MCP result with `isError: true` (tool never runs). On `zta`/`paranoid`,
+also **filters `tools/list` responses** to `caps ∪` declared tools (or
+`--tools-allowlist`). Override: `--filter-tools-list` / `--no-filter-tools-list`.
+Framing: Content-Length + NDJSON, auto-detected.
+
+### Unknown tools (E1)
+
+Under `zta`/`paranoid`, tools not in `caps ∪` YAML-declared names → BLOCK
+(`source=unknown_tool`, `rule_id=deny_unknown_tools`). Fix: register caps or add
+a YAML rule naming the tool. **`balanced` does not deny unknowns** (lab).
 
 ### Client must talk ONLY to the proxy
 
@@ -277,7 +286,8 @@ python -m tracewall.ops.explain --profile zta --tool send_email \
 | **`balanced` in production** | No ZTA default-deny pack; client `_meta` chain is forgeable |
 | **Empty `caps` with `zta` (`require_caps`)** | Empty capability set → BLOCK (not allow-all) |
 | Register identity in a different DB than `--db` | Proxy never sees the agent → identity BLOCKs / wrong posture |
-| Relying on `tools/list` screening | Proxy does **not** screen `tools/list` (known limit) |
+| Expecting list filter on `balanced` | Filter is **off** on lab profile; use `zta`/`paranoid` or `--filter-tools-list` |
+| Assuming list filter = call screen | Filter hides tools from discovery; `tools/call` still goes through `Firewall.check` |
 | Claiming SPIFFE / signed identity | Ledger `register_identity` only — not shipped |
 | Treating Tracewall as a chat prompt scanner | Tier-0 is tool-arg prior only; never sole BLOCK |
 | Expecting OS sandbox / on-disk scan from Tracewall | Tool-call PEP only — pair with a real sandbox |

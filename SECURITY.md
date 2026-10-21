@@ -4,13 +4,14 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.2.x   | Yes (paper claim set frozen; next PEP holes planned as E1/E2 after Final Gate) |
+| 0.2.x   | Yes (paper claim set frozen; Gate B shipped E1/E2 on `zta`/`paranoid`) |
 | < 0.2   | Best-effort |
 
-**Status note (2026-10-21):** Unknown tools and unscanned MCP `tools/list` remain
-documented limits (`expected_limit` in robustness/brink). Closing them is planned
-in [`docs/plans/`](docs/plans/) — **not shipped until human gate**. Product remains
-a **tool-call PEP** only (see threat model below).
+**Status note (2026-10-21):** Under **`zta`/`paranoid`**, unknown tools are
+default-denied (`deny_unknown_tools`) and MCP `tools/list` responses can be
+filtered (`filter_tools_list`). Lab **`balanced`** stays pack-only / list
+pass-through for held-out honesty. Paper claim numbers remain frozen. Product
+remains a **tool-call PEP** only (see threat model below).
 
 ## Reporting a vulnerability
 
@@ -35,7 +36,9 @@ call-tree exfil when the PEP owns the session chain.
 - Full NIST ZTA / SPIFFE continuous authentication (not shipped)
 - **OS sandbox / containment** (gVisor, landlock, seccomp, VM isolation) — Tracewall is a tool-call firewall, not a sandbox
 - **On-disk file content scanning** — only tool-call **args** (and call-tree / identity context) at the PEP are inspected; no post-write FS watcher
-- MCP `tools/list` / unknown tools not covered by YAML (documented limits)
+- Under **`balanced`**: unknown tools / unfiltered `tools/list` (lab pack-only)
+- Under **`zta`/`paranoid`**: unknown tools outside `caps ∪` declared YAML tools;
+  list filter hides those tools from clients (calls still screened at `tools/call`)
 - Direct `open()` / subprocess / raw sockets that never become a screened `tools/call`
 
 **Destructive policy precision:** `destructive_ops.yaml` matches tool `bash` only, and only when `arg.command` hits `rm -rf`, `shred`, `truncate … --size 0`, or curl/wget/`| bash` pipe patterns. There is **no** dedicated `write_file` / `create_file` / `append_to_file` rule; AgentDojo drive tools are not host FS escape controls.
@@ -60,9 +63,9 @@ keeping the agent loop alive (utility), but does not stop the model from
 *proposing* further attacks.
 
 **What blast-radius controls contain vs miss:** sole PEP + allowlists + caps +
-rates + owned call-tree can stop screened side effects. They do **not** stop PEP
-bypass, unknown tools, host escape, or chat-only compromise with no screened
-tool call. See threat model above.
+rates + owned call-tree + (on zta/paranoid) unknown-tool deny + list filter can
+stop screened side effects. They do **not** stop PEP bypass, host escape, or
+chat-only compromise with no screened tool call. See threat model above.
 
 Architecture details: [`docs/FIREWALL.md`](docs/FIREWALL.md).  
 Put Tracewall on the path: [`docs/INTEGRATION.md`](docs/INTEGRATION.md).  

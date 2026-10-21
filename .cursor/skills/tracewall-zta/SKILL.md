@@ -75,12 +75,12 @@ OS sandbox productization, or loading ZTA packs into `balanced` without re-eval.
 
 ## Profile cheat sheet
 
-| Profile | Identity | Caps | Own tree | ZTA pack | Use |
-|---------|----------|------|----------|----------|-----|
-| **zta** | required | **required** | yes | yes | **production** |
-| **paranoid** | required | optional | yes | yes | **production** (stricter posture) |
-| **balanced** | optional | optional | no | no | **lab / demos only** |
-| **permissive** | optional | optional | no | subset (skips exfil pack) | debug |
+| Profile | Identity | Caps | Own tree | Unknown deny | List filter | ZTA pack | Use |
+|---------|----------|------|----------|--------------|-------------|----------|-----|
+| **zta** | required | **required** | yes | yes | yes | yes | **production** |
+| **paranoid** | required | optional | yes | yes | yes | yes | **production** |
+| **balanced** | optional | optional | no | no | no | no | **lab / demos only** |
+| **permissive** | optional | optional | no | no | no | subset | debug |
 
 Code: `tracewall/transports/profiles.py`.  
 Rules: `tracewall/policy/rules/*.yaml` + `tracewall/policy/rules/zta/`.
@@ -119,7 +119,7 @@ soft-block ASR **1→0**, util **1**. Abort-era defended util collapsed to **0.2
 **Does not contain:**
 
 - PEP bypass (side door to tools / raw sockets / direct `open()`)
-- Unknown / unlisted tools; MCP `tools/list` unscanned
+- Under **balanced**: unknown tools / unfiltered `tools/list` (lab)
 - Host escape / OS compromise / stealing ledger DB
 - Chat-only jailbreaks with no screened tool call
 - Distributed rate limits / multi-node consensus
@@ -220,5 +220,5 @@ Update [`paper/EVIDENCE.md`](../../../paper/EVIDENCE.md) and
 - **Gate B approved** (Karpathy overrides): P0 = E1/E2; delay E4; demote E5/E6.
 - Plans: [`docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](../../../docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md)
   + separate [Karpathy review](../../../docs/plans/2026-10-21-tracewall-karpathy-review.md) (do not merge).
-- Profile contract: `zta`/`paranoid` → `deny_unknown_tools` (+ `filter_tools_list` when E2 ships);
-  `balanced` stays pack-only for lab/held-out honesty.
+- Profile contract: `zta`/`paranoid` → `deny_unknown_tools` + `filter_tools_list`;
+  `balanced` stays pack-only for lab/held-out honesty. E1/E2 shipped (Gate B).

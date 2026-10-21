@@ -1,11 +1,11 @@
 # HANDOFF — agentwatch-firewall (tracewall)
 
-Pick-up notes. **Last updated 2026-10-21** (Gate **B** approved; E1/E2 shipping incrementally).
+Pick-up notes. **Last updated 2026-10-21** (Gate **B**: E1/E2 **shipped**).
 
 ## Track
 
 - **Product features (v0.2.0 paper claim set): FROZEN** — arXiv numbers stay evidence-backed; no claim inflation.
-- **Next capability wave: GATE B APPROVED** — P0 = E1 + E2; E4 delayed; E5/E6 demoted; E3 = focused E1/E2 tests only.
+- **Gate B P0: DONE** — E1 unknown-tool deny + E2 `tools/list` filter on `zta`/`paranoid`. E4 delayed; E5/E6 demoted.
 - **Paper: camera-ready / arXiv submit track** — see [`paper/SUBMIT.md`](paper/SUBMIT.md), [`paper/PAPER.md`](paper/PAPER.md), [`paper/tracewall.tex`](paper/tracewall.tex). Prefer the [v0.2.0 release PDF](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf) if GitHub’s blob preview fails ([`paper/README.md`](paper/README.md)).
 - Evidence only from [`paper/EVIDENCE.md`](paper/EVIDENCE.md) + committed `tracewall/eval/results/` (not local `adojo_diag/` / `adojo_stress_live/` dumps). Do **not** upload stale [`paper/watchtower.tex`](paper/watchtower.tex).
 
@@ -38,7 +38,7 @@ Tracewall is a **tool-call PEP**: `await Firewall.check(event) → FirewallVerdi
 
 - Tracewall **0.2.0**: enforcement core + MCP proxy + profiles zta/paranoid/balanced/permissive.
 - **CI green:** AgentDojo soft-block test uses `importorskip` when `[bench]` absent ([`320ee56`](https://github.com/beejak/agentwatch-firewall/commit/320ee56)).
-- Gate B implementation: ship **incremental** commits (docs lock → E1 → E2 → polish). Do not dump WIP.
+- Gate B P0 shipped incrementally (docs → E1 → E2 → polish).
 - Tracewall Cursor skills:
   - [`.cursor/skills/tracewall-zta/SKILL.md`](.cursor/skills/tracewall-zta/SKILL.md)
   - [`.cursor/skills/tracewall-paper/SKILL.md`](.cursor/skills/tracewall-paper/SKILL.md)
@@ -58,14 +58,14 @@ Tracewall is a **tool-call PEP**: `await Firewall.check(event) → FirewallVerdi
 2. **SBOM** — not generated in CI yet.
 3. **Full OTLP/gRPC exporter** — JSONL bridge only.
 4. **Optional AgentDojo expand** — other environments; not required while paper claims frozen.
-5. **E1 / E2** — shipping under Gate B (unknown-tool deny + `tools/list` filter).
-6. **E4 delayed; E5/E6 demoted** — see TODOS.
-7. **Venue submission** after arXiv — separate from freeze.
+5. **E4 delayed; E5/E6 demoted** — see TODOS (soft-block measurement before E4).
+6. **Venue submission** after arXiv — separate from freeze.
 
 ## Done recently
 
 | Item | Evidence |
 |------|----------|
+| Gate B E1/E2 shipped | `deny_unknown_tools`, `filter_tools_list`; tests + brink/robustness |
 | Gate B locked (P1–P5 + Karpathy overrides) | plans + this file |
 | CI AgentDojo importorskip | `320ee56` |
 | Skills expanded (paper + zta) | `.cursor/skills/tracewall-*` |

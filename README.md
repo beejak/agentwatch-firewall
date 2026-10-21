@@ -123,14 +123,12 @@ ops (`explain` / `health` / `reload` / HTTP metrics); arg NFKC/ZWSP normalize +
 canonical tool names.
 
 **Open (not shipped):** signed workload identity (SPIFFE), full OTLP/gRPC exporter,
-SBOM, HTTP sidecar PEP, unknown-tool / `tools/list` limits, OS sandbox / on-disk scan.
+SBOM, HTTP sidecar PEP, E4 session ratchet / E5–E6 (deferred), OS sandbox / on-disk scan.
 
-**Roadmap (2026-10-21):** planning complete —
-[`docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md)
-(+ separate [Karpathy review](docs/plans/2026-10-21-tracewall-karpathy-review.md)).
-**Awaiting Final Gate A–E** before implementation; Karpathy lens recommends P0 =
-E1/E2 only, delay E4, demote E5/E6. CI green (`importorskip` AgentDojo without
-`[bench]`).
+**Gate B (2026-10-21):** E1 unknown-tool deny + E2 `tools/list` filter shipped on
+`zta`/`paranoid` (lab `balanced` unchanged). Plans:
+[`docs/plans/`](docs/plans/) (+ separate Karpathy review). Paper claims frozen.
+CI green (`importorskip` AgentDojo without `[bench]`).
 
 **Eval honesty:** AgentDojo has multiple suites; we measured a **banking slice**
 only — see [`docs/RESULTS.md`](docs/RESULTS.md) and EVIDENCE. Soft-block banking

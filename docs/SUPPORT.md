@@ -6,7 +6,7 @@
 | In-process `guard` / `Firewall.check` | Yes | Soft-block via `on_block=` |
 | LangGraph-style `GuardedToolNode` | Yes | No `langgraph` package required |
 | MCP stdio proxy | Yes | Content-Length + NDJSON |
-| MCP methods screened | `tools/call` | `tools/list` unscanned (limit) |
+| MCP methods screened | `tools/call` | `tools/list` response filter on zta/paranoid |
 | Reference MCP app | Yes | `examples/reference_mcp_app/` |
 | Profiles | zta, paranoid, balanced, permissive | Lab = balanced; prod = zta |
 | Policy packs | `rules/` + `rules/zta/` | zta/paranoid load both |
@@ -25,9 +25,8 @@ OS: Linux / macOS / Windows (dev). Production assumption: Linux containers with 
 test **skipped** when `[bench]` / agentdojo absent (`importorskip`) so collection
 stays green — commit `320ee56`.
 
-**Roadmap gate:** unknown-tool / `tools/list` closes are planned (E1/E2) but
-**not implemented** until Final Gate A–E — see [`../HANDOFF.md`](../HANDOFF.md)
-and [`plans/`](plans/).
+**Gate B (2026-10-21):** E1 unknown-tool deny + E2 `tools/list` filter shipped on
+`zta`/`paranoid`. Deferred: E4–E6 — see [`../HANDOFF.md`](../HANDOFF.md).
 
 ### Agent tooling (dev machine; not product)
 

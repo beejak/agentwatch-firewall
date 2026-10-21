@@ -635,9 +635,9 @@ No User Challenge against user’s stated direction (core PEP + competitive + te
 
 ## Implementation Tasks (aggregated)
 
-- [ ] **T-E1 (P0)** — `deny_unknown_tools` on zta/paranoid *(Gate B — shipping)*  
-- [ ] **T-E2 (P0)** — optional MCP `tools/list` filter *(Gate B — shipping)*  
-- [ ] **T-E3 (P0, narrowed)** — tests proving E1/E2 + fail-safe polarity only  
+- [x] **T-E1 (P0)** — `deny_unknown_tools` on zta/paranoid  
+- [x] **T-E2 (P0)** — optional MCP `tools/list` filter  
+- [x] **T-E3 (P0, narrowed)** — tests proving E1/E2 + fail-safe polarity  
 - [ ] **T-E4** — Session progressive containment — **DELAYED** (Gate B)  
 - [ ] **T-E5** — JSON Schema rail — **DEMOTED** (Gate B)  
 - [ ] **T-E6** — decision certificates — **DEMOTED** (Gate B)  
@@ -645,7 +645,7 @@ No User Challenge against user’s stated direction (core PEP + competitive + te
 
 ```
 /autoplan gate: B APPROVED (Karpathy overrides) 2026-10-21
-status: IMPLEMENTING P0 E1+E2 incrementally
+status: P0 E1+E2 SHIPPED; E4 delayed; E5/E6 demoted; paper frozen
 ```
 
 

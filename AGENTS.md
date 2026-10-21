@@ -29,10 +29,9 @@ robustness **18/18**; latency ≈6.4 ms / p99 ≈9.8 ms. PDF:
 ## Current gate (do not skip)
 
 - Paper claims frozen; CI green (`320ee56` importorskip).
-- **Gate B approved** (Karpathy overrides): P0 = E1+E2; delay E4; demote E5/E6; focused tests only.
+- **Gate B P0 shipped** (E1+E2); delay E4; demote E5/E6. Paper claims frozen.
 - Plans: [`docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md)
   + separate [Karpathy review](docs/plans/2026-10-21-tracewall-karpathy-review.md) (do not merge).
-- Ship **incremental** commits to master when each slice is green — not one WIP dump.
 - Pick-up: [`HANDOFF.md`](HANDOFF.md). Tooling: [`docs/TOOLING.md`](docs/TOOLING.md).
 
 ## Do not commit

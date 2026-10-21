@@ -62,7 +62,7 @@ chat-stream scanner, OS sandbox, or on-disk file scanner. AgentDojo evidence is 
 |------|--------|
 | ZWSP / NFKC on args | **Done** |
 | Tool-name case / PascalCase | **Done** |
-| Unknown tool names | Still expected_limit |
+| Unknown tool names | Denied on zta/paranoid (E1); balanced pack-miss expected_limit |
 
 ## Do not prioritize yet
 

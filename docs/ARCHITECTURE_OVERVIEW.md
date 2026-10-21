@@ -336,8 +336,8 @@ Risk-ordered gaps between **shipped tests** and **production assurance**. Status
 |------|----------------|--------|---------------------|
 | **Identity forgery** | Attacker registers or spoofs `agent_id` / caps | Partial | Ledger register only; no signed / SPIFFE / IdP verifier. Tests cover missing identity + caps gates, not cryptographic bind. |
 | **PEP bypass** | Tools called without Tracewall | Missing | Threat model documents it; no runtime integrity / sole-path enforcement tests. |
-| **`tools/list` unscanned** | Discovery / schema poisoning without screen | Partial | Brink `expected_limit` proves pass-through; no positive control to screen or redact list. |
-| **Unknown tool names** | Pack miss → silent ALLOW on novel tools | Partial | Robustness `expected_limit`; no default-deny-unknown under zta beyond caps. |
+| **`tools/list` unscanned** | Discovery / schema poisoning without screen | Mitigated (zta/paranoid) | E2 response filter; balanced still pass-through. |
+| **Unknown tool names** | Pack miss → silent ALLOW on novel tools | Mitigated (zta/paranoid) | E1 `deny_unknown_tools`; balanced pack-miss remains expected_limit. |
 | **Multi-session race** | Shared `SessionCallTree` / ledger races | Partial | Lock on chain dict; no chaos/concurrency suite across sessions. |
 | **Reload hot-path** | Live proxy keeps stale rules after YAML edit | Partial | `ops.reload` reloads engine in isolation; **no** hot-swap into running proxy process. |
 | **Metrics accuracy** | Wrong starve/block rates → bad ops signal | Partial | Unit record + HTTP scrape smoke; no golden counter tests under concurrent load. |
@@ -355,7 +355,7 @@ Risk-ordered gaps between **shipped tests** and **production assurance**. Status
 
 1. **Signed / verified identity** — caps and `require_identity` are registry gates, not authentication.
 2. **PEP bypass / sole-path** — no assurance that all tool traffic hits the proxy or guard.
-3. **Unknown tools + `tools/list`** — still documented expected limits under default-deny pressure.
+3. **Unknown tools + `tools/list`** — closed on zta/paranoid (E1/E2); lab balanced honesty preserved.
 4. **Adaptive + non-banking live AgentDojo** — paraphrase and travel/workspace suites unproven.
 5. **Ops hardening** — hot reload into live PEP, OTLP, load/chaos, distributed rates, metrics golden tests.
 
