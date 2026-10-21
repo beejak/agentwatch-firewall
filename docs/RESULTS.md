@@ -2,6 +2,11 @@
 
 Eval artifacts live under `tracewall/eval/results/`. Claims that enter the paper must also appear in [`paper/EVIDENCE.md`](../paper/EVIDENCE.md).
 
+**Honesty (2026-10-21):** Quote soft-block banking, robustness **18/18**, and latency
+only from committed results + EVIDENCE. Do not treat local `adojo_diag/` /
+`adojo_stress_live/` trees as paper evidence. Planned E1/E2 closes for
+`expected_limit` rows are **not** done until Final Gate + code + new JSON.
+
 ## Quick map
 
 | File | What it proves | Pass means |

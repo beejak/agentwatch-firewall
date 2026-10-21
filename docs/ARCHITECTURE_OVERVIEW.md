@@ -8,8 +8,11 @@ Canonical detail: [`FIREWALL.md`](FIREWALL.md). Evidence discipline:
 [`RUNBOOK.md`](RUNBOOK.md). **Put Tracewall on the path:**
 [`INTEGRATION.md`](INTEGRATION.md). Threat model: [`../SECURITY.md`](../SECURITY.md).
 
-**Version snapshot:** 0.2.0 (2026-07-22). Features frozen for paper submit.
+**Version snapshot:** 0.2.0 (docs sync 2026-10-21). Paper claim set frozen for
+submit; post-freeze enhancement plan awaiting Final Gate A–E (E1–E6 **not coded**).
 **Author:** beejak. No SPIFFE / signed-identity / OS-sandbox-as-shipped claims.
+Plans: [`plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](plans/2026-10-21-tracewall-core-enhancement-test-plan.md),
+[Karpathy review (separate)](plans/2026-10-21-tracewall-karpathy-review.md).
 
 ### What we protect / don’t
 

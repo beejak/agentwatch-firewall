@@ -213,5 +213,11 @@ python -m tracewall.eval.adojo_stress
 
 Update [`paper/EVIDENCE.md`](../../../paper/EVIDENCE.md) and
 [`LESSONS_LEARNED.md`](../../../LESSONS_LEARNED.md) when behavior changes.
-Features are **frozen** for paper submit unless the user explicitly unfreezes
-(`HANDOFF.md`).
+
+### Freeze + gate (2026-10-21)
+
+- Paper **claim set** frozen for arXiv unless user explicitly changes claims.
+- Post-freeze roadmap: [`docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](../../../docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md)
+  + separate [Karpathy review](../../../docs/plans/2026-10-21-tracewall-karpathy-review.md).
+- **Do not implement E1–E6** until human Final Gate A–E (`HANDOFF.md`).
+- Karpathy lens (recommend unless user overrides): P0 = E1/E2 only; delay E4; demote E5/E6.

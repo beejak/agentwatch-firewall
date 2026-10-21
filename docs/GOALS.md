@@ -7,8 +7,9 @@ Evidence flows **repo → paper**. A goal without a named verification is a wish
 **Tool-call PEP** (library + MCP proxy) that ALLOW/BLOCKs screened tool calls.
 Contains screened side effects after prompt compromise — **not** a chat-stream
 scanner, OS sandbox, on-disk file scanner, SaaS gateway, HITL approve box, or
-CaMeL-style IFC redesign. No SPIFFE-as-shipped. Features **frozen** for paper
-submit (v0.2.0, author beejak). Threat model: [`../SECURITY.md`](../SECURITY.md).
+CaMeL-style IFC redesign. No SPIFFE-as-shipped. Paper claims **frozen** for
+submit (v0.2.0, author beejak). Post-freeze E1–E6 planning awaits Final Gate —
+coding not started. Threat model: [`../SECURITY.md`](../SECURITY.md).
 
 | Use site | Status |
 |----------|--------|
@@ -37,7 +38,7 @@ Wiring guide: [`INTEGRATION.md`](INTEGRATION.md).
 | G5 | Paper honesty | Tracewall draft matches EVIDENCE | WatchTower 17/17 / 0.011ms | Diff abstract vs EVIDENCE |
 | G6 | Venue | G4+G5 done; PDF floats verified | Submit on stale PDF | tectonic + page inspect |
 
-**Status snapshot (2026-07-22, v0.2.0, features frozen):** G0–G3 (+G3-fail, G3z) met; G4b/G4c/G4d met (robustness **18/18**; AgentDojo = banking slice); G5 paper draft + PDF aligned with EVIDENCE (PEP ≠ chat scanner). ZWSP/NFKC + canonical tool names closed. Remaining (post-submit): signed identity, HTTP sidecar PEP, SBOM, OTLP/gRPC, venue polish, unknown-tool / `tools/list` limits — not OS sandbox productization.
+**Status snapshot (2026-10-21, v0.2.0, paper claims frozen):** G0–G3 (+G3-fail, G3z) met; G4b/G4c/G4d met (robustness **18/18**; AgentDojo = banking slice); G5 paper draft + PDF aligned with EVIDENCE (PEP ≠ chat scanner); CI collects green without `[bench]`. ZWSP/NFKC + canonical tool names closed. **Planned next (gate pending):** E1 unknown-tool deny, E2 `tools/list` filter — see [`plans/`](plans/); Karpathy review recommends delay E4 / demote E5–E6. Remaining (post-submit): signed identity, HTTP sidecar PEP, SBOM, OTLP/gRPC, venue polish — not OS sandbox productization.
 
 
 ## P0 correctness (G1b) — named checks

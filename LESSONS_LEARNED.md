@@ -188,3 +188,13 @@ mistake) → *why*. Keep it terse and actionable.
 - **Rule: firewall-only harness reruns must preserve live[] evidence** (already coded in
   `adojo_stress`) — regenerating matrix JSON without `--merge-live` / preserve wiped ASR rows once.
 
+### 2026-10-21 — Paper freeze vs capability planning; optional deps in CI
+- **Rule: optional bench deps must not break CI collection.** AgentDojo soft-block tests
+  use `pytest.importorskip` / extras so `pip install -e ".[dev]"` CI stays green without
+  `[bench]` (`320ee56`). *Why:* collection failures look like product regressions.
+- **Rule: plans are not evidence.** Autoplan / Karpathy review docs may propose E1–E6;
+  numbers enter `paper/` only after eval JSON + EVIDENCE rows. Keep Karpathy critique
+  **separate** from the autoplan file so gate options stay readable.
+- **Rule: do not commit local AgentDojo dumps as paper artifacts** (`adojo_diag/`,
+  `adojo_stress_live/`, util check scripts) — they are not the frozen claim set.
+

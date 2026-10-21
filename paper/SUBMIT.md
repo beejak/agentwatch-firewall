@@ -3,7 +3,10 @@
 **Author:** beejak (`beejak@users.noreply.github.com`)  
 **Source of truth:** [`EVIDENCE.md`](EVIDENCE.md) → [`tracewall.tex`](tracewall.tex) / [`PAPER.md`](PAPER.md) → [`tracewall.pdf`](tracewall.pdf).  
 **Reliable PDF download** (if GitHub’s blob PDF preview fails): [releases/download/v0.2.0/tracewall.pdf](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf).  
-**Product track:** features frozen for this submit; no new AgentDojo suites required.
+**Product track:** paper claim set frozen for this submit; no new AgentDojo suites
+required. Post-freeze E1–E6 capability work is **planned only**
+([`docs/plans/`](../docs/plans/)) and must not inflate claims before new EVIDENCE
+rows. Author **beejak**.
 
 ## Upload these
 
@@ -48,6 +51,13 @@ Confirm every headline number still matches VERIFIED rows in EVIDENCE:
 - Robustness matrix 18/18 (16 success + 2 expected_limit); ZWSP / PascalCase closed
 - Latency mean ≈6.41 ms, p99 ≈9.82 ms (`latency_check.json`)
 - Non-claims: no WatchTower OS, no 100% known-bad primary, no GPU-sentinel 0.011 ms claim
+
+## Paper prep next (2026-10-21)
+
+- [ ] Confirm PDF still matches release asset (or rebuild if `tracewall.tex` changed + tectonic available).
+- [ ] Fill arXiv form (cs.CR; author beejak); omit `watchtower.tex`.
+- [ ] After ID: record in `HANDOFF.md` + `PAPER.md`.
+- [ ] Do **not** start E1–E6 coding as part of submit; capability wave waits on Final Gate A–E.
 
 ## After submit
 

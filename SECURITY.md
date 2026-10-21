@@ -4,8 +4,13 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.2.x   | Yes |
+| 0.2.x   | Yes (paper claim set frozen; next PEP holes planned as E1/E2 after Final Gate) |
 | < 0.2   | Best-effort |
+
+**Status note (2026-10-21):** Unknown tools and unscanned MCP `tools/list` remain
+documented limits (`expected_limit` in robustness/brink). Closing them is planned
+in [`docs/plans/`](docs/plans/) — **not shipped until human gate**. Product remains
+a **tool-call PEP** only (see threat model below).
 
 ## Reporting a vulnerability
 

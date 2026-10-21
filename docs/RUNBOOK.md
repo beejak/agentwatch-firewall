@@ -1,6 +1,7 @@
 # Runbook (day-2 ops)
 
-**Integration (PEP on the tool-call path):** [`INTEGRATION.md`](INTEGRATION.md).
+**Integration (PEP on the tool-call path):** [`INTEGRATION.md`](INTEGRATION.md).  
+**Status:** v0.2.0 claim freeze; unknown-tool / `tools/list` still limits until post-gate E1/E2 ([`../HANDOFF.md`](../HANDOFF.md)).
 
 ## Profiles
 

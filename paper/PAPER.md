@@ -2,7 +2,7 @@
 ## Deterministic Policy, Multi-Hop Taint, and Transport-Agnostic ALLOW/BLOCK
 
 **Author:** beejak (`beejak@users.noreply.github.com`)  
-**Status:** Camera-ready / arXiv-ready draft — aligned to [`EVIDENCE.md`](EVIDENCE.md) (through 2026-07-22); features frozen for submit (v0.2.0).  
+**Status:** Camera-ready / arXiv-ready draft — aligned to [`EVIDENCE.md`](EVIDENCE.md) (claim freeze through 2026-07-22 measurements; docs status sync 2026-10-21); paper claim set frozen for submit (v0.2.0). Post-freeze PEP holes planned in [`../docs/plans/`](../docs/plans/) — **not** new paper results until measured.  
 **Brand:** **tracewall** (enforcement-only). Companion to *agentwatch* (observability / Paper 1).  
 **Target:** arXiv preprint → venue TBD (IEEE S&P / USENIX Security / ACM CCS)  
 **Submit:** [`SUBMIT.md`](SUBMIT.md)  

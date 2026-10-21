@@ -17,7 +17,8 @@ patterns, caps/rates) — see [`../SECURITY.md`](../SECURITY.md).
 Installable without cloud services. Deterministic tiers are key-free; an optional
 LLM semantic backend is opt-in. **Fail-safe: any internal error → BLOCK.**
 
-Canonical goals / evidence: [`GOALS.md`](GOALS.md), [`../paper/EVIDENCE.md`](../paper/EVIDENCE.md).
+Canonical goals / evidence: [`GOALS.md`](GOALS.md), [`../paper/EVIDENCE.md`](../paper/EVIDENCE.md).  
+Overview + QA gaps: [`ARCHITECTURE_OVERVIEW.md`](ARCHITECTURE_OVERVIEW.md). Post-freeze plans: [`plans/`](plans/).
 **Wire the PEP:** [`INTEGRATION.md`](INTEGRATION.md).
 
 ---

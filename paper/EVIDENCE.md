@@ -5,6 +5,13 @@ Only VERIFIED rows may appear as unqualified paper assertions. Update after ever
 
 Sources: [`LESSONS_LEARNED.md`](../LESSONS_LEARNED.md), [`HANDOFF.md`](../HANDOFF.md), `tracewall/eval/results/`, tests.
 
+**Status note (2026-10-21):** No new VERIFIED metrics added this sync. Paper claim
+set remains the 2026-07 freeze (held-out, soft-block banking slice, robustness
+**18/18**, latency). Local `adojo_diag/` / `adojo_stress_live/` trees are **not**
+evidence. Planned E1–E6 work must produce new eval JSON before any new claim row.
+Plans: [`../docs/plans/`](../docs/plans/). CI: AgentDojo soft-block test skipped
+without `[bench]` (`320ee56`) — collection hygiene, not a security result.
+
 ## Architecture / product
 
 | Claim | Status | Artifact |

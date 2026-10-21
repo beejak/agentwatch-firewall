@@ -21,4 +21,18 @@
 
 OS: Linux / macOS / Windows (dev). Production assumption: Linux containers with proxy as sole MCP path.
 
+**CI (2026-10):** pytest + harness + mcp_brink on ubuntu; AgentDojo soft-block
+test **skipped** when `[bench]` / agentdojo absent (`importorskip`) so collection
+stays green — commit `320ee56`.
+
+**Roadmap gate:** unknown-tool / `tools/list` closes are planned (E1/E2) but
+**not implemented** until Final Gate A–E — see [`../HANDOFF.md`](../HANDOFF.md)
+and [`plans/`](plans/).
+
+### Agent tooling (dev machine; not product)
+
+See [`TOOLING.md`](TOOLING.md) for install/invoke of caveman, cavemem, claude-mem,
+superpowers, open-gsd/gsd-core, mattpocock skills, ruflo, graphify. These assist
+docs/paper context only — they are **not** Tracewall security controls.
+
 **How to wire:** [`INTEGRATION.md`](INTEGRATION.md). Threat model: [`../SECURITY.md`](../SECURITY.md).

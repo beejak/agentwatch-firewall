@@ -3,6 +3,11 @@
 **Harness as scenario suite? NO.**  
 pytest = edges · harness = offline P/R/F1 · mcp_brink = profile success+limits · AgentDojo = live ASR.
 
+**Post-freeze (2026-10-21):** Enhancement + risk-ordered tests are planned in
+[`plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](plans/2026-10-21-tracewall-core-enhancement-test-plan.md)
+(+ [Karpathy review](plans/2026-10-21-tracewall-karpathy-review.md)). Prefer eval-row
+promotions for E1/E2 over coverage-count targets. **Not executing** until Final Gate.
+
 ## Lanes
 
 | Lane | Command | Proves |

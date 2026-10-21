@@ -4,6 +4,10 @@ Operator / developer guide. Tracewall only protects what it **sees**. If a tool
 runs without going through a PEP (policy enforcement point), Tracewall did
 nothing — no matter how good the rules are.
 
+**Product:** tool-call PEP only (v0.2.0). MCP proxy screens `tools/call`;
+`tools/list` remains unscanned until planned E2 after Final Gate
+([`plans/`](plans/), [`../HANDOFF.md`](../HANDOFF.md)).
+
 **ELI5:** Imagine a bouncer at one door. If guests also sneak in through a side
 door, the bouncer never gets to say “no.” Put Tracewall on **every** tool door.
 

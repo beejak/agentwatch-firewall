@@ -1,7 +1,8 @@
 # Enterprise readiness checklist
 
-Honest status as of 2026-07-22 (v0.2.0). **Features frozen** for paper submit —
-see [`../HANDOFF.md`](../HANDOFF.md). Update when items move.
+Honest status as of 2026-10-21 (v0.2.0). **Paper claim set frozen** for arXiv
+submit; **next capability wave planned** (docs only) — see [`../HANDOFF.md`](../HANDOFF.md)
+and [`plans/`](plans/). Update when items move. No E1–E6 coding until Final Gate A–E.
 
 **Product placement reminder:** Tracewall is a **tool-call PEP**, not a
 chat-stream scanner, OS sandbox, or on-disk file scanner. AgentDojo evidence is a
@@ -50,7 +51,7 @@ chat-stream scanner, OS sandbox, or on-disk file scanner. AgentDojo evidence is 
 
 | Item | Status |
 |------|--------|
-| CI: pytest + harness + brink | **Done** (already) |
+| CI: pytest + harness + brink | **Done** (AgentDojo soft-block `importorskip` without `[bench]`, `320ee56`) |
 | Dependabot | **Done** (`.github/dependabot.yml`) |
 | SBOM | **Not done** |
 | Lab vs prod packs | **Done** (`balanced` vs `zta`) |

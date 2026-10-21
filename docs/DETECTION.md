@@ -1,5 +1,9 @@
 # Detection that fits Tracewall (not a new product)
 
+**Scope:** tool-call PEP detection (policy + taint + optional semantic) — not chat
+jailbreak scanning. Paper claims frozen; new algorithms need eval + EVIDENCE first
+([`../HANDOFF.md`](../HANDOFF.md)).
+
 ## Concept we already have
 
 Tool-call ALLOW/BLOCK via:

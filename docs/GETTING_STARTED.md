@@ -2,6 +2,9 @@
 
 Install → register identity → run with `--profile zta` → see one BLOCK.
 
+**Status (2026-10-21):** v0.2.0 paper claims frozen; CI green without AgentDojo
+`[bench]`. Post-freeze E1–E6 roadmap awaits Final Gate — see [`../HANDOFF.md`](../HANDOFF.md).
+
 > **What this is:** a **tool-call PEP** — ALLOW/BLOCK before screened tools run.
 > Not a chat-stream prompt scanner, not an OS sandbox, not an on-disk file scanner.
 > After prompt injection has already confused the agent, Tracewall contains

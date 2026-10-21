@@ -1,6 +1,8 @@
 # Reference MCP app (PEP path)
 
 Proves Tracewall sits on the only tool-call path to an MCP server.
+Screens `tools/call` under the proxy; `tools/list` filtering is a planned E2
+(after Final Gate) — see [`../../HANDOFF.md`](../../HANDOFF.md).
 
 ## Quick (in-process screen — same code as the proxy)
 

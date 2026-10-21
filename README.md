@@ -5,8 +5,10 @@ A standalone, pluggable **tool-call PEP** (policy enforcement point): it decides
 compromised-via-prompts agent cannot turn screened tools into destructive or
 exfiltrating side effects.
 
-**Version:** 0.2.0 · **Author:** beejak · **Features frozen** for paper submit
-(see [`HANDOFF.md`](HANDOFF.md), [`paper/EVIDENCE.md`](paper/EVIDENCE.md)).
+**Version:** 0.2.0 · **Author:** beejak · **Paper claim set frozen** for arXiv
+submit. **Next capability wave planned** (E1–E6) — awaiting human Final Gate;
+coding not started (see [`HANDOFF.md`](HANDOFF.md), [`paper/EVIDENCE.md`](paper/EVIDENCE.md),
+[`docs/plans/`](docs/plans/)).
 
 **Paper PDF (download):**
 [tracewall.pdf (release v0.2.0)](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf)
@@ -123,8 +125,17 @@ canonical tool names.
 **Open (not shipped):** signed workload identity (SPIFFE), full OTLP/gRPC exporter,
 SBOM, HTTP sidecar PEP, unknown-tool / `tools/list` limits, OS sandbox / on-disk scan.
 
+**Roadmap (2026-10-21):** planning complete —
+[`docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md)
+(+ separate [Karpathy review](docs/plans/2026-10-21-tracewall-karpathy-review.md)).
+**Awaiting Final Gate A–E** before implementation; Karpathy lens recommends P0 =
+E1/E2 only, delay E4, demote E5/E6. CI green (`importorskip` AgentDojo without
+`[bench]`).
+
 **Eval honesty:** AgentDojo has multiple suites; we measured a **banking slice**
-only — see [`docs/RESULTS.md`](docs/RESULTS.md) and EVIDENCE.
+only — see [`docs/RESULTS.md`](docs/RESULTS.md) and EVIDENCE. Soft-block banking
+`direct` 1×4, robustness **18/18**, latency ≈6.4 ms / p99 ≈9.8 ms — quote only
+from EVIDENCE.
 
 Pick-up: [`HANDOFF.md`](HANDOFF.md). Evidence: [`paper/EVIDENCE.md`](paper/EVIDENCE.md).
 
@@ -138,6 +149,8 @@ Pick-up: [`HANDOFF.md`](HANDOFF.md). Evidence: [`paper/EVIDENCE.md`](paper/EVIDE
 | [`docs/RESULTS.md`](docs/RESULTS.md) | How to read eval JSON / ASR vs utility |
 | [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | Profiles, audit, soft-block, BLOCK storms |
 | [`docs/ENTERPRISE.md`](docs/ENTERPRISE.md) | Enterprise readiness checklist |
+| [`docs/TOOLING.md`](docs/TOOLING.md) | Cursor/agent tooling installs + invoke |
+| [`docs/plans/`](docs/plans/) | Post-freeze enhancement plans (gate pending) |
 | [`SECURITY.md`](SECURITY.md) | Threat model / what we don’t protect |
 | [`CHANGELOG.md`](CHANGELOG.md) | Versioned notes |
 | [`docs/README.md`](docs/README.md) | Full docs index |

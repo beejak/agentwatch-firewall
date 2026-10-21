@@ -2,6 +2,8 @@
 
 > Rebuild from [`EVIDENCE.md`](EVIDENCE.md) / [`PAPER.md`](PAPER.md) before posting.
 > Older WatchTower 17/17 / 0.011ms copy is **retired**.
+> PDF: [release v0.2.0](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf) · author **beejak**.
+> Do not advertise planned E1–E6 work as shipped.
 
 ## LinkedIn (draft from 2026-07-19 evidence)
 

@@ -127,6 +127,8 @@ Only quote these when the matching artifact still agrees:
 | Process integrity | `LESSONS_LEARNED.md` |
 | Operator freeze status | `HANDOFF.md` |
 | How to read ASR/util | `docs/RESULTS.md` |
+| Post-freeze plans (no claims yet) | `docs/plans/2026-10-21-*.md` |
+| Submit checklist | `paper/SUBMIT.md` |
 | Sibling impl skill | `.cursor/skills/tracewall-zta/SKILL.md` |
 
 ---
@@ -161,3 +163,10 @@ Copy this checklist into todos and complete in order:
 - No REFUTED numbers resurrected.
 - README / docs metric headlines still match EVIDENCE (if you touched public numbers).
 - Sibling skill for shipping controls: [`tracewall-zta`](../tracewall-zta/SKILL.md).
+
+## Paper prep next (status, not new evidence)
+
+- Prefer [release PDF](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf).
+- Author **beejak**; scope/non-claims stay PEP ≠ chat/OS/SPIFFE; banking-only AgentDojo.
+- Rebuild PDF only if TeX changed and tectonic available.
+- Capability plans in `docs/plans/` must **not** become paper numbers until eval + EVIDENCE.
