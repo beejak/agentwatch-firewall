@@ -1,16 +1,28 @@
 <!-- /autoplan restore point: C:\Users\Master\.gstack\projects\beejak-agentwatch-firewall\master-autoplan-restore-20261021-091048.md -->
 # Tracewall Core Capability Enhancement + Test Plan
 
-**Status:** AWAITING FINAL APPROVAL GATE (premises + gate options for human)  
-**Date:** 2026-10-21 · **Branch:** master @ `5fcbf0f` · **Repo:** beejak/agentwatch-firewall  
+**Status:** GATE **B** APPROVED (Karpathy overrides) — 2026-10-21  
+**Date:** 2026-10-21 · **Branch:** master · **Repo:** beejak/agentwatch-firewall  
 **Platform:** GitHub · **Base branch:** master  
 **UI scope:** NO (skip Design) · **DX scope:** YES (developer tool)  
 **Codex:** `[codex-unavailable: binary not found]` — Claude-only dual voices  
 **Mode:** SELECTIVE EXPANSION (post-paper-freeze capability + tests; no claim fraud)
 
-**Companion (NOT merged into this file):** [Karpathy lens review](2026-10-21-tracewall-karpathy-review.md) — recommends delay E4, demote E5/E6, narrow P0 tests to E1/E2.  
-**Pick-up / product truth:** [`../../HANDOFF.md`](../../HANDOFF.md) · Deferred: [`../../TODOS.md`](../../TODOS.md).  
-**Coding:** E1–E6 **not started**; wait for human premises + gate A–E.
+**Companion (NOT merged into this file):** [Karpathy lens review](2026-10-21-tracewall-karpathy-review.md).  
+**Pick-up / product truth:** [`../../HANDOFF.md`](../../HANDOFF.md) · Deferred: [`../../TODOS.md`](../../TODOS.md).
+
+### Human decision log (Gate B)
+
+| Item | Decision |
+|------|----------|
+| Premises P1–P5 | **ACCEPTED** |
+| Gate option | **B** — approve with overrides |
+| P0 | **E1** (deny unknown tools on zta/paranoid) + **E2** (optional MCP `tools/list` filter) |
+| E3 | Tests that prove E1/E2 + fail-safe polarity only — **not** 160+/85% chase |
+| E4 | **DELAYED** (session progressive containment) |
+| E5 / E6 | **DEMOTED** (schema rail, decision certificates) |
+| Success metric | Promoted `expected_limit`→`success` eval rows / real behavior |
+| Paper claims | **FROZEN** (no invented numbers) |
 
 ---
 
@@ -623,20 +635,19 @@ No User Challenge against user’s stated direction (core PEP + competitive + te
 
 ## Implementation Tasks (aggregated)
 
-- [ ] **T-E1 (P0, human: 1–2d / CC: 2–4h) — core/policy** — `deny_unknown_tools` on zta/paranoid  
-  - Files: `transports/profiles.py`, `core/firewall.py`, tests, brink/robustness  
-- [ ] **T-E2 (P0, human: 2–3d / CC: 4–8h) — transports** — optional MCP `tools/list` filter  
-  - Files: `mcp_proxy.py`, NEW `test_mcp_tools_list_filter.py`, INTEGRATION  
-- [ ] **T-E3 (P0, human: 2d / CC: 4–6h) — tests** — Tranche A property/fail-safe/concurrency/metrics  
-  - Files: NEW test_*.py listed in §7.3  
-- [ ] **T-E4 (P1, human: 1w / CC: 1–2d) — core/session** — Session progressive containment  
-  - Files: `session_chain.py`, ledger hook, guard, adojo soft tests, RUNBOOK  
-- [ ] **T-E5 (P1, human: 3–4d / CC: 1d) — policy** — optional JSON Schema rail  
-  - Files: NEW `policy/schema.py`, `test_schema_rail.py`  
-- [ ] **T-E6 (P1, human: 3–5d / CC: 1d) — audit/ops** — decision certificates + verify CLI  
-  - Files: `audit/sink.py`, NEW `ops/verify_decision.py`, tests  
-- [ ] **T-E7 (P1, human: 3–5d / CC: 1–2d) — eval** — workspace/travel firewall-only shapes  
-  - Files: `eval/adojo_stress.py`, robustness, EVIDENCE after artifacts  
+- [ ] **T-E1 (P0)** — `deny_unknown_tools` on zta/paranoid *(Gate B — shipping)*  
+- [ ] **T-E2 (P0)** — optional MCP `tools/list` filter *(Gate B — shipping)*  
+- [ ] **T-E3 (P0, narrowed)** — tests proving E1/E2 + fail-safe polarity only  
+- [ ] **T-E4** — Session progressive containment — **DELAYED** (Gate B)  
+- [ ] **T-E5** — JSON Schema rail — **DEMOTED** (Gate B)  
+- [ ] **T-E6** — decision certificates — **DEMOTED** (Gate B)  
+- [ ] **T-E7** — workspace/travel firewall-only shapes — backlog  
+
+```
+/autoplan gate: B APPROVED (Karpathy overrides) 2026-10-21
+status: IMPLEMENTING P0 E1+E2 incrementally
+```
+
 
 ---
 

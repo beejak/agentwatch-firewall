@@ -4,17 +4,11 @@
 
 ### Docs / planning (2026-10-21)
 
-- Synced human-facing docs + Tracewall skills with current state: paper claim freeze,
-  release PDF download, CI green via AgentDojo `importorskip` (`320ee56`), soft-block /
-  banking-slice / robustness **18/18** / latency honesty.
-- Added planning deliverables (no product coding):
-  [`docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md),
-  [`docs/plans/2026-10-21-tracewall-karpathy-review.md`](docs/plans/2026-10-21-tracewall-karpathy-review.md)
-  (Karpathy lens kept **separate**), [`TODOS.md`](TODOS.md).
-- Documented user-local agent tooling (caveman, cavemem, claude-mem, superpowers,
-  open-gsd/gsd-core successor, mattpocock skills, ruflo, graphify) in
-  [`docs/TOOLING.md`](docs/TOOLING.md) / [`HANDOFF.md`](HANDOFF.md).
-- **Awaiting human Final Gate A–E** before E1–E6 implementation (coding not started).
+- **Final Gate B approved** (Karpathy overrides): P1–P5 accepted; P0 = E1+E2;
+  E4 delayed; E5/E6 demoted; success = promoted eval rows (not coverage vanity).
+  Paper claims remain frozen. Recorded in plans, `HANDOFF.md`, `TODOS.md`, `AGENTS.md`.
+- Prior planning sync (paper freeze, release PDF, CI `importorskip`, tooling notes)
+  remains; Karpathy review file stays **separate** from the autoplan.
 
 ## 0.2.0 — 2026-07-21
 

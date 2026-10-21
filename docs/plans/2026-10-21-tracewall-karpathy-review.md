@@ -1,11 +1,11 @@
 # Tracewall Plan — Karpathy Lens Review (SEPARATE)
 
 **Status:** Review only — **do not merge into** [`2026-10-21-tracewall-core-enhancement-test-plan.md`](2026-10-21-tracewall-core-enhancement-test-plan.md)  
-**Date:** 2026-10-21 · **Repo:** beejak/agentwatch-firewall · **Branch context:** master @ `5fcbf0f`  
+**Gate outcome (2026-10-21):** Human chose **B** with §5 overrides (E1/E2 P0; delay E4; demote E5/E6). This file stays separate; status only.  
+**Date:** 2026-10-21 · **Repo:** beejak/agentwatch-firewall · **Branch context:** master  
 **Reviewed artifact:** [`2026-10-21-tracewall-core-enhancement-test-plan.md`](2026-10-21-tracewall-core-enhancement-test-plan.md)  
 **Companion test artifact (read):** `~/.gstack/projects/beejak-agentwatch-firewall/beejak-master-test-plan-20261021.md`  
-**Product truth (read):** [`HANDOFF.md`](../../HANDOFF.md), `README.md`, `SECURITY.md`, `docs/ARCHITECTURE_OVERVIEW.md` §6 QA gaps  
-**Gate hint:** If approving, prefer **B** with §5 overrides (E1/E2 P0; delay E4; demote E5/E6) — human decides; coding not started.
+**Product truth (read):** [`HANDOFF.md`](../../HANDOFF.md), `README.md`, `SECURITY.md`, `docs/ARCHITECTURE_OVERVIEW.md` §6 QA gaps
 
 ---
 

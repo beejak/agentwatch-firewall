@@ -217,7 +217,8 @@ Update [`paper/EVIDENCE.md`](../../../paper/EVIDENCE.md) and
 ### Freeze + gate (2026-10-21)
 
 - Paper **claim set** frozen for arXiv unless user explicitly changes claims.
-- Post-freeze roadmap: [`docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](../../../docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md)
-  + separate [Karpathy review](../../../docs/plans/2026-10-21-tracewall-karpathy-review.md).
-- **Do not implement E1–E6** until human Final Gate A–E (`HANDOFF.md`).
-- Karpathy lens (recommend unless user overrides): P0 = E1/E2 only; delay E4; demote E5/E6.
+- **Gate B approved** (Karpathy overrides): P0 = E1/E2; delay E4; demote E5/E6.
+- Plans: [`docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](../../../docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md)
+  + separate [Karpathy review](../../../docs/plans/2026-10-21-tracewall-karpathy-review.md) (do not merge).
+- Profile contract: `zta`/`paranoid` → `deny_unknown_tools` (+ `filter_tools_list` when E2 ships);
+  `balanced` stays pack-only for lab/held-out honesty.
