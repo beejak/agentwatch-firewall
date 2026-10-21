@@ -52,7 +52,7 @@ Install log: `%USERPROFILE%\tools\install-log-2026-10-21.txt`.
 - [`docs/RUNBOOK.md`](RUNBOOK.md)
 - [`docs/ENTERPRISE.md`](ENTERPRISE.md)
 
-## Planning (awaiting Final Gate A–E)
+## Planning (Gate B + E4 shipped — archive)
 
 - [`docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](plans/2026-10-21-tracewall-core-enhancement-test-plan.md) — autoplan
 - [`docs/plans/2026-10-21-tracewall-karpathy-review.md`](plans/2026-10-21-tracewall-karpathy-review.md) — separate Karpathy lens (**not merged**)

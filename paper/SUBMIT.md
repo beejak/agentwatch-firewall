@@ -4,9 +4,9 @@
 **Source of truth:** [`EVIDENCE.md`](EVIDENCE.md) → [`tracewall.tex`](tracewall.tex) / [`PAPER.md`](PAPER.md) → [`tracewall.pdf`](tracewall.pdf).  
 **Reliable PDF download** (if GitHub’s blob PDF preview fails): [releases/download/v0.2.0/tracewall.pdf](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf).  
 **Product track:** paper claim set frozen for this submit; no new AgentDojo suites
-required. Post-freeze E1–E6 capability work is **planned only**
-([`docs/plans/`](../docs/plans/)) and must not inflate claims before new EVIDENCE
-rows. Author **beejak**.
+required. Library [v0.3.0](https://github.com/beejak/agentwatch-firewall/releases/tag/v0.3.0)
+ships E1/E2/E4 as **capability** (see EVIDENCE candidates) — must not inflate
+freeze headlines until a deliberate paper revision. Author **beejak**.
 
 ## Upload these
 
@@ -57,9 +57,13 @@ Confirm every headline number still matches VERIFIED rows in EVIDENCE:
 - [ ] Confirm PDF still matches release asset (or rebuild if `tracewall.tex` changed + tectonic available).
 - [ ] Fill arXiv form (cs.CR; author beejak); omit `watchtower.tex`.
 - [ ] After ID: record in `HANDOFF.md` + `PAPER.md`.
-- [ ] Do **not** start E1–E6 coding as part of submit; capability wave waits on Final Gate A–E.
+- [ ] Keep freeze quotes intact; track post-freeze work under
+      [`EVIDENCE.md`](EVIDENCE.md)#paper-candidates-post-freeze--not-yet-paper-headlines.
+- [ ] When `LLM_API_KEY` available: re-measure banking soft-block `direct` 1×4
+      ([`docs/TEST_PLAN.md`](../docs/TEST_PLAN.md)#live-eval-cost-rough-usd) before any ASR claim change.
 
 ## After submit
 
 - Record arXiv ID in `HANDOFF.md` and bump paper status in `PAPER.md`.
 - Venue follow-up (S&P / USENIX / CCS) is separate; do not invent new ASR without a new live run + EVIDENCE update.
+- Future revision may cite E1/E2/E4 / 19/19 / 21/21 only after promoting candidates in EVIDENCE.

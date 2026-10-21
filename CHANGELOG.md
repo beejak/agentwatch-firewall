@@ -25,8 +25,12 @@
   AgentDojo re-measure **blocked** (no `LLM_API_KEY`) — no invented ASR.
   Paper freeze soft-block quotes unchanged in [`paper/EVIDENCE.md`](paper/EVIDENCE.md).
 - Results / test-plan: **current** matrix (robustness **19/19**, brink **21/21**)
-  distinct from **paper freeze** robustness **18/18**.
-- Gate B + E4 documented in SECURITY / INTEGRATION / RUNBOOK / HANDOFF.
+  distinct from **paper freeze** robustness **18/18**; live eval **$** ranges +
+  TDD seams in [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md).
+- Paper **candidates** section (E1/E2/E4, 19/19, 21/21, 7/7, live ASR TBD) in
+  EVIDENCE — not freeze headlines.
+- Gate B + E4 documented across README / SECURITY / INTEGRATION / RUNBOOK /
+  HANDOFF / skills / operator docs.
 
 ### Test matrix (current vs paper)
 

@@ -2,8 +2,10 @@
 
 Install → register identity → run with `--profile zta` → see one BLOCK.
 
-**Status (2026-10-21):** v0.2.0 paper claims frozen; CI green without AgentDojo
-`[bench]`. Post-freeze E1–E6 roadmap awaits Final Gate — see [`../HANDOFF.md`](../HANDOFF.md).
+**Status (2026-10-21):** library **v0.3.0** (E1/E2/E4 on `zta`/`paranoid`); paper
+claim set frozen (v0.2.0 numbers). CI green without AgentDojo `[bench]`. Live
+AgentDojo ASR needs `LLM_API_KEY` — see [`TEST_PLAN.md`](TEST_PLAN.md). Pick-up:
+[`../HANDOFF.md`](../HANDOFF.md).
 
 > **What this is:** a **tool-call PEP** — ALLOW/BLOCK before screened tools run.
 > Not a chat-stream prompt scanner, not an OS sandbox, not an on-disk file scanner.

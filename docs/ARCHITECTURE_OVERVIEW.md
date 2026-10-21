@@ -8,10 +8,11 @@ Canonical detail: [`FIREWALL.md`](FIREWALL.md). Evidence discipline:
 [`RUNBOOK.md`](RUNBOOK.md). **Put Tracewall on the path:**
 [`INTEGRATION.md`](INTEGRATION.md). Threat model: [`../SECURITY.md`](../SECURITY.md).
 
-**Version snapshot:** 0.2.0 (docs sync 2026-10-21). Paper claim set frozen for
-submit; Gate B E1/E2 **shipped**; E4 delayed; E5/E6 demoted (paper freeze unchanged).
-**Author:** beejak. No SPIFFE / signed-identity / OS-sandbox-as-shipped claims.
-Plans: [`plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](plans/2026-10-21-tracewall-core-enhancement-test-plan.md),
+**Version snapshot:** 0.3.0 (docs sync 2026-10-21). Paper claim set frozen for
+submit; Gate B E1/E2 + E4 `session_ratchet` **shipped**; E5/E6 demoted (paper
+freeze unchanged). **Author:** beejak. No SPIFFE / signed-identity /
+OS-sandbox-as-shipped claims. Plans:
+[`plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](plans/2026-10-21-tracewall-core-enhancement-test-plan.md),
 [Karpathy review (separate)](plans/2026-10-21-tracewall-karpathy-review.md).
 
 ### What we protect / don’t
@@ -269,13 +270,16 @@ Evidence from the tree / HANDOFF — **not** aspirational:
 - **OTel-shaped audit JSONL** — `OTelJsonlAuditSink` (filelog-friendly; **not** OTLP/gRPC).
 - **Ops CLIs** — `explain` (dry-run), `health`, `reload` (YAML re-load smoke), `config` (`TRACEWALL_CONFIG`).
 - **Policy DSL extras** — org-domain placeholders, secret-reader aliases, `host_in` / `not_in_domain`, `rate_exceeds`, `call_tree_contains(_any)`.
+- **E1 / E2 / E4** — `deny_unknown_tools`, MCP `tools/list` filter, `session_ratchet`
+  on `zta`/`paranoid` (lab `balanced` off).
 - **Eval lanes** — harness, mcp_brink, adojo_stress (+ live), robustness_stress, latency, AgentDojo adapter.
-- **Docs / packaging** — GETTING_STARTED, RUNBOOK, RESULTS, SUPPORT, ENTERPRISE, SECURITY, CHANGELOG.
+- **Docs / packaging** — GETTING_STARTED, INTEGRATION, RUNBOOK, RESULTS, SUPPORT,
+  ENTERPRISE, DEVSECOPS, SECURITY, CHANGELOG.
 
 **Explicitly not claimed:** SPIFFE / IdP-verified identity, full OTLP exporter,
 SBOM in CI, adaptive paraphrase ASR, travel/workspace live AgentDojo coverage,
 chat-stream prompt scanning, OS sandbox / on-disk file scanning as shipped
-Tracewall controls.
+Tracewall controls. Freeze headlines stay v0.2.0; HEAD 19/19 / 21/21 are candidates.
 
 ---
 
@@ -283,18 +287,22 @@ Tracewall controls.
 
 ### 5.1 Unit / integration (`pytest`)
 
-Collected **2026-07-21**: `pytest --collect-only -q` → **133 tests** from the default tree,
-plus **1 collection error** when `agentdojo` is not installed:
+Collected **2026-10-21 (v0.3.0):** `pytest -q` → **153 passed, 2 skipped** without
+`[bench]` (`importorskip` on AgentDojo soft-block). Seams: see
+[`TEST_PLAN.md`](TEST_PLAN.md)#eval--ci-seams-tdd.
 
 | File | Notes / key cases |
 |------|-------------------|
 | `test_firewall_core.py` | ALLOW high-trust benign; policy BLOCK; semantic escalate; identity caps; call-tree completeness |
 | `test_firewall_kb.py` | KB01–KB20 knowledge-base scenarios (injection, exfil, MINJA, MTP hops, fail-safe, trust recovery, PB01 latency) |
 | `test_p0_correctness.py` | Org domains, secret-reader aliases, require_identity, ledger feedback polarity, clean score polarity |
+| `test_deny_unknown_tools.py` | E1 `deny_unknown_tools` on zta/paranoid |
 | `test_guard.py` | Allow / raise / fail-closed / fail-open / `@guarded` |
 | `test_mcp_proxy.py` | Non-tool forward; ALLOW forward; BLOCK tool error; destructive; `_meta` enrich; fail-closed/open malformed; call-tree capability abuse |
 | `test_mcp_profiles.py` | Registry for all 4 profiles; rule-count split; identity required vs optional; fail-open vs closed; exfil miss on permissive; context starvation limit |
+| `test_mcp_tools_list_filter.py` | E2 `tools/list` response filter |
 | `test_mcp_framing.py` | Content-Length roundtrip; NDJSON encode/read |
+| `test_session_progressive.py` | E4 `session_ratchet` progressive containment |
 | `test_zta_practical.py` | Host allowlist; email default-deny; rate_exceeds; require_caps; own call-tree forge ignore; args_hash; RateBudget |
 | `test_enterprise_ready.py` | Normalize/aliases; profiles; soft-block; identity/caps; own call-tree; Prometheus HTTP; OTel JSONL; GuardedToolNode; explain/health; reference PEP; starve rate |
 | `test_enterprise_ops.py` | Canonical+ZWSP; ZWSP IBAN BLOCK; PascalCase tool; soft-block; metrics.record |
@@ -306,7 +314,7 @@ plus **1 collection error** when `agentdojo` is not installed:
 | `test_robustness_stress.py` | Robustness matrix all pass; scenarios include limits |
 | `test_trace_replay.py` | Fixture shape + parametrized replay (benign / injection / exfil / destructive) |
 | `test_agentdojo_adapter.py` | Import without bench extra; rate math; argparser defaults |
-| `test_agentdojo_soft_block.py` | Soft-block rewrites tool name (needs `agentdojo` extra — **collection fails without it**) |
+| `test_agentdojo_soft_block.py` | Soft-block rewrites tool name (`importorskip` without `agentdojo`) |
 
 ### 5.2 Eval lanes (artifacts + results on disk)
 

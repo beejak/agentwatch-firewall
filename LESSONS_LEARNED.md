@@ -197,4 +197,10 @@ mistake) → *why*. Keep it terse and actionable.
   **separate** from the autoplan file so gate options stay readable.
 - **Rule: do not commit local AgentDojo dumps as paper artifacts** (`adojo_diag/`,
   `adojo_stress_live/`, util check scripts) — they are not the frozen claim set.
+- **Rule: firewall-only ≠ live ASR.** AgentDojo-shaped `adojo_stress` (no LLM) can
+  reconfirm PEP **7/7** without `LLM_API_KEY`; quoting ASR/utility still needs a keyed
+  live run. Document cost ranges so “blocked: no keys” is not mistaken for a product fail.
+- **Rule: post-freeze capability is candidacy, not a silent freeze rewrite.** E1/E2/E4
+  and HEAD 19/19 / 21/21 stay in an EVIDENCE *candidates* section until a deliberate
+  paper revision.
 

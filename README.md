@@ -114,26 +114,27 @@ Tier-0 flags tool-arg text only (noisy prior). Internal error → fail-safe **BL
 Detail: [`docs/FIREWALL.md`](docs/FIREWALL.md) ·
 [`docs/ARCHITECTURE_OVERVIEW.md`](docs/ARCHITECTURE_OVERVIEW.md).
 
-## Status (v0.2.0)
+## Status (v0.3.0)
 
 **Shipped:** Python `guard` + MCP stdio proxy (Content-Length + NDJSON) +
 `GuardedToolNode`; profiles `zta` / `paranoid` / `balanced` / `permissive`;
 ZTA allowlist pack; proxy-owned call trees; match-level `rate_exceeds`; soft-block;
 ops (`explain` / `health` / `reload` / HTTP metrics); arg NFKC/ZWSP normalize +
-canonical tool names.
+canonical tool names; **E1** unknown-tool deny + **E2** `tools/list` filter +
+**E4** `session_ratchet` on `zta`/`paranoid` (lab `balanced` unchanged).
 
 **Open (not shipped):** signed workload identity (SPIFFE), full OTLP/gRPC exporter,
-SBOM, HTTP sidecar PEP, E4 session ratchet / E5–E6 (deferred), OS sandbox / on-disk scan.
+SBOM, HTTP sidecar PEP, E5–E6 (demoted), OS sandbox / on-disk scan.
 
-**Gate B (2026-10-21):** E1 unknown-tool deny + E2 `tools/list` filter shipped on
-`zta`/`paranoid` (lab `balanced` unchanged). Plans:
-[`docs/plans/`](docs/plans/) (+ separate Karpathy review). Paper claims frozen.
-CI green (`importorskip` AgentDojo without `[bench]`).
+**Release:** [v0.3.0](https://github.com/beejak/agentwatch-firewall/releases/tag/v0.3.0).
+Paper claims frozen (v0.2.0 numbers). CI green (`importorskip` AgentDojo without `[bench]`).
 
 **Eval honesty:** AgentDojo has multiple suites; we measured a **banking slice**
 only — see [`docs/RESULTS.md`](docs/RESULTS.md) and EVIDENCE. Soft-block banking
 `direct` 1×4, robustness **18/18**, latency ≈6.4 ms / p99 ≈9.8 ms — quote only
-from EVIDENCE.
+from EVIDENCE. HEAD matrix **19/19** / brink **21/21** are operator/candidate
+counts — not freeze quotes. Live ASR needs `LLM_API_KEY`; cost table in
+[`docs/TEST_PLAN.md`](docs/TEST_PLAN.md).
 
 Pick-up: [`HANDOFF.md`](HANDOFF.md). Evidence: [`paper/EVIDENCE.md`](paper/EVIDENCE.md).
 
@@ -148,7 +149,9 @@ Pick-up: [`HANDOFF.md`](HANDOFF.md). Evidence: [`paper/EVIDENCE.md`](paper/EVIDE
 | [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | Profiles, audit, soft-block, BLOCK storms |
 | [`docs/ENTERPRISE.md`](docs/ENTERPRISE.md) | Enterprise readiness checklist |
 | [`docs/TOOLING.md`](docs/TOOLING.md) | Cursor/agent tooling installs + invoke |
-| [`docs/plans/`](docs/plans/) | Post-freeze enhancement plans (gate pending) |
+| [`docs/plans/`](docs/plans/) | Post-freeze plans (Gate B + E4 shipped; archive) |
+| [`docs/DEVSECOPS.md`](docs/DEVSECOPS.md) | CI/deploy gates vs SAST |
+| [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md) | Profiles, seams, live eval cost |
 | [`SECURITY.md`](SECURITY.md) | Threat model / what we don’t protect |
 | [`CHANGELOG.md`](CHANGELOG.md) | Versioned notes |
 | [`docs/README.md`](docs/README.md) | Full docs index |

@@ -4,14 +4,16 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.2.x   | Yes (paper claim set frozen; Gate B shipped E1/E2 on `zta`/`paranoid`) |
+| 0.3.x   | Yes ([release](https://github.com/beejak/agentwatch-firewall/releases/tag/v0.3.0); E1/E2/E4) |
+| 0.2.x   | Yes (paper claim set frozen) |
 | < 0.2   | Best-effort |
 
 **Status note (2026-10-21):** Under **`zta`/`paranoid`**, unknown tools are
-default-denied (`deny_unknown_tools`) and MCP `tools/list` responses can be
-filtered (`filter_tools_list`). Lab **`balanced`** stays pack-only / list
-pass-through for held-out honesty. Paper claim numbers remain frozen. Product
-remains a **tool-call PEP** only (see threat model below).
+default-denied (`deny_unknown_tools`), MCP `tools/list` responses can be
+filtered (`filter_tools_list`), and **E4** `session_ratchet` tightens egress after
+a screened BLOCK. Lab **`balanced`** stays pack-only / list pass-through / ratchet
+off for held-out honesty. Paper claim numbers remain frozen. Product remains a
+**tool-call PEP** only (see threat model below).
 
 ## Reporting a vulnerability
 
@@ -63,9 +65,10 @@ keeping the agent loop alive (utility), but does not stop the model from
 *proposing* further attacks.
 
 **What blast-radius controls contain vs miss:** sole PEP + allowlists + caps +
-rates + owned call-tree + (on zta/paranoid) unknown-tool deny + list filter can
-stop screened side effects. They do **not** stop PEP bypass, host escape, or
-chat-only compromise with no screened tool call. See threat model above.
+rates + owned call-tree + (on zta/paranoid) unknown-tool deny + list filter +
+session ratchet can stop screened side effects. They do **not** stop PEP bypass,
+host escape, or chat-only compromise with no screened tool call. See threat model
+above.
 
 Architecture details: [`docs/FIREWALL.md`](docs/FIREWALL.md).  
 Put Tracewall on the path: [`docs/INTEGRATION.md`](docs/INTEGRATION.md).  

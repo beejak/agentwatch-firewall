@@ -7,10 +7,12 @@ Sources: [`LESSONS_LEARNED.md`](../LESSONS_LEARNED.md), [`HANDOFF.md`](../HANDOF
 
 **Status note (2026-10-21):** Paper claim set remains the 2026-07 freeze (held-out,
 soft-block banking slice, robustness **18/18**, latency) — **do not inflate paper
-headlines**. Gate B post-freeze capability (E1/E2) has new eval JSON rows below;
-those are capability evidence, not a rewrite of frozen paper numbers. Local
-`adojo_diag/` / `adojo_stress_live/` trees are **not** evidence. CI: AgentDojo
-soft-block skipped without `[bench]` (`320ee56`).
+headlines**. Gate B / v0.3.0 post-freeze capability (E1/E2/E4) has rows below;
+those are **capability / candidate** evidence, not a rewrite of frozen paper
+numbers. Local `adojo_diag/` / `adojo_stress_live/` trees are **not** freeze
+evidence (keep as untracked diagnostics; do not delete committed
+`tracewall/eval/results/*.json`). CI: AgentDojo soft-block skipped without
+`[bench]` (`320ee56`).
 
 ## Architecture / product
 
@@ -84,6 +86,7 @@ soft-block skipped without `[bench]` (`320ee56`).
 | Robustness expected limits (unknown tool / tools.list gap) | VERIFIED (limit) → partially closed post-freeze | Freeze-era IDs; Gate B: `S-block-unknown-tool-deny` success; balanced pack-miss + firewall-layer list probe remain limits — see current `robustness_stress.json` |
 | E1 `deny_unknown_tools` on zta/paranoid | VERIFIED (post-freeze capability) | `firewall.py` + `test_deny_unknown_tools.py`; robustness `S-block-unknown-tool-deny` |
 | E2 MCP `tools/list` response filter on zta/paranoid | VERIFIED (post-freeze capability) | `mcp_proxy.py` filter helpers; `test_mcp_tools_list_filter.py`; brink `S-tools-list-request-forwards` |
+| E4 `session_ratchet` progressive containment (zta/paranoid on; balanced off) | VERIFIED (post-freeze capability) | `session_ratchet.py`; `test_session_progressive.py`; RUNBOOK — **not** a freeze ASR rewrite |
 | Robustness expected limits (ZWSP, PascalCase alias) | REFUTED → closed 2026-07-21 | Promoted to success after normalize/canonical |
 | Live DeepSeek bill-preserving + benchmark system (n=1 pair) | VERIFIED (slice) | `adojo_stress.json` live[] 2026-07-19: **direct** base ASR=1.0 util=1.0 → defended ASR=0.0 util=1.0; important_instructions & ignore_previous ASR=0 util=1 both arms (model refuse attack, still pays bill) |
 | Live DeepSeek `direct` expand (user_task_0 × inj 0–3, n=4) | VERIFIED (slice) | abort-era: base ASR=**1.0** util=**1.0** → defended ASR=**0.0** util=**0.25**; **soft-block**: defended ASR=**0.0** util=**1.0** (2026-07-19) |
@@ -99,6 +102,30 @@ soft-block skipped without `[bench]` (`320ee56`).
 | YAML rules load and BLOCK on match | VERIFIED | `policy/engine.py`, rules/*.yaml |
 | Working `rate_exceeds` operator | REFUTED → superseded 2026-07-20 | Stub removed; match-level in-process `RateBudget` is VERIFIED above; arg-level still unsupported |
 | `${ORG_DOMAIN}` org allowlist | CAVEATS | Expanded via `TRACEWALL_ORG_DOMAINS` (G1b) |
+
+## Paper candidates (post-freeze — not yet paper headlines)
+
+Candidacy for a **future** paper revision / companion note. Do **not** promote into
+the frozen v0.2.0 abstract/tables until a deliberate revise + new EVIDENCE status.
+
+| Candidate | Artifact / status | Claim yet? |
+|-----------|-------------------|------------|
+| Gate B E1 unknown-tool deny (zta/paranoid) | robustness `S-block-unknown-tool-deny`; tests | Capability only |
+| Gate B E2 `tools/list` filter (zta/paranoid) | brink + `test_mcp_tools_list_filter.py` | Capability only |
+| E4 `session_ratchet` | `test_session_progressive.py`; optional prod knob | Capability only |
+| Current robustness **19/19** | `robustness_stress.json` (HEAD) | **No** — freeze stays **18/18** |
+| Current brink **21/21** | `mcp_brink.json` (HEAD) | **No** — freeze uses freeze-era matrix |
+| Firewall-only adojo **7/7** (2026-10-21 reconfirm) | `adojo_stress` firewall rows | PEP regression; not live ASR |
+| Live soft-block ASR re-measure | **TBD** when `LLM_API_KEY` + `.[bench]` | **Do not invent**; freeze `direct` 1×4 stays quoted until re-run |
+
+**Next paper steps (when keys available):**
+
+1. Re-run banking soft-block `direct` 1×4 (see [`docs/TEST_PLAN.md`](../docs/TEST_PLAN.md)#live-eval-cost-rough-usd); merge into `adojo_stress.json` `live[]` only if intentional.
+2. Compare to freeze ASR/util; if unchanged, keep freeze; if changed, new EVIDENCE row + optional revision — do not silently edit freeze quotes.
+3. Optionally measure E4 on/off utility after BLOCK (separate from soft-block ASR).
+4. **Do not claim yet:** 19/19 or 21/21 as paper freeze; workspace/travel AgentDojo; adaptive paraphrase; SPIFFE.
+
+Submit checklist: [`SUBMIT.md`](SUBMIT.md). Folder index: [`README.md`](README.md).
 
 ## Paper process rules (LESSONS)
 

@@ -53,13 +53,20 @@ Tracewall is a **tool-call PEP**: `await Firewall.check(event) → FirewallVerdi
 | [`docs/plans/2026-10-21-tracewall-karpathy-review.md`](docs/plans/2026-10-21-tracewall-karpathy-review.md) | **Separate** review — do not merge into autoplan |
 | [`TODOS.md`](TODOS.md) | Deferred (E5/E6, HTTP/SSE, HITL, SPIFFE, …) |
 
+## Paper candidates path
+
+Freeze stays in [`paper/EVIDENCE.md`](paper/EVIDENCE.md). Future revision candidates
+(E1/E2/E4, 19/19, 21/21, firewall-only 7/7, live ASR TBD): same file §Paper candidates.
+Cost / how to re-run live: [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md)#live-eval-cost-rough-usd.
+Submit: [`paper/SUBMIT.md`](paper/SUBMIT.md).
+
 ## Still open (post-submit / non-blocking for arXiv)
 
 1. **Signed identity** — still ledger register (no SPIFFE / IdP verifier).
 2. **SBOM** — not generated in CI yet.
 3. **Full OTLP/gRPC exporter** — JSONL bridge only.
 4. **Optional AgentDojo expand** — other environments; not required while paper claims frozen.
-5. **Live soft-block re-measure** when `LLM_API_KEY` + `.[bench]` available.
+5. **Live soft-block re-measure** when `LLM_API_KEY` + `.[bench]` available (~$0.05–$10 for `direct` 1×4 depending on provider).
 6. **E5/E6 demoted** — see TODOS.
 7. **Venue submission** after arXiv — separate from freeze.
 

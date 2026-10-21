@@ -15,12 +15,12 @@
 | [SUPPORT.md](SUPPORT.md) | Support matrix (Python / MCP / profiles / metrics) |
 | [ENTERPRISE.md](ENTERPRISE.md) | Enterprise readiness checklist (honest) |
 | **[DEVSECOPS.md](DEVSECOPS.md)** | CI/deploy gates — build-blocker honesty vs SAST |
-| [plans/2026-10-21-tracewall-core-enhancement-test-plan.md](plans/2026-10-21-tracewall-core-enhancement-test-plan.md) | Post-freeze core enhancement + test plan (**awaiting Final Gate**) |
+| [plans/2026-10-21-tracewall-core-enhancement-test-plan.md](plans/2026-10-21-tracewall-core-enhancement-test-plan.md) | Post-freeze plan archive (Gate B + E4 **shipped**) |
 | [plans/2026-10-21-tracewall-karpathy-review.md](plans/2026-10-21-tracewall-karpathy-review.md) | Karpathy lens review (**separate**; not merged into autoplan) |
-| [../TODOS.md](../TODOS.md) | Deferred backlog from autoplan |
+| [../TODOS.md](../TODOS.md) | Deferred backlog (E5/E6, live ASR, …) |
 | [../SECURITY.md](../SECURITY.md) | Threat model + what we don’t protect |
 | [../CHANGELOG.md](../CHANGELOG.md) | Versioned release notes |
-| [../HANDOFF.md](../HANDOFF.md) | Pick-up status + roadmap (claim freeze; gate pending) |
+| [../HANDOFF.md](../HANDOFF.md) | Pick-up status (v0.3.0; paper freeze) |
 | [../AGENTS.md](../AGENTS.md) | Agent entry: product truth + tooling pointers |
 | [../paper/EVIDENCE.md](../paper/EVIDENCE.md) | Claim ledger (repo → paper) |
 | [../LESSONS_LEARNED.md](../LESSONS_LEARNED.md) | Process rules (incl. PEP ≠ chat scanner) |
@@ -60,5 +60,7 @@ Full diagrams, test inventory, and QA gap matrix:
 - Evidence-only claims: [`paper/EVIDENCE.md`](../paper/EVIDENCE.md) · folder index: [`paper/README.md`](../paper/README.md)  
 - Author **beejak**; library **v0.3.0**; **paper claim set frozen** (do not rewrite freeze quotes).  
 - Post-freeze shipped: E1/E2/E4 — see [`../CHANGELOG.md`](../CHANGELOG.md), [`DEVSECOPS.md`](DEVSECOPS.md).  
+- Paper candidates (not freeze): [`../paper/EVIDENCE.md`](../paper/EVIDENCE.md)#paper-candidates-post-freeze--not-yet-paper-headlines.  
+- Live ASR cost / API key split: [`TEST_PLAN.md`](TEST_PLAN.md)#live-eval-cost-rough-usd.  
 - CI: AgentDojo soft-block skipped without `[bench]` (`320ee56`); suite collects green.  
 - `paper/watchtower.tex` is **stale brand** — do not submit.

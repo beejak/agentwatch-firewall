@@ -29,6 +29,9 @@ robustness **18/18**; latency ≈6.4 ms / p99 ≈9.8 ms. PDF:
 **Current HEAD (not paper):** robustness **19/19**, brink **21/21**, pytest **153**+2 skip —
 [`docs/RESULTS.md`](docs/RESULTS.md), [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md)#test-parameters.
 Library **v0.3.0** (E1/E2/E4). Soft-block live re-measure blocked without API key.
+Paper candidates (not freeze): [`paper/EVIDENCE.md`](paper/EVIDENCE.md)#paper-candidates-post-freeze--not-yet-paper-headlines.
+API key / $ estimate: [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md)#live-eval-cost-rough-usd.
+Release: [v0.3.0](https://github.com/beejak/agentwatch-firewall/releases/tag/v0.3.0).
 
 ## Current gate (do not skip)
 

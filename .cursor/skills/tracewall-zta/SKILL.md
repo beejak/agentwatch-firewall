@@ -214,11 +214,13 @@ python -m tracewall.eval.adojo_stress
 Update [`paper/EVIDENCE.md`](../../../paper/EVIDENCE.md) and
 [`LESSONS_LEARNED.md`](../../../LESSONS_LEARNED.md) when behavior changes.
 
-### Freeze + gate (2026-10-21)
+### Freeze + gate (2026-10-21) — v0.3.0
 
 - Paper **claim set** frozen for arXiv unless user explicitly changes claims.
-- **Gate B approved** (Karpathy overrides): P0 = E1/E2; delay E4; demote E5/E6.
+- **Shipped:** E1 + E2 + optional E4 `session_ratchet` on `zta`/`paranoid`; E5/E6 demoted.
+- Release: [v0.3.0](https://github.com/beejak/agentwatch-firewall/releases/tag/v0.3.0).
 - Plans: [`docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](../../../docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md)
   + separate [Karpathy review](../../../docs/plans/2026-10-21-tracewall-karpathy-review.md) (do not merge).
-- Profile contract: `zta`/`paranoid` → `deny_unknown_tools` + `filter_tools_list`;
-  `balanced` stays pack-only for lab/held-out honesty. E1/E2 shipped (Gate B).
+- Profile contract: `zta`/`paranoid` → `deny_unknown_tools` + `filter_tools_list` +
+  `session_ratchet`; `balanced` stays pack-only / ratchet off for lab honesty.
+- Live ASR re-measure needs `LLM_API_KEY`; firewall-only / pytest do not.

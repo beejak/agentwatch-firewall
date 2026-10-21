@@ -38,7 +38,7 @@ Wiring guide: [`INTEGRATION.md`](INTEGRATION.md).
 | G5 | Paper honesty | Tracewall draft matches EVIDENCE | WatchTower 17/17 / 0.011ms | Diff abstract vs EVIDENCE |
 | G6 | Venue | G4+G5 done; PDF floats verified | Submit on stale PDF | tectonic + page inspect |
 
-**Status snapshot (2026-10-21, v0.2.0, paper claims frozen):** G0–G3 (+G3-fail, G3z) met; G4b/G4c/G4d met (robustness **18/18**; AgentDojo = banking slice); G5 paper draft + PDF aligned with EVIDENCE (PEP ≠ chat scanner); CI collects green without `[bench]`. ZWSP/NFKC + canonical tool names closed. **Planned next (gate pending):** E1 unknown-tool deny, E2 `tools/list` filter — see [`plans/`](plans/); Karpathy review recommends delay E4 / demote E5–E6. Remaining (post-submit): signed identity, HTTP sidecar PEP, SBOM, OTLP/gRPC, venue polish — not OS sandbox productization.
+**Status snapshot (2026-10-21, v0.3.0, paper claims frozen):** G0–G3 (+G3-fail, G3z) met; G4b/G4c/G4d met (paper freeze robustness **18/18**; HEAD **19/19**; AgentDojo = banking slice); G5 paper draft + PDF aligned with EVIDENCE (PEP ≠ chat scanner); CI collects green without `[bench]`. ZWSP/NFKC + canonical tool names closed. **Shipped post-freeze:** E1 unknown-tool deny, E2 `tools/list` filter, E4 `session_ratchet` — see [`plans/`](plans/), [`../CHANGELOG.md`](../CHANGELOG.md). E5/E6 demoted. Remaining (post-submit): live soft-block re-measure when keyed, signed identity, HTTP sidecar PEP, SBOM, OTLP/gRPC, venue polish — not OS sandbox productization.
 
 
 ## P0 correctness (G1b) — named checks

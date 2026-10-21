@@ -20,6 +20,13 @@ Eval artifacts live under `tracewall/eval/results/`. Claims that enter the paper
 
 **Decision:** soft-block utility story remains freeze-backed; live re-measure deferred until keys available. E4 `session_ratchet` shipped **optional** (off on `balanced`, on for `zta`/`paranoid`) as plug-and-play progressive containment — not as a claim that soft-block failed.
 
+### API key + live eval cost (plain English)
+
+- **Firewall-only 7/7** — no LLM, no `LLM_API_KEY`. AgentDojo-*shaped* tool chains; proves PEP behavior only.
+- **Live ASR** — needs `.[bench]` + **`LLM_API_KEY`** (optional `LLM_BASE_URL` / `LLM_MODEL`). Last re-measure blocked = keys missing.
+- **Unit / pytest / brink / robustness** — no key.
+- **Dollar range** for banking soft-block `direct` **1×4** (base+defended, ~8 episodes): roughly **~$0.05–$0.50** (cheap API) · **~$0.50–$2** (mid) · **~$2–$10** (frontier). Rough; see full table in [`TEST_PLAN.md`](TEST_PLAN.md)#live-eval-cost-rough-usd.
+
 ## Quick map
 
 | File | What it proves | Pass means |

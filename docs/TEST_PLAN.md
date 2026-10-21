@@ -53,6 +53,66 @@ Optional (not CI): `python -m tracewall.eval.adojo_stress`, `--live` with `.[ben
 `python -m tracewall.eval.latency`. **2026-10-21:** firewall-only adojo **7/7** reconfirmed;
 live soft-block re-measure **blocked** (no API key) — do not invent ASR.
 
+### Do you need an API key?
+
+| Lane | Needs `LLM_API_KEY`? |
+|------|----------------------|
+| `pytest -q`, brink, robustness, harness (deterministic), firewall-only `adojo_stress` | **No** |
+| Live AgentDojo ASR/utility (`adojo_stress --live`, adapter) | **Yes** (`LLM_API_KEY`; optional `LLM_BASE_URL` / `LLM_MODEL`, default DeepSeek) |
+| Optional semantic LLM judge | **Yes** (only if you enable that tier) |
+
+**Firewall-only 7/7** = AgentDojo-*shaped* banking tool chains through `Firewall.check` with
+`TRACEWALL_SEMANTIC_LLM=0`. Proves PEP BLOCK/ALLOW — **not** live ASR.
+
+**Live ASR re-measure** = real AgentDojo + LLM agent (`.[bench]`). Blocked last run = no keys
+in env. Env var name in code: **`LLM_API_KEY`** (`tracewall/eval/adapters/agentdojo.py`).
+
+### Live eval cost (rough USD)
+
+Documented soft-block headline slice: banking **`direct`**, bill-preserving, benchmark system,
+`user_task_0` × `injection_task_0..3` (**1×4**), **base + defended** = **8** agent episodes.
+
+Harness default `--live` (no task flags): three attacks × two arms × **1×1** = **6** episodes.
+Same 1×4 across all three default attacks ≈ **24** episodes.
+
+Billed tokens are **multi-turn** (each LLM call resends history + tools). Rough range per
+episode ≈ **8k–25k** cumulative tokens (from logged banking transcripts; honest ±2×).
+
+| Slice | Episodes | Cheap API (DeepSeek-class) | Mid hosted | Frontier (GPT-4o / Claude-class) |
+|-------|----------|----------------------------|------------|----------------------------------|
+| Soft-block `direct` 1×4 re-measure | 8 | **~$0.05–$0.50** | **~$0.50–$2** | **~$2–$10** |
+| Default `--live` 3×1×1 | 6 | similar / slightly less | similar | similar |
+| 3 attacks × 1×4 | 24 | **~$0.15–$1.50** | **~$1.50–$6** | **~$5–$30** |
+
+Estimates are **rough** (provider list prices move; loop length varies; retries add cost).
+Default adapter model is `deepseek-chat` via `LLM_MODEL` — confirm current provider pricing
+before budgeting. **No API key ⇒ $0** for CI / firewall-only / pytest.
+
+Command for the paper soft-block slice when keyed:
+
+```bash
+pip install -e ".[bench]"
+# export LLM_API_KEY=...   # optional: LLM_BASE_URL, LLM_MODEL
+python -m tracewall.eval.adojo_stress --live --attacks direct \
+  --user-tasks user_task_0 \
+  --injection-tasks injection_task_0 injection_task_1 injection_task_2 injection_task_3
+```
+
+### Eval / CI seams (TDD)
+
+Test at these **public seams** (not private helpers). Existing pytest covers them;
+add a vertical slice only when a seam regresses without a test.
+
+| Seam | What it catches | Primary tests / lane |
+|------|-----------------|----------------------|
+| `await Firewall.check(event) → FirewallVerdict` | Policy, identity, E1 deny-unknown, fail-safe | `test_firewall_*.py`, `test_deny_unknown_tools.py`, `test_p0_correctness.py` |
+| MCP `tools/list` response filter (E2) | Hidden tools on zta/paranoid; request still forwards | `test_mcp_tools_list_filter.py`, brink |
+| `session_ratchet` (E4) | Post-BLOCK egress containment; lab off / prod on | `test_session_progressive.py` |
+| Soft-block contract | BLOCK → non-executing error; utility path | `test_agentdojo_soft_block.py` (`importorskip`), `python_guard` / enterprise soft-block tests |
+| Firewall-only AgentDojo shape | Banking IBAN / schedule chains without LLM | `test_adojo_stress.py`, `python -m tracewall.eval.adojo_stress` |
+
+How to run: §CI + §Local hard gate above. Full profile matrix: §Profiles.
+
 ### Current vs paper freeze (counts)
 
 | Artifact | Paper freeze (quote in paper) | Current post–Gate B (HEAD) |

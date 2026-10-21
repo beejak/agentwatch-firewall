@@ -69,7 +69,8 @@ python -m tracewall.eval.robustness_stress   # release gate; not default CI
 ```
 
 AgentDojo **live** soft-block needs `.[bench]` + `LLM_API_KEY` — keep optional; do not
-invent ASR numbers when the key is absent.
+invent ASR numbers when the key is absent. Firewall-only `adojo_stress` (7/7) needs no
+key. Rough live $ ranges: [`TEST_PLAN.md`](TEST_PLAN.md)#live-eval-cost-rough-usd.
 
 ### 2) Pre-deploy smoke (refuse to ship agents without PEP)
 

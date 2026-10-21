@@ -167,6 +167,9 @@ Copy this checklist into todos and complete in order:
 ## Paper prep next (status, not new evidence)
 
 - Prefer [release PDF](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf).
+- Library [v0.3.0](https://github.com/beejak/agentwatch-firewall/releases/tag/v0.3.0) does **not** rewrite freeze quotes.
 - Author **beejak**; scope/non-claims stay PEP ≠ chat/OS/SPIFFE; banking-only AgentDojo.
 - Rebuild PDF only if TeX changed and tectonic available.
-- Capability plans in `docs/plans/` must **not** become paper numbers until eval + EVIDENCE.
+- Post-freeze candidates (E1/E2/E4, 19/19, 21/21, firewall-only 7/7, live ASR TBD):
+  [`paper/EVIDENCE.md`](../../../paper/EVIDENCE.md)#paper-candidates-post-freeze--not-yet-paper-headlines —
+  promote only after deliberate revise + new ledger rows.

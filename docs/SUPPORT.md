@@ -25,8 +25,10 @@ OS: Linux / macOS / Windows (dev). Production assumption: Linux containers with 
 test **skipped** when `[bench]` / agentdojo absent (`importorskip`) so collection
 stays green — commit `320ee56`.
 
-**Gate B (2026-10-21):** E1 unknown-tool deny + E2 `tools/list` filter shipped on
-`zta`/`paranoid`. Deferred: E4–E6 — see [`../HANDOFF.md`](../HANDOFF.md).
+**v0.3.0 (2026-10-21):** E1 unknown-tool deny + E2 `tools/list` filter + E4
+`session_ratchet` shipped on `zta`/`paranoid` (lab `balanced` off for E1/E2/E4).
+Deferred: E5/E6, live soft-block re-measure (needs `LLM_API_KEY`) — see
+[`../HANDOFF.md`](../HANDOFF.md), [`TEST_PLAN.md`](TEST_PLAN.md).
 
 ### Agent tooling (dev machine; not product)
 

@@ -638,14 +638,14 @@ No User Challenge against user’s stated direction (core PEP + competitive + te
 - [x] **T-E1 (P0)** — `deny_unknown_tools` on zta/paranoid  
 - [x] **T-E2 (P0)** — optional MCP `tools/list` filter  
 - [x] **T-E3 (P0, narrowed)** — tests proving E1/E2 + fail-safe polarity  
-- [ ] **T-E4** — Session progressive containment — **DELAYED** (Gate B)  
+- [x] **T-E4** — Session progressive containment — **SHIPPED** (v0.3.0; optional / prod on)  
 - [ ] **T-E5** — JSON Schema rail — **DEMOTED** (Gate B)  
 - [ ] **T-E6** — decision certificates — **DEMOTED** (Gate B)  
 - [ ] **T-E7** — workspace/travel firewall-only shapes — backlog  
 
 ```
 /autoplan gate: B APPROVED (Karpathy overrides) 2026-10-21
-status: P0 E1+E2 SHIPPED; E4 delayed; E5/E6 demoted; paper frozen
+status: P0 E1+E2+E4 SHIPPED (v0.3.0); E5/E6 demoted; paper frozen
 ```
 
 

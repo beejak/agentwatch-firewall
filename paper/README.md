@@ -18,6 +18,13 @@ GitHub’s blob page for `*.pdf` sometimes shows a red **“Unable to render cod
 
 Do **not** submit [`watchtower.tex`](watchtower.tex) / `watchtower.pdf` (stale brand).
 
-**Post-freeze library:** v0.3.0 ships E1/E2/E4 — **does not change** frozen paper
-numbers. See [`../CHANGELOG.md`](../CHANGELOG.md), [`../docs/RESULTS.md`](../docs/RESULTS.md).
+**Post-freeze library:** [v0.3.0](https://github.com/beejak/agentwatch-firewall/releases/tag/v0.3.0)
+ships E1/E2/E4 — **does not change** frozen paper numbers. See
+[`../CHANGELOG.md`](../CHANGELOG.md), [`../docs/RESULTS.md`](../docs/RESULTS.md).
+
+**Paper candidates (future revision only):** Gate B E1/E2, E4 `session_ratchet`,
+HEAD robustness **19/19** / brink **21/21**, firewall-only adojo **7/7**, live ASR
+**TBD** when keyed — table in [`EVIDENCE.md`](EVIDENCE.md)#paper-candidates-post-freeze--not-yet-paper-headlines.
+Do not promote candidates into freeze quotes without a new measurement + ledger update.
+
 Skill: [`.cursor/skills/tracewall-paper`](../.cursor/skills/tracewall-paper/SKILL.md).
