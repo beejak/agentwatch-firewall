@@ -5,13 +5,13 @@ A standalone, pluggable **tool-call PEP** (policy enforcement point): it decides
 compromised-via-prompts agent cannot turn screened tools into destructive or
 exfiltrating side effects.
 
-**Version:** 0.2.0 · **Author:** beejak · **Paper claim set frozen** for arXiv
-submit. **Next capability wave planned** (E1–E6) — awaiting human Final Gate;
-coding not started (see [`HANDOFF.md`](HANDOFF.md), [`paper/EVIDENCE.md`](paper/EVIDENCE.md),
-[`docs/plans/`](docs/plans/)).
+**Version:** 0.3.0 · **Author:** beejak · **Paper claim set frozen** (v0.2.0
+numbers in EVIDENCE). **Shipped post-freeze:** E1/E2/E4 on `zta`/`paranoid`
+([`HANDOFF.md`](HANDOFF.md), [`CHANGELOG.md`](CHANGELOG.md)).
 
-**Paper PDF (download):**
-[tracewall.pdf (release v0.2.0)](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf)
+**Release:** [v0.3.0](https://github.com/beejak/agentwatch-firewall/releases/tag/v0.3.0) ·
+**Paper PDF (freeze):**
+[tracewall.pdf (v0.2.0 asset)](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf)
 — use this if GitHub’s blob preview shows “Unable to render code block”
 ([`paper/`](paper/README.md)).
 

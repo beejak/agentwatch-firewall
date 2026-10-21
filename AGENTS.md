@@ -26,14 +26,16 @@ held-out R=1.0 / FPR≈0.07; soft-block banking `direct` ASR 1.0→0.0 util 1.0�
 robustness **18/18**; latency ≈6.4 ms / p99 ≈9.8 ms. PDF:
 [release v0.2.0](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf).
 
-**Current HEAD (not paper):** robustness **19/19**, brink **21/21**, pytest ≈148+2 skip —
+**Current HEAD (not paper):** robustness **19/19**, brink **21/21**, pytest **153**+2 skip —
 [`docs/RESULTS.md`](docs/RESULTS.md), [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md)#test-parameters.
+Library **v0.3.0** (E1/E2/E4). Soft-block live re-measure blocked without API key.
 
 ## Current gate (do not skip)
 
 - Paper claims frozen; CI green (`320ee56` importorskip).
-- **Gate B P0 shipped** (E1+E2); delay E4; demote E5/E6. Paper claims frozen.
+- **v0.3.0:** Gate B E1+E2 + optional E4 `session_ratchet`; demote E5/E6. Paper claims frozen.
 - Verify skill: `.cursor/skills/verification-before-completion/SKILL.md` — run pytest + brink + robustness before completion claims.
+- DevSecOps: [`docs/DEVSECOPS.md`](docs/DEVSECOPS.md).
 - Plans: [`docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](docs/plans/2026-10-21-tracewall-core-enhancement-test-plan.md)
   + separate [Karpathy review](docs/plans/2026-10-21-tracewall-karpathy-review.md) (do not merge).
 - Pick-up: [`HANDOFF.md`](HANDOFF.md). Tooling: [`docs/TOOLING.md`](docs/TOOLING.md).

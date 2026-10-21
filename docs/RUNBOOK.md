@@ -1,16 +1,16 @@
 # Runbook (day-2 ops)
 
 **Integration (PEP on the tool-call path):** [`INTEGRATION.md`](INTEGRATION.md).  
-**Status:** v0.2.0 paper claims frozen; Gate B E1/E2 shipped on prod profiles ([`../HANDOFF.md`](../HANDOFF.md)).
+**Status:** v0.3.0; paper claims frozen; E1/E2/E4 on prod profiles ([`../HANDOFF.md`](../HANDOFF.md)).
 
 ## Profiles
 
-| Profile | Identity | Caps | Own call-tree | Unknown deny | List filter | ZTA pack | Fail |
-|---------|----------|------|---------------|--------------|-------------|----------|------|
-| **zta** | required | required (empty = BLOCK) | yes | yes | yes | yes | closed |
-| paranoid | required | optional | yes | yes | yes | yes | closed |
-| balanced | optional | optional | no (client `_meta`) | no | no | no | closed |
-| permissive | optional | optional | no | no | no | no (subset) | open |
+| Profile | Identity | Caps | Own call-tree | Unknown deny | List filter | Session ratchet | ZTA pack | Fail |
+|---------|----------|------|---------------|--------------|-------------|-----------------|----------|------|
+| **zta** | required | required (empty = BLOCK) | yes | yes | yes | yes | yes | closed |
+| paranoid | required | optional | yes | yes | yes | yes | yes | closed |
+| balanced | optional | optional | no (client `_meta`) | no | no | no | no | closed |
+| permissive | optional | optional | no | no | no | no | no (subset) | open |
 
 Lab vs prod: **balanced** for eval/regression; **zta** for production posture.
 
@@ -107,6 +107,18 @@ python -m tracewall.ops.health --profile zta
 | `on_block=soft` | Returns `SoftBlockResult` — do **not** execute the tool; surface `verdict.reason` to the model as a tool error |
 
 MCP proxy always returns MCP `isError: true` text (`tracewall blocked this tool call: …`) — soft at the wire.
+
+## Session ratchet storm / reset (E4)
+
+After a BLOCK under `zta`/`paranoid`, later egress tools in the **same**
+`session_id` may BLOCK with `rule_id=session_ratchet`. That is expected
+progressive containment, not a misconfigured pack.
+
+1. Confirm `source` / `rule_id` in audit JSONL.
+2. **Reset:** start a new `session_id`, or `fw._session_ratchet.clear(session_id=…)`.
+3. Lab / soft-block utility experiments: use `--profile balanced` or
+   `--no-session-ratchet`.
+4. Ratchet does **not** replace soft-block; it only tightens subsequent egress.
 
 Error shape for soft:
 

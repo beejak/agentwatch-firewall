@@ -11,6 +11,15 @@ Eval artifacts live under `tracewall/eval/results/`. Claims that enter the paper
 
 **Honesty (2026-10-21):** Quote soft-block banking, freeze robustness **18/18**, and latency only from committed freeze artifacts + EVIDENCE. Do not treat local `adojo_diag/` / `adojo_stress_live/` trees as paper evidence. Gate B E1/E2 closed unknown-tool / list-filter holes on zta/paranoid; paper freeze numbers unchanged.
 
+### Soft-block banking re-measure (post–Gate B)
+
+| Lane | Status | Outcome |
+|------|--------|---------|
+| Firewall-only `adojo_stress` | **Re-run** | **7/7** pass (deterministic banking-shaped rows) |
+| Live AgentDojo soft-block (`.[bench]` + `LLM_API_KEY`) | **Blocked** | No API key / `.env` in this environment — **no new ASR/utility invented**. Paper freeze `direct` ASR 1.0→0.0 util 1.0→1.0 stays the only quoted live soft-block evidence ([`EVIDENCE.md`](../paper/EVIDENCE.md)). Committed `adojo_stress.json` `live[]` is prior freeze-era data, not a 2026-10-21 re-measure. |
+
+**Decision:** soft-block utility story remains freeze-backed; live re-measure deferred until keys available. E4 `session_ratchet` shipped **optional** (off on `balanced`, on for `zta`/`paranoid`) as plug-and-play progressive containment — not as a claim that soft-block failed.
+
 ## Quick map
 
 | File | What it proves | Pass means |
@@ -76,7 +85,7 @@ Full command / profile matrix: [`TEST_PLAN.md`](TEST_PLAN.md)#test-parameters. S
 
 | Lane | Typical command | CI? |
 |------|-----------------|-----|
-| Unit | `pytest -q` → **148 passed, 2 skipped** (AgentDojo soft-block without `[bench]`) | Yes |
+| Unit | `pytest -q` → **153 passed, 2 skipped** (AgentDojo soft-block without `[bench]`; includes E4) | Yes |
 | Held-out | `python -m tracewall.eval.harness --split test` | Yes |
 | Brink | `python -m tracewall.eval.mcp_brink` | Yes |
 | Robustness | `python -m tracewall.eval.robustness_stress` | **No** (local / release gate) |

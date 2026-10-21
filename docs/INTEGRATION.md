@@ -4,10 +4,10 @@ Operator / developer guide. Tracewall only protects what it **sees**. If a tool
 runs without going through a PEP (policy enforcement point), Tracewall did
 nothing — no matter how good the rules are.
 
-**Product:** tool-call PEP only (v0.2.0 + Gate B E1/E2). MCP proxy screens
+**Product:** tool-call PEP only (v0.3.0: Gate B E1/E2 + E4). MCP proxy screens
 `tools/call`. On **`zta`/`paranoid`**: unknown tools BLOCK; `tools/list`
-**responses** are filtered to the allowlist (request still forwards). Lab
-**`balanced`**: pack-only, list pass-through.
+**responses** are filtered to the allowlist; **session ratchet** elevates after
+BLOCK. Lab **`balanced`**: pack-only, list pass-through, ratchet off.
 
 **ELI5:** Imagine a bouncer at one door. If guests also sneak in through a side
 door, the bouncer never gets to say “no.” Put Tracewall on **every** tool door.
@@ -147,7 +147,9 @@ What it does: forwards MCP traffic; **screens `tools/call`**. ALLOW → forward;
 BLOCK → MCP result with `isError: true` (tool never runs). On `zta`/`paranoid`,
 also **filters `tools/list` responses** to `caps ∪` declared tools (or
 `--tools-allowlist`). Override: `--filter-tools-list` / `--no-filter-tools-list`.
-Framing: Content-Length + NDJSON, auto-detected.
+On `zta`/`paranoid`, **E4 session ratchet** is on (override:
+`--session-ratchet` / `--no-session-ratchet`). Framing: Content-Length + NDJSON,
+auto-detected.
 
 ### Unknown tools (E1)
 
@@ -205,6 +207,23 @@ Under **`zta` / `paranoid`**, the proxy sets `own_call_tree=True`: it records
 tools it screened and **ignores client-supplied `caller_chain`** (anti-forge).
 Pass a stable `session_id` so the owned tree has a session key. Under
 **`balanced`**, client `_meta.caller_chain` is honored (lab / honor-system only).
+
+### Session progressive containment (E4)
+
+When `session_ratchet` is enabled (default on `zta`/`paranoid`):
+
+1. Any screened **BLOCK** elevates that session key (`session_id`, or
+   `agent:{agent_id}` if session empty).
+2. Later calls in the same session whose tools are **egress-sensitive**
+   (`send_money`, `send_email`, `http_post`, …) BLOCK with
+   `source=session_ratchet` / `rule_id=session_ratchet` even if pack policy would
+   ALLOW.
+3. Read-only / lookup tools still ALLOW so soft-block utility can continue.
+4. A **new** `session_id` starts clean. Reset: new session, or
+   `fw._session_ratchet.clear(session_id=…)`.
+
+Not a sandbox. Soft-block / MCP `isError` still decide control flow — E4 only
+changes which later calls the PEP blocks. Lab `balanced` keeps ratchet **off**.
 
 ### Demos
 
@@ -298,5 +317,6 @@ python -m tracewall.ops.explain --profile zta --tool send_email \
 
 - Day-0 install: [`GETTING_STARTED.md`](GETTING_STARTED.md)  
 - Profiles / audit / soft-block ops: [`RUNBOOK.md`](RUNBOOK.md)  
+- DevSecOps / CI gates: [`DEVSECOPS.md`](DEVSECOPS.md)  
 - Architecture: [`FIREWALL.md`](FIREWALL.md) · [`ARCHITECTURE_OVERVIEW.md`](ARCHITECTURE_OVERVIEW.md)  
 - Threat model: [`../SECURITY.md`](../SECURITY.md)

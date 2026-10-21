@@ -1,8 +1,8 @@
 # Enterprise readiness checklist
 
-Honest status as of 2026-10-21 (v0.2.0). **Paper claim set frozen** for arXiv
-submit; **next capability wave planned** (docs only) — see [`../HANDOFF.md`](../HANDOFF.md)
-and [`plans/`](plans/). Update when items move. No E1–E6 coding until Final Gate A–E.
+Honest status as of 2026-10-21 (**v0.3.0**). **Paper claim set frozen** for arXiv
+submit. Post-freeze shipped: E1/E2/E4 — see [`../HANDOFF.md`](../HANDOFF.md),
+[`DEVSECOPS.md`](DEVSECOPS.md).
 
 **Product placement reminder:** Tracewall is a **tool-call PEP**, not a
 chat-stream scanner, OS sandbox, or on-disk file scanner. AgentDojo evidence is a
@@ -24,7 +24,8 @@ chat-stream scanner, OS sandbox, or on-disk file scanner. AgentDojo evidence is 
 
 | Item | Status |
 |------|--------|
-| Versioned releases + `CHANGELOG.md` | **Done** (GitHub `v0.2.0` when tagged) |
+| Versioned releases + `CHANGELOG.md` | **Done** (GitHub `v0.3.0`) |
+| DevSecOps / CI gate guide | **Done** — [`DEVSECOPS.md`](DEVSECOPS.md) |
 | `SECURITY.md` | **Done** |
 | Config file YAML (`TRACEWALL_CONFIG`) | **Done** (basic + OTel format / metrics_http) |
 | Policy dry-run / explain | **Done** (`python -m tracewall.ops.explain`) |

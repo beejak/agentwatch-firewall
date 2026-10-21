@@ -14,6 +14,7 @@
 | [TOOLING.md](TOOLING.md) | Cursor skills + user-local agent tooling (caveman, GSD, graphify, …) |
 | [SUPPORT.md](SUPPORT.md) | Support matrix (Python / MCP / profiles / metrics) |
 | [ENTERPRISE.md](ENTERPRISE.md) | Enterprise readiness checklist (honest) |
+| **[DEVSECOPS.md](DEVSECOPS.md)** | CI/deploy gates — build-blocker honesty vs SAST |
 | [plans/2026-10-21-tracewall-core-enhancement-test-plan.md](plans/2026-10-21-tracewall-core-enhancement-test-plan.md) | Post-freeze core enhancement + test plan (**awaiting Final Gate**) |
 | [plans/2026-10-21-tracewall-karpathy-review.md](plans/2026-10-21-tracewall-karpathy-review.md) | Karpathy lens review (**separate**; not merged into autoplan) |
 | [../TODOS.md](../TODOS.md) | Deferred backlog from autoplan |
@@ -57,7 +58,7 @@ Full diagrams, test inventory, and QA gap matrix:
 - Draft: [`paper/PAPER.md`](../paper/PAPER.md); in-repo PDF: [`paper/tracewall.pdf`](../paper/tracewall.pdf)  
 - **Reliable PDF download:** [releases/download/v0.2.0/tracewall.pdf](https://github.com/beejak/agentwatch-firewall/releases/download/v0.2.0/tracewall.pdf) (prefer if GitHub blob preview fails)  
 - Evidence-only claims: [`paper/EVIDENCE.md`](../paper/EVIDENCE.md) · folder index: [`paper/README.md`](../paper/README.md)  
-- Author **beejak**; v0.2.0; **paper claim set frozen** for submit.  
-- Post-freeze capability planning is in [`plans/`](plans/) — **no E1–E6 coding** until Final Gate A–E.  
+- Author **beejak**; library **v0.3.0**; **paper claim set frozen** (do not rewrite freeze quotes).  
+- Post-freeze shipped: E1/E2/E4 — see [`../CHANGELOG.md`](../CHANGELOG.md), [`DEVSECOPS.md`](DEVSECOPS.md).  
 - CI: AgentDojo soft-block skipped without `[bench]` (`320ee56`); suite collects green.  
 - `paper/watchtower.tex` is **stale brand** — do not submit.

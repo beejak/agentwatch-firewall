@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tracewall"
-version = "0.2.0"
+version = "0.3.0"
 description = "Standalone pluggable agent firewall — interception, identity, deterministic policy DSL, cross-session multi-hop taint, semantic tier. Key-free by default."
 readme = "README.md"
 license = "MIT"

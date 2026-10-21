@@ -6,22 +6,26 @@ pytest = edges · harness = offline P/R/F1 · mcp_brink = profile success+limits
 **Gate B (2026-10-21): SHIPPED** — E1 (`deny_unknown_tools`) + E2 (`tools/list` filter) on
 `zta`/`paranoid`. Prefer eval-row promotions over coverage-count targets. Plan archive:
 [`plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](plans/2026-10-21-tracewall-core-enhancement-test-plan.md)
-(+ [Karpathy review](plans/2026-10-21-tracewall-karpathy-review.md)). E4 delayed; E5/E6 demoted.
-Paper freeze numbers unchanged (robustness **18/18** in EVIDENCE); **current** matrix is
-robustness **19/19**, brink **21/21** — see [`RESULTS.md`](RESULTS.md).
+(+ [Karpathy review](plans/2026-10-21-tracewall-karpathy-review.md)). E4 `session_ratchet`
+shipped (optional; off on lab); E5/E6 demoted. Soft-block **live** re-measure blocked
+(no `LLM_API_KEY`) — see [`RESULTS.md`](RESULTS.md). Paper freeze numbers unchanged
+(robustness **18/18** in EVIDENCE); **current** matrix is robustness **19/19**, brink
+**21/21** — see [`RESULTS.md`](RESULTS.md).
 
 ## Test parameters
 
 ### Profiles
 
-| Profile | Role | E1 unknown-tool deny | E2 `tools/list` filter |
-|---------|------|----------------------|-------------------------|
-| `balanced` | Lab / held-out regression | Off (pack-only; pack-miss stays expected_limit) | Off (pass-through) |
-| `zta` | Prod default | On (`deny_unknown_tools`) | On (response filter) |
-| `paranoid` | Strict prod | On | On |
-| `permissive` | Demo / omit exfil pack | Off | Off |
+| Profile | Role | E1 unknown-tool deny | E2 `tools/list` filter | E4 session ratchet |
+|---------|------|----------------------|-------------------------|--------------------|
+| `balanced` | Lab / held-out regression | Off (pack-only; pack-miss stays expected_limit) | Off (pass-through) | Off |
+| `zta` | Prod default | On (`deny_unknown_tools`) | On (response filter) | On |
+| `paranoid` | Strict prod | On | On | On |
+| `permissive` | Demo / omit exfil pack | Off | Off | Off |
 
-CLI (MCP proxy): `--profile`, `--filter-tools-list` / `--no-filter-tools-list`, `--tools-allowlist`, `--fail-closed` / `--fail-open`.
+CLI (MCP proxy): `--profile`, `--filter-tools-list` / `--no-filter-tools-list`,
+`--session-ratchet` / `--no-session-ratchet`, `--tools-allowlist`, `--fail-closed` /
+`--fail-open`.
 
 ### CI (`.github/workflows/ci.yml`)
 
@@ -40,13 +44,14 @@ AgentDojo soft-block unit test uses `pytest.importorskip` when `[bench]` / `agen
 
 ```bash
 pip install -e ".[dev]"          # includes aiosqlite; required for KB17–20 ledger tests
-pytest -q                        # expect ~148 passed, 2 skipped without [bench]
+pytest -q                        # expect 153 passed, 2 skipped without [bench]
 python -m tracewall.eval.mcp_brink
 python -m tracewall.eval.robustness_stress
 ```
 
 Optional (not CI): `python -m tracewall.eval.adojo_stress`, `--live` with `.[bench]` + `LLM_API_KEY`,
-`python -m tracewall.eval.latency`.
+`python -m tracewall.eval.latency`. **2026-10-21:** firewall-only adojo **7/7** reconfirmed;
+live soft-block re-measure **blocked** (no API key) — do not invent ASR.
 
 ### Current vs paper freeze (counts)
 
@@ -54,7 +59,7 @@ Optional (not CI): `python -m tracewall.eval.adojo_stress`, `--live` with `.[ben
 |----------|-------------------------------|----------------------------|
 | Robustness | **18/18** | **19/19** (17 success + 2 expected_limit) |
 | Brink | freeze-era success+limits | **21/21** (18 success + 3 expected_limit) |
-| pytest | n/a | **148 passed, 2 skipped** (no `[bench]`) |
+| pytest | n/a | **153 passed, 2 skipped** (no `[bench]`; +E4) |
 
 ## Lanes
 
@@ -110,6 +115,10 @@ Optional (not CI): `python -m tracewall.eval.adojo_stress`, `--live` with `.[ben
 **Closed in v0.2.0 (do not re-list as open):** IBAN ZWSP/NFKC normalize; PascalCase / case aliases via canonical tool names.
 
 **Closed in Gate B (post-freeze capability, not paper rewrite):** unknown-tool deny on zta/paranoid (E1); MCP `tools/list` response filter on zta/paranoid (E2). Remaining honesty limits: balanced pack-miss; firewall-layer list probe; brink context-starvation / permissive / forged-meta rows.
+
+**Closed in v0.3.0 (E4):** `session_ratchet` progressive containment after BLOCK — on for
+`zta`/`paranoid`, off for `balanced`/`permissive`. Tests: `test_session_progressive.py`.
+Not a paper claim rewrite; live soft-block ASR not re-measured this cut.
 
 ## Edge checklist
 

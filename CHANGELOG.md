@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-10-21
 
 ### Added
 
@@ -11,17 +11,31 @@
 - **E2 — optional MCP `tools/list` filter** on `zta` / `paranoid` (response
   filter; request still forwards). CLI: `--filter-tools-list` /
   `--no-filter-tools-list` / `--tools-allowlist`. `balanced` pass-through.
+- **E4 — session progressive containment** (`session_ratchet`): after a
+  screened BLOCK, elevate the session key; subsequent egress-sensitive tools
+  BLOCK with `rule_id=session_ratchet`. **On** for `zta`/`paranoid`; **off** for
+  `balanced`/`permissive`. CLI: `--session-ratchet` / `--no-session-ratchet`.
+  New session_id clears posture. Soft-block / MCP `isError` control flow unchanged.
+- **DevSecOps guide:** [`docs/DEVSECOPS.md`](docs/DEVSECOPS.md) — build-blocker
+  honesty, CI/deploy gates, threat landscape vs SAST/SCA.
 
-### Docs / planning (2026-10-21)
+### Docs / measurement (2026-10-21)
 
-- **Final Gate B approved** (Karpathy overrides); E1/E2 documented in SECURITY /
-  INTEGRATION / RUNBOOK / GETTING_STARTED / skills / EVIDENCE (capability rows;
-  paper freeze numbers unchanged). Karpathy review file stays **separate**.
-- **Results / test-plan reconcile:** `docs/RESULTS.md` + `docs/TEST_PLAN.md` publish
-  **current** post–Gate B matrix (robustness **19/19**, brink **21/21**, pytest
-  **148**+2 skip) distinct from **paper freeze** robustness **18/18**. Durable
-  **test parameters** (profiles, E1/E2, CI vs local). v0.2.0 GitHub Release notes /
-  PDF remain **pre–Gate B** — no new Release cut for this doc pass.
+- Soft-block banking: firewall-only `adojo_stress` **7/7** reconfirmed; **live**
+  AgentDojo re-measure **blocked** (no `LLM_API_KEY`) — no invented ASR.
+  Paper freeze soft-block quotes unchanged in [`paper/EVIDENCE.md`](paper/EVIDENCE.md).
+- Results / test-plan: **current** matrix (robustness **19/19**, brink **21/21**)
+  distinct from **paper freeze** robustness **18/18**.
+- Gate B + E4 documented in SECURITY / INTEGRATION / RUNBOOK / HANDOFF.
+
+### Test matrix (current vs paper)
+
+| | Paper freeze (quote in paper) | Current (v0.3.0 HEAD) |
+|--|-------------------------------|------------------------|
+| Robustness | **18/18** | **19/19** |
+| Brink | freeze-era | **21/21** |
+| Soft-block live banking `direct` | ASR 1.0→0.0 util 1.0→1.0 | Not re-measured this release |
+| E1 / E2 / E4 | n/a (post-freeze) | Shipped |
 
 ## 0.2.0 — 2026-07-21
 

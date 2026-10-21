@@ -18,6 +18,6 @@ GitHub’s blob page for `*.pdf` sometimes shows a red **“Unable to render cod
 
 Do **not** submit [`watchtower.tex`](watchtower.tex) / `watchtower.pdf` (stale brand).
 
-**Post-freeze capability planning** (does not change paper numbers until new EVIDENCE):
-[`../docs/plans/`](../docs/plans/) — awaiting Final Gate A–E; E1–E6 coding not started.
+**Post-freeze library:** v0.3.0 ships E1/E2/E4 — **does not change** frozen paper
+numbers. See [`../CHANGELOG.md`](../CHANGELOG.md), [`../docs/RESULTS.md`](../docs/RESULTS.md).
 Skill: [`.cursor/skills/tracewall-paper`](../.cursor/skills/tracewall-paper/SKILL.md).
