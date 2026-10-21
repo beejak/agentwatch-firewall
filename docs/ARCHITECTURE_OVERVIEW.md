@@ -9,7 +9,7 @@ Canonical detail: [`FIREWALL.md`](FIREWALL.md). Evidence discipline:
 [`INTEGRATION.md`](INTEGRATION.md). Threat model: [`../SECURITY.md`](../SECURITY.md).
 
 **Version snapshot:** 0.2.0 (docs sync 2026-10-21). Paper claim set frozen for
-submit; post-freeze enhancement plan awaiting Final Gate A–E (E1–E6 **not coded**).
+submit; Gate B E1/E2 **shipped**; E4 delayed; E5/E6 demoted (paper freeze unchanged).
 **Author:** beejak. No SPIFFE / signed-identity / OS-sandbox-as-shipped claims.
 Plans: [`plans/2026-10-21-tracewall-core-enhancement-test-plan.md`](plans/2026-10-21-tracewall-core-enhancement-test-plan.md),
 [Karpathy review (separate)](plans/2026-10-21-tracewall-karpathy-review.md).
@@ -313,10 +313,10 @@ plus **1 collection error** when `agentdojo` is not installed:
 | Lane | Command | Results artifact | Snapshot (repo files) |
 |------|---------|------------------|------------------------|
 | Held-out harness | `python -m tracewall.eval.harness --split test` | `eval/results/corpus_v0.1_test_*.json` | 27 cases (13 mal / 14 ben). Deterministic **integrated** recall **1.0**, FPR **≈0.071**. Tier-1 recall 1.0 / FPR 0. Regression bar, not adaptive proof. |
-| MCP brink | `python -m tracewall.eval.mcp_brink` | `mcp_brink.json` | **18/18** — success 12/12, expected_limit 6/6 |
+| MCP brink | `python -m tracewall.eval.mcp_brink` | `mcp_brink.json` | **Current 21/21** (18 success + 3 expected_limit). Paper freeze cites older matrix — see [`RESULTS.md`](RESULTS.md). |
 | AgentDojo stress (firewall-only) | `python -m tracewall.eval.adojo_stress` | `adojo_stress.json` | Firewall matrix **7/7** success |
 | AgentDojo live | `adojo_stress --live` / adapter | `adojo_stress_live/**`, `adojo_diag/**` | **Present:** live banking JSONs under `adojo_stress_live/` + diag. Summary rows in `adojo_stress.json` `live[]` (direct base ASR 1.0 → defended ASR 0.0 on sampled tasks; soft-block utility 1.0 on n1×4). AgentDojo has **four+ suites**; we measured a **narrow banking slice** only — not travel/workspace/slack. |
-| Robustness | `python -m tracewall.eval.robustness_stress` | `robustness_stress.json` | **18/18** — success 16, expected_limit 2 (domains: workspace, contagion, host, identity, banking) |
+| Robustness | `python -m tracewall.eval.robustness_stress` | `robustness_stress.json` | **Current 19/19** (17 success + 2 expected_limit). **Paper freeze 18/18** — do not mix. |
 | Latency | `python -m tracewall.eval.latency` | `latency_check.json` | n=400 deterministic; p50≈6.8 ms, p99≈9.8 ms |
 
 **Honesty notes**

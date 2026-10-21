@@ -17,6 +17,11 @@
 - **Final Gate B approved** (Karpathy overrides); E1/E2 documented in SECURITY /
   INTEGRATION / RUNBOOK / GETTING_STARTED / skills / EVIDENCE (capability rows;
   paper freeze numbers unchanged). Karpathy review file stays **separate**.
+- **Results / test-plan reconcile:** `docs/RESULTS.md` + `docs/TEST_PLAN.md` publish
+  **current** post–Gate B matrix (robustness **19/19**, brink **21/21**, pytest
+  **148**+2 skip) distinct from **paper freeze** robustness **18/18**. Durable
+  **test parameters** (profiles, E1/E2, CI vs local). v0.2.0 GitHub Release notes /
+  PDF remain **pre–Gate B** — no new Release cut for this doc pass.
 
 ## 0.2.0 — 2026-07-21
 

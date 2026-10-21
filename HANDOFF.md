@@ -32,13 +32,13 @@ Tracewall is a **tool-call PEP**: `await Firewall.check(event) → FirewallVerdi
 | Soft-block can preserve utility while blocking attack tools | OS/kernel sandbox or on-disk FS scanner |
 | Lab = `balanced`; prod = `zta` / `paranoid` | Full NIST ZTA / SPIFFE-as-shipped |
 | AgentDojo evidence = **banking slice** only | Full AgentDojo (workspace/travel/…) |
-| Robustness **18/18**; latency ≈6.4 ms mean / ≈9.8 ms p99 *(paper freeze)* | WatchTower 17/17 or 0.011 ms-vs-Sentinel claims |
+| Robustness **18/18** + latency ≈6.4 ms / p99 ≈9.8 ms *(paper freeze)*; HEAD matrix **19/19** / brink **21/21** (not paper) | WatchTower 17/17 or 0.011 ms-vs-Sentinel claims |
 
 ## Where things stand (2026-10-21)
 
 - Tracewall **0.2.0**: enforcement core + MCP proxy + profiles zta/paranoid/balanced/permissive.
-- **CI green:** AgentDojo soft-block test uses `importorskip` when `[bench]` absent ([`320ee56`](https://github.com/beejak/agentwatch-firewall/commit/320ee56)).
-- Gate B P0 shipped incrementally (docs → E1 → E2 → polish).
+- **CI green:** AgentDojo soft-block test uses `importorskip` when `[bench]` absent ([`320ee56`](https://github.com/beejak/agentwatch-firewall/commit/320ee56)). CI runs `pytest` + harness + `mcp_brink` only — **not** `robustness_stress` / AgentDojo live.
+- Gate B P0 shipped (E1+E2). **Current** verify: pytest **148**+2 skip; brink **21/21**; robustness **19/19**. Paper freeze quotes stay **18/18** — see [`docs/RESULTS.md`](docs/RESULTS.md), [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md)#test-parameters.
 - Tracewall Cursor skills:
   - [`.cursor/skills/tracewall-zta/SKILL.md`](.cursor/skills/tracewall-zta/SKILL.md)
   - [`.cursor/skills/tracewall-paper/SKILL.md`](.cursor/skills/tracewall-paper/SKILL.md)
