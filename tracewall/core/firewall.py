@@ -25,6 +25,10 @@ Fail-safe: any internal error → BLOCK (source="fail_safe").
 `require_caps=True` fail-closes when identity has an empty capability set or the
 tool is absent from caps (ZTA default-deny on capabilities).
 
+`deny_unknown_tools=True` (zta/paranoid) fail-closes when the tool is not in
+``caps ∪ declared_tools`` (declared = tools named in the loaded YAML pack).
+Lab ``balanced`` keeps this off so pack-only regression stays honest.
+
 Verdict.score is always **0.0 bad … 1.0 clean** (semantic malicious scores are
 inverted at this facade).
 """
@@ -34,7 +38,7 @@ import hashlib
 import json
 import logging
 import time
-from typing import Callable, Optional
+from typing import Callable, Iterable, Optional
 
 from tracewall.audit.sink import AuditSink, LocalAuditSink
 from tracewall.content.filter import flagged as content_flagged
@@ -70,6 +74,8 @@ class Firewall:
         audit: Optional[AuditSink] = None,
         require_identity: bool = False,
         require_caps: bool = False,
+        deny_unknown_tools: bool = False,
+        declared_tools: Iterable[str] | None = None,
         metrics: Metrics | None = None,
     ) -> None:
         self._ledger = ledger
@@ -79,6 +85,13 @@ class Firewall:
         self._audit = audit if audit is not None else LocalAuditSink()
         self._require_identity = require_identity
         self._require_caps = require_caps
+        self._deny_unknown_tools = deny_unknown_tools
+        if declared_tools is not None:
+            self._declared_tools = frozenset(canonical_tool_name(t) for t in declared_tools)
+        elif deny_unknown_tools and hasattr(policy, "declared_tools"):
+            self._declared_tools = frozenset(policy.declared_tools())
+        else:
+            self._declared_tools = frozenset()
         self.metrics = metrics
 
     async def check(self, event: HookEvent) -> FirewallVerdict:
@@ -134,6 +147,16 @@ class Firewall:
                 event, Verdict.BLOCK, 0.0, "identity",
                 "capabilities required but no identity registered", completeness,
             )
+
+        if self._deny_unknown_tools:
+            unknown = _check_unknown_tool(
+                event, identity=identity, declared=self._declared_tools,
+            )
+            if unknown:
+                return self._verdict(
+                    event, Verdict.BLOCK, 0.0, "unknown_tool", unknown, completeness,
+                    rule_id="deny_unknown_tools",
+                )
 
         enriched = EnrichedEvent(event=event, call_tree=list(event.caller_chain or []))
         completeness["call_tree"] = bool(enriched.call_tree)
@@ -243,6 +266,30 @@ def _check_identity(
         if canonical_tool_name(event.tool) not in allowed:
             return f"tool '{event.tool}' not in agent capabilities"
     return None
+
+
+def _check_unknown_tool(
+    event: HookEvent,
+    *,
+    identity: Optional[IdentityCtx],
+    declared: frozenset[str],
+) -> Optional[str]:
+    """Default-deny tools absent from caps ∪ declared YAML tool names."""
+    tool = canonical_tool_name(event.tool)
+    if not tool:
+        return (
+            "unknown tool '' denied (deny_unknown_tools); "
+            "register caps or add a YAML rule naming the tool"
+        )
+    allowed = set(declared)
+    if identity and identity.caps:
+        allowed |= {canonical_tool_name(c) for c in identity.caps}
+    if tool in allowed:
+        return None
+    return (
+        f"unknown tool '{event.tool}' denied (deny_unknown_tools); "
+        "register caps or add a YAML rule naming the tool"
+    )
 
 
 def _content(event: HookEvent) -> str:

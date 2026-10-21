@@ -37,6 +37,8 @@ class Profile:
     require_caps: bool
     own_call_tree: bool
     load_zta_pack: bool
+    deny_unknown_tools: bool
+    filter_tools_list: bool
     rule_stems: Optional[frozenset[str]]
     description: str
 
@@ -46,6 +48,7 @@ class Profile:
             fail_closed=self.fail_closed,
             profile=self.name,
             own_call_tree=self.own_call_tree,
+            filter_tools_list=self.filter_tools_list,
         )
 
 
@@ -57,8 +60,10 @@ PROFILES: dict[str, Profile] = {
         require_caps=False,
         own_call_tree=True,
         load_zta_pack=True,
+        deny_unknown_tools=True,
+        filter_tools_list=False,  # E2 enables on zta/paranoid
         rule_stems=None,
-        description="Fail closed; require identity; full pack + ZTA allowlists; proxy-owned call tree.",
+        description="Fail closed; require identity; unknown-tool deny; ZTA pack; own call-tree.",
     ),
     "zta": Profile(
         name="zta",
@@ -67,8 +72,10 @@ PROFILES: dict[str, Profile] = {
         require_caps=True,
         own_call_tree=True,
         load_zta_pack=True,
+        deny_unknown_tools=True,
+        filter_tools_list=False,  # E2 enables on zta/paranoid
         rule_stems=None,
-        description="Prod ZTA: identity+caps; default-deny allowlists; proxy-owned call tree.",
+        description="Prod ZTA: identity+caps; unknown-tool deny; default-deny allowlists.",
     ),
     "balanced": Profile(
         name="balanced",
@@ -77,8 +84,10 @@ PROFILES: dict[str, Profile] = {
         require_caps=False,
         own_call_tree=False,
         load_zta_pack=False,
+        deny_unknown_tools=False,
+        filter_tools_list=False,
         rule_stems=None,
-        description="Fail closed; identity optional; lab full pack (no ZTA default-deny).",
+        description="Lab: pack-only (no unknown-tool deny / list filter); held-out regression.",
     ),
     "permissive": Profile(
         name="permissive",
@@ -87,6 +96,8 @@ PROFILES: dict[str, Profile] = {
         require_caps=False,
         own_call_tree=False,
         load_zta_pack=False,
+        deny_unknown_tools=False,
+        filter_tools_list=False,
         rule_stems=_PERMISSIVE_STEMS,
         description="Fail open; identity optional; destructive+MINJA rules only.",
     ),
@@ -190,6 +201,8 @@ async def build_firewall_for_profile(
         audit=sink,
         require_identity=prof.require_identity,
         require_caps=prof.require_caps,
+        deny_unknown_tools=prof.deny_unknown_tools,
+        declared_tools=policy.declared_tools() if prof.deny_unknown_tools else None,
         metrics=m,
     )
     return fw, prof

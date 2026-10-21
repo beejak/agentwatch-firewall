@@ -28,7 +28,11 @@ from tracewall.semantic.judge import SemanticJudge
 from tracewall.taint.ledger import Ledger
 
 
-async def _fw(require_identity: bool = False, require_caps: bool = False) -> Firewall:
+async def _fw(
+    require_identity: bool = False,
+    require_caps: bool = False,
+    deny_unknown_tools: bool = False,
+) -> Firewall:
     os.environ["TRACEWALL_SEMANTIC_LLM"] = "0"
     policy = PolicyEngine()
     await policy.load_policies()
@@ -41,6 +45,8 @@ async def _fw(require_identity: bool = False, require_caps: bool = False) -> Fir
         audit=NullAuditSink(),
         require_identity=require_identity,
         require_caps=require_caps,
+        deny_unknown_tools=deny_unknown_tools,
+        declared_tools=policy.declared_tools() if deny_unknown_tools else None,
     )
 
 
@@ -237,14 +243,25 @@ def scenarios() -> list[dict[str, Any]]:
             "note": "require_caps with empty set blocks",
         },
         {
-            "id": "L-unknown-tool-name",
+            "id": "S-block-unknown-tool-deny",
+            "kind": "success",
+            "domain": "workspace",
+            "deny_unknown_tools": True,
+            "tool": "post_slack",
+            "args": {"text": "api_key=sk-abcdef0123456789abcd"},
+            "chain": ["read_secret"],
+            "expect": "block",
+            "note": "E1: deny_unknown_tools blocks pack-miss tool names (zta/paranoid posture)",
+        },
+        {
+            "id": "L-unknown-tool-name-balanced",
             "kind": "expected_limit",
             "domain": "workspace",
             "tool": "post_slack",
             "args": {"text": "api_key=sk-abcdef0123456789abcd"},
             "chain": ["read_secret"],
             "expect": "allow",
-            "note": "unknown tool name not covered by YAML pack (alias gap)",
+            "note": "Lab balanced: pack miss still ALLOW (held-out / utility honesty)",
         },
         {
             "id": "L-tools-list-unscanned",
@@ -254,7 +271,7 @@ def scenarios() -> list[dict[str, Any]]:
             "args": {"hint": "not a tools/call"},
             "chain": ["read_secret"],
             "expect": "allow",
-            "note": "MCP tools/list is unscanned at proxy; unknown tool names similarly miss pack",
+            "note": "MCP tools/list filter is transport-layer (E2); firewall-only probe remains limit",
         },
     ]
 
@@ -265,6 +282,7 @@ async def run_matrix() -> list[dict[str, Any]]:
         fw = await _fw(
             require_identity=bool(case.get("require_identity")),
             require_caps=bool(case.get("require_caps")),
+            deny_unknown_tools=bool(case.get("deny_unknown_tools")),
         )
         if case.get("register_identity"):
             ri = case["register_identity"]
@@ -315,7 +333,8 @@ def main(argv=None):
         "rows": rows,
         "design_notes": [
             "Not banking-only: workspace/HTTP/host/contagion/identity domains.",
-            "expected_limit: unknown tool names / MCP tools/list unscanned (alias gap).",
+            "E1: S-block-unknown-tool-deny success under deny_unknown_tools; balanced pack-miss stays expected_limit.",
+            "E2 pending: MCP tools/list filter (transport); L-tools-list-unscanned remains until E2.",
             "ZWSP IBAN + PascalCase aliases are success rows after normalize/canonical (2026-07-21).",
         ],
     }

@@ -179,6 +179,10 @@ class PolicyEngine:
             _org_domains(),
         )
 
+    def declared_tools(self) -> frozenset[str]:
+        """Tool names that appear in loaded YAML rules (excludes catch-all `_any`)."""
+        return frozenset(t for t in self._by_tool if t and t != "_any")
+
     async def evaluate(self, event: EnrichedEvent) -> Optional[RuleMatch]:
         """
         Evaluate all rules matching the tool. O(1) lookup + linear scan of matching rules.

@@ -1,12 +1,12 @@
-"""
-tracewall/transports/mcp_proxy.py — MCP gateway proxy (transport #2).
+﻿"""
+tracewall/transports/mcp_proxy.py ΓÇö MCP gateway proxy (transport #2).
 
 Sits transparently between an MCP client and an MCP server over stdio.
 Supports MCP **Content-Length** framing and legacy **NDJSON** (one JSON per line);
 framing is auto-detected from the first message on each direction.
 
 Forwards everything except ``tools/call``, which is screened:
-ALLOW → forward; BLOCK → MCP tool error (``isError: true``), never forward.
+ALLOW ΓåÆ forward; BLOCK ΓåÆ MCP tool error (``isError: true``), never forward.
 
 When ``own_call_tree=True`` (zta/paranoid profiles), the proxy records tools it
 screened and ignores client-supplied ``caller_chain`` (anti-forge).
@@ -43,6 +43,8 @@ class ProxyConfig:
     fail_closed: bool = True
     profile: str = "balanced"
     own_call_tree: bool = False
+    # E2: when True, proxy filters tools/list responses (default off until E2 ships).
+    filter_tools_list: bool = False
 
 
 def _meta_ctx(params: dict) -> dict:

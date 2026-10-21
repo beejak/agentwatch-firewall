@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- **E1 — default-deny unknown tools** on profiles `zta` / `paranoid`
+  (`deny_unknown_tools`; allowlist = `caps ∪` YAML-declared tools). Lab
+  `balanced` unchanged (pack-only). Robustness: `S-block-unknown-tool-deny`
+  success; balanced pack-miss stays `expected_limit`.
+
 ### Docs / planning (2026-10-21)
 
 - **Final Gate B approved** (Karpathy overrides): P1–P5 accepted; P0 = E1+E2;
