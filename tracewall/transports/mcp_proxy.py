@@ -344,6 +344,20 @@ def main(argv: Optional[list[str]] = None) -> int:
         action="store_false",
         help="Pass tools/list responses through unchanged",
     )
+    sr = ap.add_mutually_exclusive_group()
+    sr.add_argument(
+        "--session-ratchet",
+        dest="session_ratchet",
+        action="store_true",
+        default=None,
+        help="Enable E4 session progressive containment (default on for zta/paranoid)",
+    )
+    sr.add_argument(
+        "--no-session-ratchet",
+        dest="session_ratchet",
+        action="store_false",
+        help="Disable session ratchet (leave lab soft-block posture alone)",
+    )
     ap.add_argument(
         "--tools-allowlist",
         default="",
@@ -357,8 +371,14 @@ def main(argv: Optional[list[str]] = None) -> int:
         ap.error("provide the real MCP server command after `--`")
 
     async def _boot() -> int:
+        from tracewall.transports.session_ratchet import SessionRatchet
+
         prof = get_profile(args.profile)
         fw, prof = await build_firewall_for_profile(prof, db_path=args.db, audit=LocalAuditSink())
+        if args.session_ratchet is True:
+            fw._session_ratchet = SessionRatchet()
+        elif args.session_ratchet is False:
+            fw._session_ratchet = None
         cfg = prof.proxy_config(default_agent_id=args.agent_id)
         if args.fail_closed is not None:
             cfg.fail_closed = args.fail_closed

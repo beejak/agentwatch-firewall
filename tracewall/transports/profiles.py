@@ -39,6 +39,7 @@ class Profile:
     load_zta_pack: bool
     deny_unknown_tools: bool
     filter_tools_list: bool
+    session_ratchet: bool
     rule_stems: Optional[frozenset[str]]
     description: str
 
@@ -62,8 +63,12 @@ PROFILES: dict[str, Profile] = {
         load_zta_pack=True,
         deny_unknown_tools=True,
         filter_tools_list=True,
+        session_ratchet=True,
         rule_stems=None,
-        description="Fail closed; require identity; unknown-tool deny; tools/list filter; ZTA pack.",
+        description=(
+            "Fail closed; require identity; unknown-tool deny; tools/list filter; "
+            "session ratchet; ZTA pack."
+        ),
     ),
     "zta": Profile(
         name="zta",
@@ -74,8 +79,12 @@ PROFILES: dict[str, Profile] = {
         load_zta_pack=True,
         deny_unknown_tools=True,
         filter_tools_list=True,
+        session_ratchet=True,
         rule_stems=None,
-        description="Prod ZTA: identity+caps; unknown-tool deny; tools/list filter; allowlists.",
+        description=(
+            "Prod ZTA: identity+caps; unknown-tool deny; tools/list filter; "
+            "session ratchet; allowlists."
+        ),
     ),
     "balanced": Profile(
         name="balanced",
@@ -86,8 +95,12 @@ PROFILES: dict[str, Profile] = {
         load_zta_pack=False,
         deny_unknown_tools=False,
         filter_tools_list=False,
+        session_ratchet=False,
         rule_stems=None,
-        description="Lab: pack-only (no unknown-tool deny / list filter); held-out regression.",
+        description=(
+            "Lab: pack-only (no unknown-tool deny / list filter / session ratchet); "
+            "held-out regression."
+        ),
     ),
     "permissive": Profile(
         name="permissive",
@@ -98,6 +111,7 @@ PROFILES: dict[str, Profile] = {
         load_zta_pack=False,
         deny_unknown_tools=False,
         filter_tools_list=False,
+        session_ratchet=False,
         rule_stems=_PERMISSIVE_STEMS,
         description="Fail open; identity optional; destructive+MINJA rules only.",
     ),
@@ -190,10 +204,13 @@ async def build_firewall_for_profile(
     from tracewall.semantic.judge import SemanticJudge
     from tracewall.taint.ledger import Ledger
 
+    from tracewall.transports.session_ratchet import SessionRatchet
+
     prof = get_profile(profile) if isinstance(profile, str) else profile
     policy = await load_policy_for_profile(prof)
     sink = audit if audit is not None else NullAuditSink()
     m = metrics if metrics is not None else (Metrics() if attach_metrics else None)
+    ratchet = SessionRatchet() if prof.session_ratchet else None
     fw = Firewall(
         ledger=Ledger(db_path),
         policy=policy,
@@ -204,5 +221,6 @@ async def build_firewall_for_profile(
         deny_unknown_tools=prof.deny_unknown_tools,
         declared_tools=policy.declared_tools() if prof.deny_unknown_tools else None,
         metrics=m,
+        session_ratchet=ratchet,
     )
     return fw, prof

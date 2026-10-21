@@ -29,6 +29,10 @@ tool is absent from caps (ZTA default-deny on capabilities).
 ``caps ∪ declared_tools`` (declared = tools named in the loaded YAML pack).
 Lab ``balanced`` keeps this off so pack-only regression stays honest.
 
+`session_ratchet` (E4, optional): after any BLOCK, elevate the session key; later
+egress-sensitive tools BLOCK with ``rule_id=session_ratchet``. Off when the
+handle is ``None`` (lab default).
+
 Verdict.score is always **0.0 bad … 1.0 clean** (semantic malicious scores are
 inverted at this facade).
 """
@@ -38,7 +42,7 @@ import hashlib
 import json
 import logging
 import time
-from typing import Callable, Iterable, Optional
+from typing import TYPE_CHECKING, Callable, Iterable, Optional
 
 from tracewall.audit.sink import AuditSink, LocalAuditSink
 from tracewall.content.filter import flagged as content_flagged
@@ -51,6 +55,9 @@ from tracewall.core.signal import (
 )
 from tracewall.ops.metrics import Metrics
 from tracewall.policy.normalize import canonical_tool_name
+
+if TYPE_CHECKING:
+    from tracewall.transports.session_ratchet import SessionRatchet
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +84,7 @@ class Firewall:
         deny_unknown_tools: bool = False,
         declared_tools: Iterable[str] | None = None,
         metrics: Metrics | None = None,
+        session_ratchet: Optional["SessionRatchet"] = None,
     ) -> None:
         self._ledger = ledger
         self._policy = policy
@@ -93,6 +101,7 @@ class Firewall:
         else:
             self._declared_tools = frozenset()
         self.metrics = metrics
+        self._session_ratchet = session_ratchet
 
     async def check(self, event: HookEvent) -> FirewallVerdict:
         t0 = time.perf_counter()
@@ -110,6 +119,11 @@ class Firewall:
                 event, Verdict.BLOCK, 0.0, "fail_safe",
                 f"internal error: {e}", completeness,
             )
+        if verdict.action == Verdict.BLOCK and self._session_ratchet is not None:
+            try:
+                self._session_ratchet.note_block(event.session_id, event.agent_id)
+            except Exception as e:
+                logger.warning("tracewall: session_ratchet note_block failed: %s", e)
         verdict.latency_ms = (time.perf_counter() - t0) * 1000
         if self.metrics is not None:
             try:
@@ -161,6 +175,20 @@ class Firewall:
         enriched = EnrichedEvent(event=event, call_tree=list(event.caller_chain or []))
         completeness["call_tree"] = bool(enriched.call_tree)
         completeness["session_chain"] = bool(event.session_id)
+
+        if self._session_ratchet is not None and self._session_ratchet.should_contain(
+            event.tool, event.session_id, aid,
+        ):
+            await self._ledger_feedback(aid, Verdict.BLOCK, severity=0.8)
+            return self._verdict(
+                event, Verdict.BLOCK, 0.0, "session_ratchet",
+                (
+                    f"session elevated after prior BLOCK; "
+                    f"egress tool '{event.tool}' contained (session_ratchet)"
+                ),
+                completeness,
+                rule_id="session_ratchet",
+            )
 
         content_flag = bool(self._content_filter(_content(event)))
 

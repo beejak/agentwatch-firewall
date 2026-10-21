@@ -153,6 +153,7 @@ async def test_zta_profile_knobs():
     p = get_profile("zta")
     assert p.require_identity and p.require_caps and p.own_call_tree and p.load_zta_pack
     assert p.deny_unknown_tools is True
+    assert p.session_ratchet is True
     cfg = p.proxy_config()
     assert cfg.own_call_tree is True
 

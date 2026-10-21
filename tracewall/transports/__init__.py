@@ -18,6 +18,7 @@ from tracewall.transports.profiles import (
     get_profile,
 )
 from tracewall.transports.python_guard import GuardBlocked, SoftBlockResult, guard, guarded
+from tracewall.transports.session_ratchet import SessionRatchet
 from tracewall.transports.tool_node import GuardedToolNode, ToolInvokeResult
 
 __all__ = [
@@ -35,4 +36,5 @@ __all__ = [
     "Profile",
     "get_profile",
     "build_firewall_for_profile",
+    "SessionRatchet",
 ]
