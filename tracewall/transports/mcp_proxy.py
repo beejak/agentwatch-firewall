@@ -1,17 +1,21 @@
-﻿"""
-tracewall/transports/mcp_proxy.py ΓÇö MCP gateway proxy (transport #2).
+"""
+tracewall/transports/mcp_proxy.py — MCP gateway proxy (transport #2).
 
 Sits transparently between an MCP client and an MCP server over stdio.
 Supports MCP **Content-Length** framing and legacy **NDJSON** (one JSON per line);
 framing is auto-detected from the first message on each direction.
 
 Forwards everything except ``tools/call``, which is screened:
-ALLOW ΓåÆ forward; BLOCK ΓåÆ MCP tool error (``isError: true``), never forward.
+ALLOW → forward; BLOCK → MCP tool error (``isError: true``), never forward.
+
+When ``filter_tools_list=True`` (zta/paranoid), ``tools/list`` responses are
+filtered so clients only see tools in ``caps ∪ declared_tools`` (or an explicit
+``tools_allowlist``). Requests still forward; initialize/notifications untouched.
 
 When ``own_call_tree=True`` (zta/paranoid profiles), the proxy records tools it
 screened and ignores client-supplied ``caller_chain`` (anti-forge).
 
-    python -m tracewall.transports.mcp_proxy --profile zta -- <mcp-server-cmd>
+    python -m tracewall.transports.mcp_proxy --profile zta -- <mcp-server>
 """
 from __future__ import annotations
 
@@ -19,11 +23,12 @@ import asyncio
 import json
 import logging
 import sys
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
+from typing import Iterable, Optional
 
 from tracewall.core.firewall import Firewall
 from tracewall.core.signal import HookEvent, Verdict
+from tracewall.policy.normalize import canonical_tool_name
 from tracewall.transports.mcp_framing import (
     encode_cl_message,
     encode_ndjson_message,
@@ -34,6 +39,7 @@ from tracewall.transports.session_chain import SessionCallTree
 logger = logging.getLogger(__name__)
 
 TOOLS_CALL = "tools/call"
+TOOLS_LIST = "tools/list"
 _META_KEY = "tracewall"
 
 
@@ -43,8 +49,9 @@ class ProxyConfig:
     fail_closed: bool = True
     profile: str = "balanced"
     own_call_tree: bool = False
-    # E2: when True, proxy filters tools/list responses (default off until E2 ships).
     filter_tools_list: bool = False
+    # When set, overrides Firewall declared_tools ∪ caps for list filtering.
+    tools_allowlist: Optional[frozenset[str]] = None
 
 
 def _meta_ctx(params: dict) -> dict:
@@ -85,6 +92,70 @@ def _block_response(req_id, reason: str) -> dict:
             "isError": True,
         },
     }
+
+
+def resolve_tools_allowlist(
+    firewall: Firewall,
+    cfg: ProxyConfig,
+    *,
+    caps: Iterable[str] | None = None,
+) -> frozenset[str]:
+    """Allowlist for tools/list filter: explicit cfg, else declared ∪ caps."""
+    if cfg.tools_allowlist is not None:
+        return frozenset(canonical_tool_name(t) for t in cfg.tools_allowlist)
+    declared = getattr(firewall, "_declared_tools", frozenset()) or frozenset()
+    allowed = set(declared)
+    if caps:
+        allowed |= {canonical_tool_name(c) for c in caps}
+    return frozenset(allowed)
+
+
+def filter_tools_list_result(
+    result: dict,
+    allowlist: Iterable[str],
+) -> dict:
+    """
+    Return a copy of a tools/list ``result`` with tools not in allowlist removed.
+    Non-dict / missing tools → empty tools list (fail-closed for filter path).
+    """
+    allowed = {canonical_tool_name(t) for t in allowlist}
+    tools = result.get("tools") if isinstance(result, dict) else None
+    if not isinstance(tools, list):
+        return {**(result if isinstance(result, dict) else {}), "tools": []}
+    kept = []
+    for t in tools:
+        if not isinstance(t, dict):
+            continue
+        name = canonical_tool_name(str(t.get("name", "")))
+        if name and name in allowed:
+            kept.append(t)
+    out = dict(result)
+    out["tools"] = kept
+    return out
+
+
+def maybe_filter_tools_list_response(
+    message: dict,
+    *,
+    pending_list_ids: set,
+    allowlist: frozenset[str],
+    enabled: bool,
+) -> dict:
+    """If this JSON-RPC response is a pending tools/list result, filter tools."""
+    if not enabled:
+        return message
+    req_id = message.get("id")
+    if req_id not in pending_list_ids:
+        return message
+    pending_list_ids.discard(req_id)
+    if "error" in message:
+        return message
+    result = message.get("result")
+    if not isinstance(result, dict):
+        return message
+    filtered = dict(message)
+    filtered["result"] = filter_tools_list_result(result, allowlist)
+    return filtered
 
 
 async def screen_tool_call(
@@ -137,12 +208,27 @@ class McpStdioProxy:
         server_cmd: list[str],
         cfg: Optional[ProxyConfig] = None,
         call_tree: SessionCallTree | None = None,
+        *,
+        list_caps: Iterable[str] | None = None,
     ) -> None:
         self._fw = firewall
         self._cmd = server_cmd
         self._cfg = cfg or ProxyConfig()
         self._modes: dict[str, str] = {"client": "ndjson", "server": "ndjson"}
         self._call_tree = call_tree if call_tree is not None else SessionCallTree()
+        self._pending_list_ids: set = set()
+        self._list_caps = list(list_caps) if list_caps is not None else None
+
+    async def _allowlist(self) -> frozenset[str]:
+        caps = self._list_caps
+        if caps is None and self._cfg.filter_tools_list:
+            try:
+                identity = await self._fw._ledger.get_identity(self._cfg.default_agent_id)
+                if identity and identity.caps:
+                    caps = list(identity.caps)
+            except Exception as e:
+                logger.warning("mcp_proxy: caps lookup for list filter failed: %s", e)
+        return resolve_tools_allowlist(self._fw, self._cfg, caps=caps)
 
     async def run(self) -> int:
         proc = await asyncio.create_subprocess_exec(
@@ -169,6 +255,12 @@ class McpStdioProxy:
                     proc.stdin.write(_encode_raw_forward(raw, framing))
                     await proc.stdin.drain()
                     continue
+                if (
+                    self._cfg.filter_tools_list
+                    and message.get("method") == TOOLS_LIST
+                    and "id" in message
+                ):
+                    self._pending_list_ids.add(message["id"])
                 blocked = await screen_tool_call(
                     self._fw, message, self._cfg, call_tree=self._call_tree,
                 )
@@ -189,6 +281,14 @@ class McpStdioProxy:
                 framing, raw = got
                 try:
                     obj = json.loads(raw)
+                    if self._cfg.filter_tools_list and isinstance(obj, dict):
+                        allowlist = await self._allowlist()
+                        obj = maybe_filter_tools_list_response(
+                            obj,
+                            pending_list_ids=self._pending_list_ids,
+                            allowlist=allowlist,
+                            enabled=True,
+                        )
                     sys.stdout.buffer.write(_encode(obj, self._modes["client"]))
                 except Exception:
                     sys.stdout.buffer.write(raw + b"\n")
@@ -230,6 +330,25 @@ def main(argv: Optional[list[str]] = None) -> int:
     g = ap.add_mutually_exclusive_group()
     g.add_argument("--fail-closed", dest="fail_closed", action="store_true", default=None)
     g.add_argument("--fail-open", dest="fail_closed", action="store_false")
+    fl = ap.add_mutually_exclusive_group()
+    fl.add_argument(
+        "--filter-tools-list",
+        dest="filter_tools_list",
+        action="store_true",
+        default=None,
+        help="Hide non-allowlisted tools from tools/list (default on for zta/paranoid)",
+    )
+    fl.add_argument(
+        "--no-filter-tools-list",
+        dest="filter_tools_list",
+        action="store_false",
+        help="Pass tools/list responses through unchanged",
+    )
+    ap.add_argument(
+        "--tools-allowlist",
+        default="",
+        help="Comma-separated tool names for list filter (overrides caps union declared)",
+    )
     ap.add_argument("server_cmd", nargs=argparse.REMAINDER)
     args = ap.parse_args(argv)
 
@@ -243,6 +362,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         cfg = prof.proxy_config(default_agent_id=args.agent_id)
         if args.fail_closed is not None:
             cfg.fail_closed = args.fail_closed
+        if args.filter_tools_list is not None:
+            cfg.filter_tools_list = args.filter_tools_list
+        if args.tools_allowlist.strip():
+            cfg.tools_allowlist = frozenset(
+                t.strip() for t in args.tools_allowlist.split(",") if t.strip()
+            )
         return await McpStdioProxy(fw, cmd, cfg).run()
 
     return asyncio.run(_boot())

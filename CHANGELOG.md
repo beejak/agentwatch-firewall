@@ -8,6 +8,9 @@
   (`deny_unknown_tools`; allowlist = `caps ∪` YAML-declared tools). Lab
   `balanced` unchanged (pack-only). Robustness: `S-block-unknown-tool-deny`
   success; balanced pack-miss stays `expected_limit`.
+- **E2 — optional MCP `tools/list` filter** on `zta` / `paranoid` (response
+  filter; request still forwards). CLI: `--filter-tools-list` /
+  `--no-filter-tools-list` / `--tools-allowlist`. `balanced` pass-through.
 
 ### Docs / planning (2026-10-21)
 

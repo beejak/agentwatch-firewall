@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-07-21T09:43:17Z",
-  "n_rows": 18,
-  "n_pass": 18,
+  "generated_at": "2026-10-21T05:10:48Z",
+  "n_rows": 21,
+  "n_pass": 21,
   "n_fail": 0,
   "by_kind": {
     "success": {
-      "n": 12,
-      "pass": 12
+      "n": 18,
+      "pass": 18
     },
     "expected_limit": {
-      "n": 6,
-      "pass": 6
+      "n": 3,
+      "pass": 3
     }
   },
   "success_criterion": "all kind=success rows pass; expected_limit rows pass (limit reproduced)",
@@ -152,31 +152,58 @@
       "note": "LIMIT: permissive omits exfil_* rules by design (high trust avoids semantic)"
     },
     {
-      "id": "L-tools-list-never-screened",
+      "id": "S-tools-list-request-forwards",
       "profile": "paranoid",
-      "kind": "expected_limit",
+      "kind": "success",
       "expect": "forward",
       "observed": "forward",
       "pass": true,
-      "note": "LIMIT: only tools/call is screened; list/init always forward"
+      "note": "E2: tools/list request still forwards; response filter is unit-tested (not brink screen_tool_call)"
     },
     {
-      "id": "L-tools-list-never-screened",
+      "id": "S-tools-list-request-forwards",
+      "profile": "zta",
+      "kind": "success",
+      "expect": "forward",
+      "observed": "forward",
+      "pass": true,
+      "note": "E2: tools/list request still forwards; response filter is unit-tested (not brink screen_tool_call)"
+    },
+    {
+      "id": "S-tools-list-request-forwards",
       "profile": "balanced",
-      "kind": "expected_limit",
+      "kind": "success",
       "expect": "forward",
       "observed": "forward",
       "pass": true,
-      "note": "LIMIT: only tools/call is screened; list/init always forward"
+      "note": "E2: tools/list request still forwards; response filter is unit-tested (not brink screen_tool_call)"
     },
     {
-      "id": "L-tools-list-never-screened",
+      "id": "S-tools-list-request-forwards",
       "profile": "permissive",
-      "kind": "expected_limit",
+      "kind": "success",
       "expect": "forward",
       "observed": "forward",
       "pass": true,
-      "note": "LIMIT: only tools/call is screened; list/init always forward"
+      "note": "E2: tools/list request still forwards; response filter is unit-tested (not brink screen_tool_call)"
+    },
+    {
+      "id": "S-zta-block-unknown-tool-call",
+      "profile": "zta",
+      "kind": "success",
+      "expect": "block",
+      "observed": "block",
+      "pass": true,
+      "note": "E1 via brink: unknown/unlisted tool blocked under zta/paranoid"
+    },
+    {
+      "id": "S-zta-block-unknown-tool-call",
+      "profile": "paranoid",
+      "kind": "success",
+      "expect": "block",
+      "observed": "block",
+      "pass": true,
+      "note": "E1 via brink: unknown/unlisted tool blocked under zta/paranoid"
     }
   ]
 }

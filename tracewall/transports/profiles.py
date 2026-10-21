@@ -61,9 +61,9 @@ PROFILES: dict[str, Profile] = {
         own_call_tree=True,
         load_zta_pack=True,
         deny_unknown_tools=True,
-        filter_tools_list=False,  # E2 enables on zta/paranoid
+        filter_tools_list=True,
         rule_stems=None,
-        description="Fail closed; require identity; unknown-tool deny; ZTA pack; own call-tree.",
+        description="Fail closed; require identity; unknown-tool deny; tools/list filter; ZTA pack.",
     ),
     "zta": Profile(
         name="zta",
@@ -73,9 +73,9 @@ PROFILES: dict[str, Profile] = {
         own_call_tree=True,
         load_zta_pack=True,
         deny_unknown_tools=True,
-        filter_tools_list=False,  # E2 enables on zta/paranoid
+        filter_tools_list=True,
         rule_stems=None,
-        description="Prod ZTA: identity+caps; unknown-tool deny; default-deny allowlists.",
+        description="Prod ZTA: identity+caps; unknown-tool deny; tools/list filter; allowlists.",
     ),
     "balanced": Profile(
         name="balanced",

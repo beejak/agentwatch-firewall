@@ -201,12 +201,22 @@ def scenarios() -> list[dict]:
             "note": "LIMIT: permissive omits exfil_* rules by design (high trust avoids semantic)",
         },
         {
-            "id": "L-tools-list-never-screened",
-            "kind": "expected_limit",
-            "profiles": ["paranoid", "balanced", "permissive"],
+            "id": "S-tools-list-request-forwards",
+            "kind": "success",
+            "profiles": ["paranoid", "zta", "balanced", "permissive"],
             "message": {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
             "expect": "forward",
-            "note": "LIMIT: only tools/call is screened; list/init always forward",
+            "note": "E2: tools/list request still forwards; response filter is unit-tested (not brink screen_tool_call)",
+        },
+        {
+            "id": "S-zta-block-unknown-tool-call",
+            "kind": "success",
+            "profiles": ["zta", "paranoid"],
+            "trust": 0.9,
+            "register_identity": {"agent_id": "mcp-client", "caps": ["read_file"]},
+            "message": _call("post_slack", {"text": "hi"}),
+            "expect": "block",
+            "note": "E1 via brink: unknown/unlisted tool blocked under zta/paranoid",
         },
     ]
 

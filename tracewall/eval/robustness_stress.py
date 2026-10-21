@@ -264,14 +264,14 @@ def scenarios() -> list[dict[str, Any]]:
             "note": "Lab balanced: pack miss still ALLOW (held-out / utility honesty)",
         },
         {
-            "id": "L-tools-list-unscanned",
+            "id": "L-tools-list-not-firewall-layer",
             "kind": "expected_limit",
             "domain": "workspace",
             "tool": "tools_list_probe",
             "args": {"hint": "not a tools/call"},
             "chain": ["read_secret"],
             "expect": "allow",
-            "note": "MCP tools/list filter is transport-layer (E2); firewall-only probe remains limit",
+            "note": "Honest layering: tools/list filter is mcp_proxy (E2), not Firewall.check",
         },
     ]
 
@@ -334,7 +334,7 @@ def main(argv=None):
         "design_notes": [
             "Not banking-only: workspace/HTTP/host/contagion/identity domains.",
             "E1: S-block-unknown-tool-deny success under deny_unknown_tools; balanced pack-miss stays expected_limit.",
-            "E2 pending: MCP tools/list filter (transport); L-tools-list-unscanned remains until E2.",
+            "E2: tools/list response filter in mcp_proxy; firewall-only list probe stays expected_limit (layering).",
             "ZWSP IBAN + PascalCase aliases are success rows after normalize/canonical (2026-07-21).",
         ],
     }
